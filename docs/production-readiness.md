@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — privacy, terms and support pages
+
+Production at **https://usetreeti.xyz** runs app commit `b502e2c` as Cloudflare version `5d8b75a9-8164-42ba-b51c-345d10eb81c0` (gzip 3,018.00 KiB), deployed 12 October 2026 with `npm run cf:deploy:production`. It adds the public `/privacy`, `/terms` and `/support` pages and links them from the landing footer, sign-in form and account page; see [ADR 018](adr/018-privacy-terms-support-pages.md). The text names the owner as operator and was not legally reviewed. No database migration was needed.
+
+GitHub's verify job passed for the commit. Its Workers job failed once because the local Workers runtime did not start on the runner, then passed unchanged on a re-run. Locally, lint, types, 155 unit tests, the new policy-page browser tests, 20 related browser tests and the Workers checks passed. A fresh private snapshot (`output/backups/2026-10-12T22-21-24.162Z`) restored 26 tables, 457 rows, 36 foreign keys and nine Storage files offline. After the deploy, `npm run check:production` passed, the three pages returned 200 on the main domain, and the old staging hostname redirected `/privacy` to it.
+
+Rollback version: `d5bf9971-88af-462f-80f2-8da92a5f35e4`.
+
 ## Release — navigation and invitation resend
 
 Production at **https://usetreeti.xyz** runs app commit `6aa078f` as Cloudflare version `d5bf9971-88af-462f-80f2-8da92a5f35e4` (gzip 3,004.03 KiB), deployed 12 October 2026 at 21:58 UTC with `npm run cf:deploy:production`. It removes Create from the bottom navigation and adds **Resend invitation** for people who have not yet responded; see [ADR 017](adr/017-pending-invitation-resend.md). No database migration was needed.
