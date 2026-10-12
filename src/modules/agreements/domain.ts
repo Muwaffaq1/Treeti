@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { digest, invitationToken, sha256 } from '@/lib/crypto';
+import {canResendInvitation} from './invitation-resend';
 import {calendarDate} from '@/lib/calendar';
 import { money } from '@/lib/money';
 import {repaymentWording} from './repayment-plan';
@@ -124,6 +125,16 @@ export function applyCommand(original: Aggregate, input: unknown, ctx: Context):
       lender(); prefinal(); requireThat(['DRAFT', 'AWAITING_BORROWER', 'AWAITING_APPROVAL'].includes(a.status), 'INVALID_STATE_TRANSITION', 'Update the proposed terms before sending them again.');
       invitation = issueInvitation(a, a.participants.find(x => x.role === 'BORROWER')!, ctx); a.status = 'AWAITING_BORROWER';
       appendEvent(a, 'BORROWER_INVITED', p.id, {}, ctx.now); break;
+    case 'resend-invitation': {
+      party(); prefinal();
+      const recipient=a.participants.find(person=>person.id===c.targetId);
+      requireThat(recipient&&canResendInvitation(a,p,recipient), 'INVALID_INVITATION_RECIPIENT', 'Only an invitation awaiting this person’s response can be resent.');
+      const lastSent=Math.max(0,...a.invitations.filter(i=>i.participantId===recipient.id&&i.versionId===a.currentVersionId).map(i=>Date.parse(i.createdAt)));
+      requireThat(Date.parse(ctx.now)-lastSent>=60000, 'INVITATION_RESEND_COOLDOWN', 'Please wait one minute before sending another invitation to this person.', 429);
+      invitation=issueInvitation(a,recipient,ctx);
+      appendEvent(a,'INVITATION_RESENT',p.id,{participantId:recipient.id},ctx.now);
+      break;
+    }
     case 'version': {
       lender(); prefinal(); requireThat(c.terms, 'TERMS_REQUIRED', 'Complete the agreement terms.', 422);
       const v = makeVersion(a, c.terms, note(), ctx); a.versions.push(v); a.currentVersionId = v.id; a.balanceMinor = v.terms.principalMinor;

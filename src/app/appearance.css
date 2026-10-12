@@ -25,7 +25,7 @@
 }
 body{background-color:var(--paper);isolation:isolate}
 body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--texture-opacity);background-image:var(--paper-texture);background-size:180px 180px}
-.button-primary,.attention-action,.mobile-nav a:last-child,.agreement-stepper li.current .agreement-step-marker{background:var(--action);color:var(--action-text)}
+.button-primary,.attention-action,.agreement-stepper li.current .agreement-step-marker{background:var(--action);color:var(--action-text)}
 .filter-tabs button.active{background:var(--selection);color:var(--selection-text)}
 .button-danger{background:var(--danger-solid);color:var(--action-text)}.skip-link{background:var(--action);color:var(--action-text)}
 .dialog-overlay{background:var(--overlay)}.mobile-nav{background:var(--nav-surface)}
@@ -62,9 +62,12 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;op
 @media(min-width:801px) and (max-width:1100px){
   .sidebar{display:none}.workspace{width:100%;margin-inline-start:0}.mobile-header{display:flex;align-items:center;justify-content:space-between;padding:24px 32px}.mobile-header .wordmark{font-size:40px}.main-content{padding-top:28px;padding-bottom:calc(120px + env(safe-area-inset-bottom))}
   .mobile-nav{display:flex;position:fixed;inset-inline:16px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:560px;width:auto;margin-inline:auto;border:1px solid var(--faint);border-radius:28px;padding:8px;gap:4px;box-shadow:0 8px 32px #00000012;z-index:30;backdrop-filter:blur(16px)}
-  .mobile-nav a{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:56px;border-radius:20px;padding:8px 3px;font-size:10px;color:var(--muted)}.mobile-nav a[aria-current=page]{background:var(--accent-soft);color:var(--accent)}.mobile-nav a:last-child{background:var(--action);color:var(--action-text)}
+  .mobile-nav a{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:56px;border-radius:20px;padding:8px 3px;font-size:10px;color:var(--muted)}.mobile-nav a[aria-current=page]{background:var(--accent-soft);color:var(--accent)}
 }
 
 /* Static, tiled grain on larger surfaces keeps the paper material continuous. */
 .auth-story,.sidebar,.panel,.agreement-card,.attention-row,.activity-events,.dialog-content,.overview-summary,.overview-balance,.profile-switch-menu,.utility-menu,.mobile-nav{background-image:var(--surface-texture);background-size:180px 180px}
 @media(forced-colors:active){.auth-story,.sidebar,.panel,.agreement-card,.attention-row,.activity-events,.dialog-content,.overview-summary,.overview-balance,.profile-switch-menu,.utility-menu,.mobile-nav{background-image:none}}
+
+/* Keep the recipient action within its participant row on small screens. */
+.participant-row>div{min-width:0}.participant-row .resend-invitation{display:flex;margin-top:6px;padding:6px 0;min-height:36px;font-size:12px;color:var(--accent);text-align:start}

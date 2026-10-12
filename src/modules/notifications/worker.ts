@@ -1,3 +1,4 @@
+import {needsInvitationResponse} from '@/modules/agreements/invitation-resend';
 import { randomUUID } from 'node:crypto';
 import {z} from 'zod';
 import { Resend } from 'resend';
@@ -54,10 +55,11 @@ export async function processOutbox(agreementId?:string){
         await ensureArtifact(a,row.data.payload.settlement?'settlement':'pdf');
       }else if(row.event_type==='INVITATION_DELIVERY'){
         const i=a.invitations.find(i=>i.id===row.data.payload.invitationId);
-        if(i&&i.status==='PENDING'&&i.expiresAt>new Date().toISOString()&&i.versionId===a.currentVersionId&&!['CANCELLED','DECLINED'].includes(a.status)){
+        const recipient=i&&a.participants.find(p=>p.id===i.participantId);
+        if(i&&recipient&&needsInvitationResponse(a,recipient)&&i.status==='PENDING'&&i.expiresAt>new Date().toISOString()&&i.versionId===a.currentVersionId&&!['CANCELLED','DECLINED'].includes(a.status)){
           if(!row.encrypted_delivery)throw new Error('DELIVERY_TOKEN_UNAVAILABLE');
           const {token}=decryptDelivery<{token:string}>(row.encrypted_delivery),p=a.participants.find(p=>p.id===i.participantId)!;
-          await deliver(i.destination,p.role==='WITNESS'?'You are invited to review an agreement as a witness. Read the terms and confirm whether you agree to act as a witness. You are not responsible for repayment.':'You are invited to review a proposed interest-free agreement. Read the terms, request changes, or decline before deciding.',`${base}/invite/${token}`,row.id);
+          await deliver(i.destination,p.role==='WITNESS'?'You are invited to review an agreement as a witness. Read the terms and confirm whether you agree to act as a witness. You are not responsible for repayment.':'You are invited to review a proposed interest-free agreement. Read the terms before deciding whether to approve.',`${base}/invite/${token}`,row.id);
         }
       }else{
         const message=messages[row.event_type];

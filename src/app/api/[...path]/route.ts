@@ -132,6 +132,10 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       if(!demo){
         if(input.action==='invite-witness'&&input.contact)requireEmailDelivery(input.contact);
         if(input.action==='invite-witnesses')for(const witness of input.witnesses??[])requireEmailDelivery(witness.contact);
+        if(input.action==='resend-invitation'){
+          const a=await repo.get(id);if(!a||!member(a,actor))throw new DomainError('NOT_FOUND','This agreement is unavailable.',404);
+          const recipient=a.participants.find(p=>p.id===input.targetId);if(recipient)requireEmailDelivery(recipient.contact);
+        }
         if(['send','agree-and-send'].includes(input.action)){
           const a=await repo.get(id);if(!a||!member(a,actor))throw new DomainError('NOT_FOUND','This agreement is unavailable.',404);
           const borrower=a.participants.find(p=>p.role==='BORROWER');

@@ -244,3 +244,16 @@ it('isolates investment ownership in repositories and direct RLS reads, and pres
  await expect(investments.changeInvestment(record.id,{action:'contribute',amountMinor:'1',date:'2026-10-01',expectedRevision:1},people[4],'investment_archived_add_unique')).rejects.toThrow('Restore');
  expect((await investments.changeInvestment(record.id,{action:'archive',archived:false,expectedRevision:1},people[4],'investment_restore_unique_01')).archived).toBe(false);
 });
+
+it('persists an idempotent resend with an encrypted token and unchanged financial terms',async()=>{
+ const original=(await repo.create(input,people[0],'resend_create_unique_key')).agreement;
+ const sent=await repo.command(original.id,{action:'send',expectedVersionId:original.currentVersionId},people[0],'resend_initial_unique_key');
+ const a=await repo.claim(sent.invitation!.token,people[1]),body={action:'resend-invitation',expectedVersionId:a.currentVersionId,targetId:a.participants.find(p=>p.role==='LENDER')!.id};
+ const one=await repo.command(a.id,body,people[1],'resend_once_unique_key'),two=await repo.command(a.id,body,people[1],'resend_once_unique_key');
+ expect(two.agreement).toEqual(one.agreement);expect(two.invitation).toBeUndefined();expect(one.agreement.versions).toEqual(a.versions);expect(one.agreement.approvals).toEqual(a.approvals);expect(one.agreement.status).toBe(a.status);
+ const rows=await db.query<{data:{payload:{invitationId:string}};encrypted_delivery:unknown}>('select data,encrypted_delivery from outbox_events where agreement_id=$1 and event_type=$2',[a.id,'INVITATION_DELIVERY']);
+ expect(rows).toHaveLength(2);expect(rows.find(r=>r.data.payload.invitationId===one.invitation!.invitationId)!.encrypted_delivery).toBeTruthy();
+ expect(JSON.stringify(await db.query('select data,response from outbox_events cross join idempotency_keys'))).not.toContain(one.invitation!.token);
+ await expect(repo.command(a.id,body,people[1],'resend_duplicate_unique_key')).rejects.toThrow('wait one minute');
+ expect((await repo.get(a.id))!.events.filter(e=>e.type==='INVITATION_RESENT')).toHaveLength(1);
+});

@@ -62,3 +62,12 @@ it('accepts live party approval using the revalidated session without requesting
   expect((await post(['agreements',a.id,'approve'],{action:'approve',expectedVersionId:a.currentVersionId,affirmed:true,signature:people[0].name})).status).toBe(200);
   expect(mocks.grant).not.toHaveBeenCalled();expect(mocks.command).toHaveBeenCalledWith(a.id,expect.objectContaining({action:'approve'}),people[0],key,undefined);
 });
+
+it('checks the saved resend destination and queues only a committed invitation',async()=>{
+ const a=approved(),recipient=a.participants[1],body={action:'resend-invitation',expectedVersionId:a.currentVersionId,targetId:recipient.id};
+ a.participants[1].contact='+2348012345678';mocks.get.mockResolvedValue(a);
+ expect((await post(['agreements',a.id,'resend-invitation'],body)).status).toBe(422);expect(mocks.command).not.toHaveBeenCalled();
+ a.participants[1].contact=people[1].contacts[0];
+ expect((await post(['agreements',a.id,'resend-invitation'],body)).status).toBe(200);expect(mocks.queueAgreement).toHaveBeenCalledOnce();
+ expect(mocks.command.mock.invocationCallOrder[0]).toBeLessThan(mocks.queueAgreement.mock.invocationCallOrder[0]);
+});
