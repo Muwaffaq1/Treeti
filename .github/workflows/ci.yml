@@ -1,0 +1,58 @@
+name: treeti checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: treeti-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treeti-qa
+          retention-days: 7
+          path: |
+            playwright-report/
+            output/qa/
+            output/pdf/
+  workers:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run cf:build
+      - run: npm run test:workers
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treeti-workers-qa
+          retention-days: 7
+          path: |
+            output/qa/cloudflare-*.png
+            output/pdf/cloudflare-runtime-probe.pdf
