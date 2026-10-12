@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ahd-local-runtime-probe",
+  "main": "../../.wrangler/probe/worker.mjs",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "AHD_SESSION_SECRET": "synthetic-runtime-probe-secret-never-used-in-production",
+    "AHD_APP_URL": "http://127.0.0.1:8790"
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">treeti</title>
+  <rect width="512" height="512" rx="120" fill="#9C62F8"/>
+  <path d="M224 140v166c0 43 23 66 65 66h39" fill="none" stroke="#111111" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M160 218h183" fill="none" stroke="#111111" stroke-width="54" stroke-linecap="round"/>
+  <circle cx="345" cy="140" r="25" fill="#F6F4EF"/>
+</svg>

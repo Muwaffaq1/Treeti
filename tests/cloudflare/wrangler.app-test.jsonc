@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ahd-local-app-test",
+  "main": "../../.open-next/worker.js",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "../../.open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "ahd-local-app-test" }],
+  "vars": {
+    "AHD_RUNTIME": "cloudflare", "AHD_ENABLE_DEMO": "false", "AHD_APP_URL": "http://127.0.0.1:8791",
+    "INNGEST_DEV": "false",
+    "INNGEST_SIGNING_KEY": "signkey-test-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  }
+}

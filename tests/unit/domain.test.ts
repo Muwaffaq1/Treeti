@@ -1,0 +1,65 @@
+import {describe,it,expect} from 'vitest';
+import fc from 'fast-check';
+import {digest} from '@/lib/crypto';
+import {parseMoney,moneyInput} from '@/lib/money';
+import {applyCommand,claimInvitation,isApproved,projectAgreement,verifyEvents,balance,validWitnesses} from '@/modules/agreements/domain';
+import {digitalWitnessStatement,usesDigitalWitnesses} from '@/modules/agreements/witness-policy';
+import {recipients,messages} from '@/modules/notifications/worker';
+import {active,act,approved,draft,grant,now,people,terms,witnessed,legacyDraft} from '../helpers';
+
+describe('immutable agreement evidence',()=>{
+ it('canonicalizes keys without losing amounts',()=>{expect(digest({b:'30000000',a:1})).toBe(digest({a:1,b:'30000000'}));expect(digest({a:1,b:'30000001'})).not.toBe(digest({a:1,b:'30000000'}));});
+ it('preserves earlier approval and invalidates it on revision',()=>{const a=approved(),old=a.versions[0],b=act(a,people[0],'version',{terms:{...terms,principalMinor:'20000000'},reason:'Agreed smaller principal'}).agreement;expect(b.versions[0]).toEqual(old);expect(b.approvals).toEqual(a.approvals);expect(isApproved(b,'BORROWER')).toBe(false);expect(()=>applyCommand(b,{action:'approve',expectedVersionId:old.id,affirmed:true,signature:'Borrower'},{actor:people[1],now,stepUp:grant(a,people[1],'approve')})).toThrow('changed');expect(verifyEvents(b.events)).toBe(true);});
+ it('requires current verified consent from both parties',()=>{const a=draft();expect(()=>act(a,people[0],'finalize')).toThrow();const sent=act(a,people[0],'send').agreement;const result=applyCommand(sent,{action:'approve',expectedVersionId:sent.currentVersionId,affirmed:true,signature:'Lender'},{actor:people[0],now});expect(result.agreement.approvals[0].authenticationLevel).toBe('VERIFIED_EMAIL_SESSION');expect(()=>act(sent,people[4],'approve',{affirmed:true,signature:'Other Person'})).toThrow('access');expect(()=>act(active(),people[0],'version',{terms,reason:'Changing settled terms'})).toThrow('cannot be edited');});
+ it('detects changed, omitted and reordered audit events',()=>{const a=active();expect(verifyEvents(a.events)).toBe(true);const changed=structuredClone(a.events);changed[0].payload.reason='altered';expect(verifyEvents(changed)).toBe(false);expect(verifyEvents(a.events.slice(1))).toBe(false);expect(verifyEvents([...a.events].reverse())).toBe(false);});
+});
+describe('truthful witnessing and invitation identity',()=>{
+ it('records digital consent without a presence question and binds the exact party names, amount and version',()=>{
+  const r=act(approved(),people[0],'invite-witness',{name:people[2].name,contact:people[2].contacts[0]}),a=claimInvitation(r.agreement,r.invitation!.token,{actor:people[2],now});
+  for(const extra of [{educated:false,affirmed:true},{educated:true,affirmed:false}])expect(()=>act(a,people[2],'attest',{...extra,signature:people[2].name})).toThrow('confirm');
+  expect(()=>act(a,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name,type:'FORMATION',presence:'IN_PERSON'})).toThrow('without a claim');
+  const b=act(a,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name}).agreement,w=b.attestations[0];
+  expect(w).toMatchObject({type:'DIGITAL_ACKNOWLEDGEMENT',presence:'DOCUMENT_REVIEW',textVersion:'DIGITAL_ACKNOWLEDGEMENT_V1',versionHash:b.versions[0].hash,text:digitalWitnessStatement(b.versions[0])});
+  expect(w.text).toContain('Lender is lending ₦300,000');expect(w.text).toContain('to Borrower');expect(w.text).not.toContain('personally witnessed');expect(validWitnesses(b)).toHaveLength(1);
+  expect(()=>act(b,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name})).toThrow('already recorded');
+ });
+ it('requires a newly approved version to change legacy witness policy, preserving earlier responses',()=>{
+  const legacyDraftWithTwo=legacyDraft();legacyDraftWithTwo.versions[0].terms.requiredWitnesses=2;const issued=act(approved(2,legacyDraftWithTwo),people[0],'invite-witness',{name:people[2].name,contact:people[2].contacts[0]});const claimedLegacy=claimInvitation(issued.agreement,issued.invitation!.token,{actor:people[2],now});const a=act(claimedLegacy,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name,type:'FORMATION',presence:'IN_PERSON'}).agreement,old=structuredClone(a.versions[0]),responses=structuredClone(a.attestations),approvals=structuredClone(a.approvals);
+  const b=act(a,people[0],'version',{terms,reason:'Use digital witness acknowledgment'}).agreement;
+  expect(b.versions[0]).toEqual(old);expect(b.attestations).toEqual(responses);expect(b.approvals).toEqual(approvals);expect(usesDigitalWitnesses(b.versions[1])).toBe(true);expect(validWitnesses(b)).toEqual([]);
+  expect(isApproved(b,'BORROWER')).toBe(false);expect(isApproved(b,'LENDER')).toBe(false);expect(()=>act(b,people[0],'finalize')).toThrow('Both parties');
+  const r=act(approved(1,legacyDraft()),people[0],'invite-witness',{name:people[2].name,contact:people[2].contacts[0]}),legacy=claimInvitation(r.agreement,r.invitation!.token,{actor:people[2],now});
+  expect(()=>act(legacy,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name,type:'DIGITAL_ACKNOWLEDGEMENT',presence:'DOCUMENT_REVIEW'})).toThrow('updated version');
+ });
+ it('counts only distinct witness participants with the matching policy, version and statement',()=>{
+  const a=witnessed();a.versions[0].terms.requiredWitnesses=2;a.attestations.push({...a.attestations[0],id:crypto.randomUUID()});expect(validWitnesses(a)).toHaveLength(1);
+  for(const change of [{presence:'IN_PERSON'},{text:'I witnessed money change hands.'},{versionHash:'changed'},{participantId:a.participants[0].id}]){const b=structuredClone(a);Object.assign(b.attestations[0],change);b.attestations=b.attestations.slice(0,1);expect(validWitnesses(b)).toHaveLength(0);}
+ });
+ it('never counts review alone as a direct witness',()=>{expect(()=>act(witnessed('REVIEW_ONLY'),people[0],'finalize')).toThrow('review alone');});
+ it('binds invitation to verified destination and keeps tokens hashed',()=>{const r=act(draft(),people[0],'send');expect(JSON.stringify(r.agreement)).not.toContain(r.invitation!.token);expect(()=>claimInvitation(r.agreement,r.invitation!.token,{actor:people[4],now})).toThrow('Verify the email');const claimed=claimInvitation(r.agreement,r.invitation!.token,{actor:people[1],now});expect(claimInvitation(claimed,r.invitation!.token,{actor:people[1],now})).toEqual(claimed);expect(()=>claimInvitation(claimed,r.invitation!.token,{actor:people[1],now:'2026-11-01T00:00:00Z'})).toThrow('no longer active');});
+ it('cannot attest after declining or misstate later formation',()=>{const r=act(approved(1,legacyDraft()),people[0],'invite-witness',{name:people[2].name,contact:people[2].contacts[0]}),a=claimInvitation(r.agreement,r.invitation!.token,{actor:people[2],now});const attestation={educated:true,affirmed:true,signature:people[2].name,type:'FORMATION',presence:'LATER_ACKNOWLEDGEMENT'};expect(()=>act(a,people[2],'attest',attestation)).toThrow('later acknowledgment');const declined=act(a,people[2],'decline-witness').agreement;expect(()=>act(declined,people[2],'attest',{...attestation,presence:'IN_PERSON'})).toThrow('no longer active');});
+ it('issues two witness invitations together and shares only attested status with witnesses',()=>{const r=act(approved(2),people[0],'invite-witnesses',{witnesses:[{name:people[2].name,contact:people[2].contacts[0]},{name:people[3].name,contact:people[3].contacts[0]}]});expect(r.invitations).toHaveLength(2);let a=claimInvitation(r.agreement,r.invitations![0].token,{actor:people[2],now});a=claimInvitation(a,r.invitations![1].token,{actor:people[3],now});a=act(a,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name,type:'DIGITAL_ACKNOWLEDGEMENT',presence:'DOCUMENT_REVIEW'}).agreement;a=act(a,people[3],'attest',{educated:true,affirmed:true,signature:people[3].name,type:'DIGITAL_ACKNOWLEDGEMENT',presence:'DOCUMENT_REVIEW'}).agreement;const view=projectAgreement(a,people[2]);expect(view.attestations).toHaveLength(1);expect(view.witnessStatuses?.map(x=>x.participantId)).toEqual(expect.arrayContaining([a.participants.find(x=>x.name===people[3].name)!.id]));});
+ it('withholds ongoing finances and other contacts from witnesses',()=>{let a=active();a=act(a,people[1],'repayment',{amountMinor:'5000',date:'2026-10-08',method:'Cash',note:'Sensitive note'}).agreement;const view=projectAgreement(a,people[2]);expect(view.repayments).toEqual([]);expect(view.versions[0].payload.witnessPolicy).toBe('DIGITAL_ACKNOWLEDGEMENT_V1');expect(JSON.stringify(view.versions[0].payload)).not.toContain('@');expect(JSON.stringify(view)).not.toContain('Sensitive note');expect(JSON.stringify(view)).not.toContain(people[0].contacts[0]);expect(view.outbox).toEqual([]);expect(recipients(a,'REPAYMENT_PROPOSED').map(p=>p.role)).not.toContain('WITNESS');expect(()=>act(a,people[2],'repayment',{amountMinor:'5',date:'2026-10-08',method:'Cash'})).toThrow('Only the lender or borrower');});
+});
+describe('confirmed balances and mutual settlement',()=>{
+ it('records payment proposals without reducing the balance; only the counterparty confirms',()=>{const a=act(active(0),people[1],'repayment',{amountMinor:'10000000',date:'2026-10-08',method:'Cash'}).agreement,id=a.repayments[0].id;expect(balance(a)).toBe('30000000');expect(()=>act(a,people[1],'confirm-repayment',{targetId:id})).toThrow('other party');const b=act(a,people[0],'confirm-repayment',{targetId:id}).agreement;expect(balance(b)).toBe('20000000');expect(()=>act(b,people[0],'confirm-repayment',{targetId:id})).toThrow('already received');});
+ it('disputes leave balances unchanged and preserve both records',()=>{const a=act(active(0),people[1],'repayment',{amountMinor:'10000000',date:'2026-10-08',method:'Cash',reference:'REF-1'}).agreement,b=act(a,people[0],'dispute-repayment',{targetId:a.repayments[0].id,note:'Please check the reference'}).agreement;expect(b.balanceMinor).toBe('30000000');expect(b.repayments[0].status).toBe('DISPUTED');expect(()=>act(b,people[1],'repayment',{amountMinor:'1',date:'2026-10-08',method:'Cash',reference:'REF-1'})).toThrow('already recorded');});
+ it('rechecks the current balance when multiple proposals compete',()=>{let a=active(0);for(let i=0;i<2;i++)a=act(a,people[1],'repayment',{amountMinor:'20000000',date:'2026-10-08',method:'Cash',reference:`REF-${i}`}).agreement;a=act(a,people[0],'confirm-repayment',{targetId:a.repayments[0].id}).agreement;expect(()=>act(a,people[0],'confirm-repayment',{targetId:a.repayments[1].id})).toThrow('balance changed');});
+ it('acknowledges forgiveness separately and requires both settlement acknowledgments',()=>{let a=act(active(0),people[0],'forgiveness',{amountMinor:'30000000',reason:'With care'}).agreement;expect(a.balanceMinor).toBe('30000000');a=act(a,people[1],'confirm-forgiveness',{targetId:a.adjustments[0].id}).agreement;expect(a.status).toBe('SETTLEMENT_PENDING');a=act(a,people[0],'settle',{affirmed:true}).agreement;expect(a.status).toBe('SETTLEMENT_PENDING');expect(()=>act(a,people[0],'settle',{affirmed:true})).toThrow('already recorded');a=act(a,people[1],'settle',{affirmed:true}).agreement;expect(a.status).toBe('SETTLED');expect(a.settlements).toHaveLength(2);expect(a.manifest?.version.terms.principalMinor).toBe('30000000');});
+ it('round-trips integer minor units and never rounds a decimal',()=>{fc.assert(fc.property(fc.bigInt({min:1n,max:99999999999999n}),amount=>{expect(parseMoney(moneyInput(amount.toString()))).toBe(amount.toString());}));expect(()=>parseMoney('1.001')).toThrow();expect(()=>parseMoney('-1')).toThrow();});
+ it('keeps reminder copy factual and non-accusatory',()=>{expect(messages.DATE_PASSED).toContain('recorded repayment date has passed');});
+});
+it('uses West Africa Time for date-only rules around midnight',async()=>{const {calendarDate}=await import('@/lib/calendar');expect(calendarDate('2026-10-08T23:30:00Z')).toBe('2026-10-09');});
+
+it('approves the exact terms with explicit verified-session consent, not a fabricated OTP grant',()=>{
+  const sent=act(draft(0),people[0],'send');let a=claimInvitation(sent.agreement,sent.invitation!.token,{actor:people[1],now});
+  for(const actor of [people[1],people[0]]){
+    const command={action:'approve',expectedVersionId:a.currentVersionId,affirmed:true,signature:actor.name};
+    expect(()=>applyCommand(a,{...command,affirmed:false},{actor,now})).toThrow('acknowledgment');
+    expect(()=>applyCommand(a,command,{actor:{...actor,contacts:[]},now})).toThrow('verified contact');
+    a=applyCommand(a,command,{actor,now}).agreement;
+    expect(a.approvals.at(-1)).toMatchObject({versionId:a.currentVersionId,versionHash:a.versions.at(-1)!.hash,authenticationLevel:'VERIFIED_EMAIL_SESSION',verifiedContact:actor.contacts[0]});
+  }
+  expect(a.status).toBe('ACTIVE');expect(a.manifest?.version.id).toBe(a.currentVersionId);
+  const financial=active(0);expect(()=>applyCommand(financial,{action:'settle',expectedVersionId:financial.currentVersionId,affirmed:true},{actor:people[0],now})).toThrow('zero confirmed balance');
+});

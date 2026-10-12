@@ -1,0 +1,15 @@
+import {randomUUID} from 'node:crypto';
+import {applyCommand,claimInvitation,createAgreement} from '@/modules/agreements/domain';
+import {digest} from '@/lib/crypto';
+import type {Actor,Aggregate,Context,Command} from '@/modules/agreements/types';
+export const people:Actor[]=['Lender','Borrower','Witness One','Witness Two','Other Person'].map((name,i)=>({name,userId:`${i+1}${'0'.repeat(7)}-0000-4000-8000-000000000000`,contacts:[`person${i}@example.test`],demo:false}));
+export const now='2026-10-08T12:00:00.000Z';
+export const terms={principalMinor:'30000000',currency:'NGN' as const,interestMinor:'0' as const,agreementDate:'2026-10-01',dueDate:'2027-04-01',repaymentType:'SINGLE' as const,purpose:'Family support',additionalTerms:'We will discuss hardship together.',requiredWitnesses:1};
+export const input={borrowerName:people[1].name,borrowerContact:people[1].contacts[0],terms};
+export function grant(a:Aggregate,actor:Actor,action:string):NonNullable<Context['stepUp']>{return {id:randomUUID(),contact:actor.contacts[0],level:'EMAIL_OTP',agreementId:a.id,versionId:a.currentVersionId,action,expiresAt:'2026-10-08T12:05:00.000Z'};}
+export function act(a:Aggregate,actor:Actor,action:string,extra:Record<string,unknown>={}){return applyCommand(a,{action,expectedVersionId:a.currentVersionId,...extra} as Command,{actor,now,stepUp:grant(a,actor,action)});}
+export function draft(witnesses=1){return createAgreement({...input,terms:{...terms,requiredWitnesses:witnesses}},{actor:people[0],now},'AHD-2026-00123');}
+export function legacyDraft(){const a=draft(),v=a.versions[0];v.text=v.text.replace('Each witness reads these terms, confirms who is lending to whom, and agrees to act as a witness to this agreement. This digital acknowledgment does not claim physical presence or confirm that money changed hands. A witness does not guarantee repayment.','A witness attests to what they personally observed and does not promise to repay the debt.');v.payload.schema='ahd-terms-v1';delete v.payload.witnessPolicy;v.payload.humanReadableText=v.text;v.hash=digest(v.payload);return a;}
+export function approved(witnesses=1,initial=draft(witnesses)){const r=act(initial,people[0],'send');let a=claimInvitation(r.agreement,r.invitation!.token,{actor:people[1],now});a=act(a,people[1],'approve',{affirmed:true,signature:people[1].name}).agreement;return act(a,people[0],'approve',{affirmed:true,signature:people[0].name}).agreement;}
+export function witnessed(type='DIGITAL_ACKNOWLEDGEMENT'){const r=act(type==='DIGITAL_ACKNOWLEDGEMENT'?approved():approved(1,legacyDraft()),people[0],'invite-witness',{name:people[2].name,contact:people[2].contacts[0]});const a=claimInvitation(r.agreement,r.invitation!.token,{actor:people[2],now});return act(a,people[2],'attest',{educated:true,affirmed:true,signature:people[2].name,type,presence:type==='DIGITAL_ACKNOWLEDGEMENT'?'DOCUMENT_REVIEW':'IN_PERSON'}).agreement;}
+export function active(witnesses=1){return act(witnesses?witnessed():approved(0),people[0],'finalize').agreement;}

@@ -1,0 +1,17 @@
+import { z } from 'zod';
+import {currencies} from '@/lib/currencies';
+import {installmentPlanSchema,validateInstallmentPlan} from '@/lib/installment-schema';
+const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, 'Choose a valid calendar date.');
+export const contactSchema = z.string().trim().max(254).refine(v => z.email().safeParse(v).success || /^\+[1-9]\d{7,14}$/.test(v), 'Use an email address or phone number with country code, such as +2348012345678.').transform(v => v.includes('@') ? v.toLowerCase() : v);
+export const minorSchema = z.string().regex(/^[1-9]\d{0,13}$/).refine(v => /^[1-9]\d{0,13}$/.test(v) && BigInt(v) <= 99999999999999n, 'Amount is too large.');
+export const termsSchema = z.object({ principalMinor: minorSchema, currency: z.enum(currencies), interestMinor: z.literal('0'), agreementDate: date, dueDate: date, repaymentType: z.enum(['SINGLE','INSTALLMENTS']), installments:installmentPlanSchema.optional(), purpose: z.string().trim().max(200), additionalTerms: z.string().trim().max(5000), requiredWitnesses: z.number().int().min(0).max(2) }).superRefine((v,ctx)=>{
+  const issue=(path:(string|number)[],message:string)=>ctx.addIssue({code:'custom',path,message});
+  if(v.dueDate<v.agreementDate)issue(['dueDate'],'Choose a repayment date on or after the agreement date.');
+  if(v.repaymentType==='SINGLE'){if(v.installments)issue(['installments'],'A single repayment cannot include an installment schedule.');return;}
+  if(!v.installments){issue(['installments'],'Add the installment dates and amounts.');return;}
+  validateInstallmentPlan(v.installments,v.principalMinor,v.agreementDate,(path,message)=>issue(['installments',...path],message));
+  const {payments}=v.installments;
+  if(payments.at(-1)?.dueDate!==v.dueDate)issue(['dueDate'],'The repayment due date must match the final installment.');
+});
+export const createSchema = z.object({ borrowerName: z.string().trim().min(2).max(120), borrowerContact: contactSchema, terms: termsSchema });
+export const commandSchema = z.object({ action: z.enum(['send', 'agree-and-send', 'version', 'request-change', 'decline', 'approve', 'invite-witness', 'invite-witnesses', 'attest', 'decline-witness', 'finalize', 'repayment', 'confirm-repayment', 'dispute-repayment', 'forgiveness', 'confirm-forgiveness', 'settle', 'cancel']), expectedVersionId: z.string().uuid(), signature: z.string().trim().min(2).max(120).optional(), affirmed: z.boolean().optional(), closeAgreement: z.boolean().optional(), reason: z.string().trim().max(2000).optional(), name: z.string().trim().min(2).max(120).optional(), contact: contactSchema.optional(), witnesses: z.array(z.object({name:z.string().trim().min(2).max(120),contact:contactSchema})).min(1).max(2).optional(), terms: termsSchema.optional(), type: z.enum(['FORMATION', 'EXISTING_DEBT_ACKNOWLEDGEMENT', 'REVIEW_ONLY', 'DIGITAL_ACKNOWLEDGEMENT']).optional(), presence: z.enum(['IN_PERSON', 'LIVE_REMOTE', 'LATER_ACKNOWLEDGEMENT', 'DOCUMENT_REVIEW']).optional(), educated: z.boolean().optional(), amountMinor: minorSchema.optional(), date: date.optional(), method: z.enum(['Bank transfer', 'Cash', 'Other']).optional(), reference: z.string().trim().max(100).optional(), note: z.string().trim().max(2000).optional(), targetId: z.string().uuid().optional(), proofId: z.string().uuid().optional() }).strict();

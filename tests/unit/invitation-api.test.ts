@@ -1,0 +1,14 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+import {POST,GET} from '@/app/api/[...path]/route';
+import {people} from '../helpers';
+import {DomainError} from '@/modules/agreements/domain';
+const mocks=vi.hoisted(()=>({claim:vi.fn(),claimPending:vi.fn(),pendingInvitations:vi.fn()}));
+vi.mock('next/headers',()=>({cookies:async()=>({get:()=>undefined})}));
+vi.mock('@/lib/runtime',async()=>{const {people}=await import('../helpers');return {getRuntime:async()=>({actor:people[1],repo:mocks}),currentGrant:async()=>undefined};});
+vi.mock('@/lib/rate-limit',()=>({rateLimit:async()=>{}}));
+const origin='http://127.0.0.1:3000';
+const post=(path:string[],otherOrigin=origin)=>POST(new Request(`${origin}/api/${path.join('/')}`,{method:'POST',headers:{Origin:otherOrigin,'Content-Type':'application/json'},body:'{}'}),{params:Promise.resolve({path})});
+beforeEach(()=>{vi.clearAllMocks();mocks.claim.mockResolvedValue({id:'agreement-id'});mocks.claimPending.mockResolvedValue({id:'agreement-id'});});
+it('allows a live signed-in borrower to claim an emailed invitation',async()=>{const token='a'.repeat(43),r=await post(['invitations',token,'claim']);expect(r.status).toBe(200);expect(await r.json()).toEqual({agreementId:'agreement-id'});expect(mocks.claim).toHaveBeenCalledWith(token,people[1]);});
+it('retains origin and identity checks on live claims',async()=>{const path=['invitations','a'.repeat(43),'claim'];expect((await post(path,'https://untrusted.test')).status).toBe(403);expect(mocks.claim).not.toHaveBeenCalled();mocks.claim.mockRejectedValue(new DomainError('INVITATION_IDENTITY_MISMATCH','Verify the invited email.',403));expect((await post(path)).status).toBe(403);});
+it('uses the verified runtime identity to list and open inbox invitations',async()=>{mocks.pendingInvitations.mockResolvedValue([{id:'pending-id',lenderName:'Lender'}]);const r=await GET(new Request(`${origin}/api/pending-invitations`),{params:Promise.resolve({path:['pending-invitations']})});expect(r.status).toBe(200);expect(mocks.pendingInvitations).toHaveBeenCalledWith(people[1]);const id=crypto.randomUUID();expect((await post(['pending-invitations',id,'claim'])).status).toBe(200);expect(mocks.claimPending).toHaveBeenCalledWith(id,people[1]);});

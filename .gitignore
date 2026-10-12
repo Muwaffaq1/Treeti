@@ -1,0 +1,18 @@
+node_modules/
+.next/
+.open-next/
+.wrangler/
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+.ahd-demo/
+test-results/
+playwright-report/
+coverage/
+*.tsbuildinfo
+src/modules/documents/fonts.generated.ts
+.DS_Store
+
+# Generated documents, screenshots and local QA artifacts.
+output/
