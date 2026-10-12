@@ -8,8 +8,8 @@ let phase='configuration';
 async function check() {
   for (const key of ['AHD_APP_URL','INNGEST_SIGNING_KEY','INNGEST_EVENT_KEY']) assert.ok(process.env[key], `${key} must be configured.`);
   const app=new URL(process.env.AHD_APP_URL);
-  assert.equal(app.protocol,'https:','Use the hosted staging app.');
-  assert.ok(['ahd-staging.yusufmuwaffaq17.workers.dev','staging.usetreeti.xyz'].includes(app.hostname),'This probe is restricted to treeti staging.');
+  assert.equal(app.protocol,'https:','Use the hosted treeti app.');
+  assert.ok(['ahd-staging.yusufmuwaffaq17.workers.dev','staging.usetreeti.xyz','usetreeti.xyz'].includes(app.hostname),'This probe is restricted to treeti hostnames.');
   assert.ok(!app.username&&!app.password,'Use a public app URL without credentials.');
   async function api(path,method='GET',body) {
     const response=await fetch(`https://api.inngest.com/v2${path}`,{method,headers:{Authorization:`Bearer ${process.env.INNGEST_SIGNING_KEY}`,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(15000)});
@@ -20,7 +20,7 @@ async function check() {
   if(process.argv.includes('--sync')) {
     phase='function sync';
     await api('/apps/ahd/syncs','POST',{url:new URL('/api/inngest',app).toString()});
-    console.log('Synced treeti staging background functions.');
+    console.log('Synced treeti background functions.');
   }
   const client=new Inngest({id:'ahd',isDev:false});
   const dueAt=Date.now()+20000;

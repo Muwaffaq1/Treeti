@@ -27,3 +27,17 @@ describe('staging domain migration',()=>{
     for(const origin of [old,'https://external.example','https://staging.usetreeti.xyz.external.example'])expect(()=>checkOrigin(new Request(`${current}/api/auth/send`,{method:'POST',headers:{origin}}))).toThrow();
   });
 });
+
+
+describe('existing-project production promotion',()=>{
+  it('keeps old invitation links usable at the root domain without forwarding writes or sessions',()=>{
+    configure();vi.stubEnv('AHD_APP_URL','https://usetreeti.xyz');
+    for(const origin of [old,current]){
+      expect(stagingRedirect({url:`${origin}/invite/existing?next=%2Fagreements%2Fexisting`,method:'GET'})?.href).toBe('https://usetreeti.xyz/invite/existing?next=%2Fagreements%2Fexisting');
+      expect(stagingRedirect({url:`${origin}/api/auth/send`,method:'POST'})).toBeNull();
+      expect(()=>checkOrigin(new Request('https://usetreeti.xyz/api/auth/send',{method:'POST',headers:{origin}}))).toThrow();
+    }
+    for(const origin of ['https://usetreeti.xyz','https://usetreeti.xyz.external.example','https://untrusted.example'])expect(stagingRedirect({url:`${origin}/login`,method:'GET'})).toBeNull();
+    expect(()=>checkOrigin(new Request('https://usetreeti.xyz/api/auth/send',{method:'POST',headers:{origin:'https://usetreeti.xyz'}}))).not.toThrow();
+  });
+});

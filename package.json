@@ -22,7 +22,10 @@
     "pretest": "node scripts/build-assets.mjs",
     "pretypecheck": "node scripts/build-assets.mjs",
     "postcf:build": "node scripts/package-worker-manifest.mjs",
-    "test:workers": "node scripts/test-workers.mjs"
+    "test:workers": "node scripts/test-workers.mjs",
+    "backup:project": "node --env-file-if-exists=.env.local scripts/backup-project.mjs",
+    "cf:deploy:promoted": "opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
+    "check:production": "node scripts/check-staging-domain.mjs --production"
   },
   "dependencies": {
     "@fontsource/geist": "^5.3.0",

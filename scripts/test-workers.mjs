@@ -33,8 +33,10 @@ try {
     if (path === '/' || path === '/login') assert.match(response.headers.get('cache-control') ?? '', /private.*no-store/, path);
     await response.arrayBuffer();
   }
+  const loginHTML=await (await get(`${app}/login`)).text();
+  const configuredSignIn=!loginHTML.includes('Sign-in setup is still in progress. Please check back later.');
   const welcome=await get(`${app}/welcome`);assert.ok([200,307].includes(welcome.status));assert.match(welcome.headers.get('cache-control')??'',/private.*no-store/);
-  if(welcome.status===307){assert.match(welcome.headers.get('location')??'',/\/login\?next=/);await welcome.arrayBuffer();}else{const html=await welcome.text();assert.match(html,/NEXT_REDIRECT|http-equiv="refresh"/);assert.match(html,/\/login\?next=/);assert.ok(!html.includes('What’s your full name?'));}
+  if(welcome.status===307){assert.match(welcome.headers.get('location')??'',/\/login\?next=/);await welcome.arrayBuffer();}else{const html=await welcome.text();if(configuredSignIn){assert.match(html,/NEXT_REDIRECT|http-equiv="refresh"/);assert.match(html,/\/login\?next=/);}else{assert.match(html,/The page could not be loaded\./);}assert.ok(!html.includes('What’s your full name?'));}
   for (const path of ['/api/debts', '/api/investments', '/api/demo/me']) {
     const response = await get(app + path); assert.ok(response.status >= 400, path);
     assert.match(response.headers.get('cache-control') ?? '', /private.*no-store/); await response.arrayBuffer();

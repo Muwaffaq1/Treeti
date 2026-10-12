@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ahd-staging",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "usetreeti.xyz",
+      "custom_domain": true
+    },
+    {
+      "pattern": "staging.usetreeti.xyz",
+      "custom_domain": true
+    }
+  ],
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "ahd-staging"
+    }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "ffb0d0362dd1498d9e5adba30282dc80",
+      "localConnectionString": "postgresql://local:local@127.0.0.1:5432/ahd"
+    }
+  ],
+  "vars": {
+    "AHD_ENABLE_DEMO": "false",
+    "AHD_RUNTIME": "cloudflare",
+    "INNGEST_DEV": "false",
+    "AHD_JOB_SCHEDULES": "false"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  }
+}

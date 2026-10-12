@@ -1,4 +1,10 @@
-# Production readiness — 11 October 2026
+# Production readiness — 12 October 2026
+
+## Current promotion decision
+
+The owner chose to promote the existing Supabase project and live Worker instead of creating a second project. All existing users and records will be preserved. Source and automated checks are now in the private Muwaffaq1/Treeti GitHub repository. The first CI run exposed test configuration failures; the repair and root-domain cutover are being prepared. A private application snapshot has passed offline restore verification. See [ADR 016](adr/016-existing-project-production-promotion.md) for the exact plan, backup limits and rollback. Production cutover is not complete yet.
+
+The sections below record earlier staging checks; newer release notes and ADR 016 supersede their counts and the earlier separate-project requirement.
 
 ## Current position
 
@@ -29,10 +35,10 @@ Simplicity release version: `e5948bdd-d303-40cf-a986-31c171411925` (gzip 2,994.4
 ## Ordered launch work
 
 1. Validate the full hosted create → borrower review/approval → two independent witnesses → automatic finalization → private PDF → repayment/confirmation → mutual settlement journey for single repayment and installment plans. Check version changes, stale/expired/revoked invitations, identity mismatch, long witness reads and version-scoped access. Verify Storage upload/download, actual notification delivery and private debt email retries/cancellation with real contacts.
-2. Establish deployment ownership. Local Git is initialized on `main`; no initial commit or remote is configured. Store code in a private repository. Connect the supplied GitHub Actions checks, connect the selected website domain, and extend delivery validation to actual invited participants. Configure SMS if phone sign-in is offered; keep unsupported contact flows gated until then.
+2. Establish deployment ownership. Source is pushed to the private `Muwaffaq1/Treeti` repository. Complete the GitHub Actions checks, connect the selected website domain, and extend delivery validation to actual invited participants. Configure SMS if phone sign-in is offered; keep unsupported contact flows gated until then.
 3. Complete Workers validation: long-running session refresh, transaction/connection lifecycle, PDF workloads and signed background processing. Measure realistic CPU/memory against the chosen Cloudflare plan; local workerd success does not establish Free CPU compatibility. Node middleware support in the selected adapter is experimental. Retain adapter smoke checks on upgrades. Test PWA installation on actual iOS/Android devices and ensure private data is not cached offline.
 4. Complete security, abuse/authorization, monitoring and launch policy gates: job/delivery failure alerts, verified backup restoration and evidence recovery, rollback, privacy notice, user terms, retention/data-subject workflows, and qualified legal/Islamic review of witness/evidence claims. Current hashes provide internal consistency; external KMS sealing and protected evidence retention are not implemented. Resolve the required sealing policy before marketing externally sealed evidence.
-5. Create production services with separate credentials/database, the HTTPS app domain and restricted Auth redirects. Do not point production at staging services or sync both deployments under the same Inngest app/environment. Disable the file-backed demonstration. Verify a complete production smoke test, then invite a small beta group and monitor delivery, authorization, support needs and shared quotas before expanding.
+5. Promote the existing services as one live environment under ADR 016, with the HTTPS root app domain and restricted Auth redirects. Do not retain two independently writable deployments or sync different code versions under the same Inngest app/environment. Disable the file-backed demonstration. Verify a complete production smoke test, then invite a small beta group and monitor delivery, authorization, support needs and shared quotas before expanding.
 
 Credentials stay in provider secret storage and ignored local configuration. Configuration checks are not delivery, security or production-readiness guarantees. See [Cloudflare setup and verification](cloudflare-setup.md) for versions, individual hosted checks and the safe repeatable job probe.
 

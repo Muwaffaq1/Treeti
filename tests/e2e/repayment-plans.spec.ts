@@ -6,7 +6,7 @@ const origin='http://127.0.0.1:3000';
 for(const [plan,width] of [['MONTHLY',375],['WEEKLY',1366],['CUSTOM',375]] as const)test(`creates and reloads ${plan.toLowerCase()} installments at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});if(plan==='CUSTOM')await page.emulateMedia({colorScheme:'dark'});
   await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.goto('/demo/agreements/new');
-  const amount=page.getByLabel('Principal amount');await amount.pressSequentially('1000.01');await expect(amount).toHaveValue('1,000.01');
+  const amount=page.getByLabel('Principal amount');await expect(amount).toBeEnabled();await amount.pressSequentially('1000.01');await expect(amount).toHaveValue('1,000.01');
   await amount.press('Home');await amount.press('ArrowRight');await amount.press('9');await expect(amount).toHaveValue('19,000.01');
   await amount.press('Backspace');await expect(amount).toHaveValue('1,000.01');
   await page.getByLabel('Borrower’s full name').fill('Ahmad Ibrahim');await page.getByLabel('Email or phone number').fill('ahmad@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();
