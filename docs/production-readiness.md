@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — link preview card
+
+Production at **https://usetreeti.xyz** runs app commit `6d1c644` as Cloudflare version `e8007c60-cb48-4901-9948-d530525ba9f0` (gzip 3,018.24 KiB), deployed 12 October 2026 with `npm run cf:deploy:production`. Every page now carries Open Graph and X card metadata pointing at `/og/treeti-link-preview.png` (1200×630, 40 KB), regenerated with `node scripts/build-og-image.mjs`. The `robots` setting still asks search engines not to index the site; lift it deliberately for a broader launch.
+
+GitHub's verify and Workers jobs passed for the commit. Locally, lint, types, 155 unit tests, the link-preview and policy-page browser tests and the Workers checks passed. A fresh private snapshot (`output/backups/2026-10-12T23-39-43.728Z`) restored 26 tables, 457 rows, 36 foreign keys and nine Storage files offline. After the deploy, `npm run check:production` passed, the live home page served the metadata, and the image returned 200 as `image/png`. Rendering inside WhatsApp, X and other apps was not checked by the agent.
+
+Rollback version: `5d8b75a9-8164-42ba-b51c-345d10eb81c0`.
+
 ## Release — privacy, terms and support pages
 
 Production at **https://usetreeti.xyz** runs app commit `b502e2c` as Cloudflare version `5d8b75a9-8164-42ba-b51c-345d10eb81c0` (gzip 3,018.00 KiB), deployed 12 October 2026 with `npm run cf:deploy:production`. It adds the public `/privacy`, `/terms` and `/support` pages and links them from the landing footer, sign-in form and account page; see [ADR 018](adr/018-privacy-terms-support-pages.md). The text names the owner as operator and was not legally reviewed. No database migration was needed.
