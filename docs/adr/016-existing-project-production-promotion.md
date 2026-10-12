@@ -25,11 +25,26 @@ This is **not a complete Supabase provider backup**: it excludes Auth credential
 1. Complete lint, types, unit/browser tests and local Workers checks. The first CI failures were test setup: WebKit was missing; mocked sign-in screens lacked synthetic public configuration; sequential amount typing started before hydration; unconfigured Workers correctly returned a secure setup error on `/welcome`.
 2. Retain the previous Cloudflare version ID and canonical origin for rollback. Back up current records.
 3. Save Supabase's Site URL as `https://usetreeti.xyz` and add the exact `https://usetreeti.xyz/auth/callback` URL. Authentication destination changes through the browser need specific confirmation.
-4. Change the existing Worker's `AHD_APP_URL` secret to the root origin and deploy the tested artifact using `npm run cf:deploy:promoted`. Keep demo disabled and all existing private service bindings.
+4. Deploy the tested artifact using `npm run cf:deploy:production`, retaining the existing origin until the root hostname has verified HTTPS. Then change the existing Worker's `AHD_APP_URL` secret to `https://usetreeti.xyz`. Keep demo disabled and all existing private service bindings. The old `cf:deploy:staging` command is guarded to prevent dropping the production routes.
 5. Run `npm run check:production`. Sync and verify scoped signed jobs using the root origin with `scripts/check-hosted-jobs.mjs`; these probes use nonexistent IDs and send no messages.
 6. The owner signs in at the root hostname, reloads, and confirms existing records and document downloads are present. Open an old invitation link and check that it reaches the correct root-domain path. No agent should approve an actual financial agreement on the owner's behalf for testing.
 
 Rollback uses the previous Worker version/configuration, restores `AHD_APP_URL=https://staging.usetreeti.xyz` and resyncs jobs to the old endpoint. Restore the previous Site URL when necessary; keep exact callback URLs until transition is complete. A code rollback does not restore or delete financial data.
+
+## Completed cutover — 12 October 2026
+
+The existing Worker now serves **https://usetreeti.xyz** as its canonical origin. Supabase's saved Site URL and three exact callbacks were verified in the dashboard. Both old app hostnames retain their routes and redirect page paths/query strings to the main domain. The existing Inngest app is synced to `https://usetreeti.xyz/api/inngest`. No accounts, financial records, Storage files or unrelated mail domains were deleted or changed.
+
+- Released app source: `53a75e7cf0b7f5712643e00fb8c1dd5656414466`. GitHub [run 38264965600](https://github.com/Muwaffaq1/Treeti/actions/runs/38264965600) passed both verify and Workers jobs.
+- Automatic deployment review initially rejected the working checkout because it contained uncommitted UI edits outside that CI run. Those edits were preserved and excluded. A separate release directory was populated from the exact tested commit; 170 source/configuration files were hash-compared before a fresh build. Its local Workers checks passed for private routes/security, currencies, PDF rendering/hashes, signed sessions, encrypted delivery payloads and five viewport widths in both themes.
+- Upload: gzip **3,008.88 KiB**; initial artifact version `3c1e1659-26ba-4284-8680-2f36e1a40721`; final canonical-origin version **`34317822-68d0-42aa-b8dc-2278b8de4cd6`**. Retained Hyperdrive and private secrets; schedules remain disabled.
+- Fresh private snapshot: `output/backups/2026-10-12T19-17-17.243Z`, with **26 tables, 380 rows, 36 foreign keys and six Storage files** verified by offline restore. The same backup limitations above apply.
+- `npm run check:production` passed using normal DNS and verified TLS: branding, old invitation/verification redirects, strict mutation origins, private/no-store responses, protected debts/investments/profile APIs, callback origin and unsigned-job rejection.
+- Scoped signed delivery and future-reminder probes completed on the main-domain endpoint using nonexistent IDs. No financial record was changed and no email was sent. The real browser renders the production email-only sign-in form.
+
+Use `npm run cf:deploy:production` for future verified releases. It targets `wrangler.promotion.jsonc` and the same existing Worker. Do not deploy the unused `ahd-production` environment in the older base configuration. For a read-only hosted jobs check, use `AHD_APP_URL=https://usetreeti.xyz npm run jobs:check:staging`; append `-- --sync` only when intentionally syncing the same app. Local ignored canonical URL references were updated to the main domain.
+
+The owner still needs to sign in on the root hostname, reload and inspect existing records/PDF downloads. The pre-cutover rollback version remains `7d797c67-d10a-46a3-9513-c81fafc4444f`; restore the staging canonical origin and job endpoint when rolling back. Do not restore a data snapshot for a code-only rollback.
 
 ## Remaining launch work
 

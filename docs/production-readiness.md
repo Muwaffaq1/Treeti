@@ -2,11 +2,13 @@
 
 ## Current promotion decision
 
-The owner chose to promote the existing Supabase project and live Worker instead of creating a second project. All existing users and records will be preserved. Source and automated checks are now in the private Muwaffaq1/Treeti GitHub repository. The first CI run exposed test configuration failures; the repair and root-domain cutover are being prepared. A private application snapshot has passed offline restore verification. See [ADR 016](adr/016-existing-project-production-promotion.md) for the exact plan, backup limits and rollback. Production cutover is not complete yet.
+The existing Supabase project and Cloudflare Worker have been promoted to **https://usetreeti.xyz**, preserving accounts and records. GitHub's verify and Workers checks passed for app commit `53a75e7`. A clean build of that commit passed local Workers checks, and the main-domain HTTPS/origin/private-route/old-link checks and scoped signed background-job probes passed. Final Cloudflare version: `34317822-68d0-42aa-b8dc-2278b8de4cd6`. A fresh private snapshot restored 26 tables, 380 rows, 36 foreign keys and six files offline. See [ADR 016](adr/016-existing-project-production-promotion.md) for release evidence, backup limits and rollback.
+
+The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
 The sections below record earlier staging checks; newer release notes and ADR 016 supersede their counts and the earlier separate-project requirement.
 
-## Current position
+## Historical staging position
 
 treeti staging is live at **https://staging.usetreeti.xyz** on Cloudflare Workers. Production is not deployed; staging remains a controlled testing environment. Cloudflare is active and Resend verified `mail.usetreeti.xyz`. Normal DNS, HTTPS, the application origin and the approved Supabase sign-in URL cutover are complete. Old staging application links redirect to the new hostname. Authenticated sign-in and reload on the new hostname are the next owner check. See [ADR 011](adr/011-staging-custom-domain.md).
 
