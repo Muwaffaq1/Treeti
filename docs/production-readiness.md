@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — navigation and invitation resend
+
+Production at **https://usetreeti.xyz** runs app commit `6aa078f` as Cloudflare version `d5bf9971-88af-462f-80f2-8da92a5f35e4` (gzip 3,004.03 KiB), deployed 12 October 2026 at 21:58 UTC with `npm run cf:deploy:production`. It removes Create from the bottom navigation and adds **Resend invitation** for people who have not yet responded; see [ADR 017](adr/017-pending-invitation-resend.md). No database migration was needed.
+
+Before the deploy, GitHub's checks passed for the commit, and lint, types, 155 unit tests, the invitation-resend browser test and the local Workers checks passed on a clean checkout. A fresh private snapshot (`output/backups/2026-10-12T21-54-40.864Z`) restored 26 tables, 452 rows, 36 foreign keys and nine Storage files offline. After the deploy, `npm run check:production` and the read-only scoped job probes passed with no email sent and no records changed. The owner confirmed on the live site that the navigation shows four items and that Resend invitation appears for a lender awaiting approval.
+
+Rollback version: `34317822-68d0-42aa-b8dc-2278b8de4cd6`. A code rollback does not restore or delete financial data.
+
 The sections below record earlier staging checks; newer release notes and ADR 016 supersede their counts and the earlier separate-project requirement.
 
 ## Historical staging position
