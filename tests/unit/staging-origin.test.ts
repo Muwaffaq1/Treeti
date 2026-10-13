@@ -1,6 +1,7 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {stagingRedirect} from '../../src/lib/staging-origin';
-import {checkOrigin} from '../../src/lib/http';
+import {checkOrigin,failure} from '../../src/lib/http';
+import {currentAddress} from '../../src/components/client-api';
 
 const old='https://ahd-staging.yusufmuwaffaq17.workers.dev';
 const current='https://staging.usetreeti.xyz';
@@ -39,5 +40,20 @@ describe('existing-project production promotion',()=>{
     }
     for(const origin of ['https://usetreeti.xyz','https://usetreeti.xyz.external.example','https://untrusted.example'])expect(stagingRedirect({url:`${origin}/login`,method:'GET'})).toBeNull();
     expect(()=>checkOrigin(new Request('https://usetreeti.xyz/api/auth/send',{method:'POST',headers:{origin:'https://usetreeti.xyz'}}))).not.toThrow();
+  });
+});
+
+describe('a page left open on an old address',()=>{
+  it('is told the current address by name and where to move to',async()=>{
+    configure();vi.stubEnv('AHD_APP_URL','https://usetreeti.xyz');
+    let error:unknown;try{checkOrigin(new Request('https://usetreeti.xyz/api/auth/send',{method:'POST',headers:{origin:current}}));}catch(e){error=e;}
+    const response=failure(error);expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({code:'ORIGIN_REJECTED',message:'Open treeti at usetreeti.xyz and try again.',home:'https://usetreeti.xyz'});
+  });
+  it('moves to the same page on the current address, and nowhere else',()=>{
+    const at={origin:current,pathname:'/login',search:'?next=%2Fagreements%2Fexample'};
+    expect(currentAddress('https://usetreeti.xyz',at)).toBe('https://usetreeti.xyz/login?next=%2Fagreements%2Fexample');
+    expect(currentAddress('https://usetreeti.xyz',{...at,origin:'https://usetreeti.xyz'})).toBeNull();
+    for(const home of [undefined,'','http://usetreeti.xyz','https://usetreeti.xyz/elsewhere','javascript:alert(1)','https://user@untrusted.example'])expect(currentAddress(home,at)).toBeNull();
   });
 });
