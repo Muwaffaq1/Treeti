@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — install manifest served as a static file
+
+Production at **https://usetreeti.xyz** runs app commit `97c1055` as Cloudflare version `241ae755-6801-4982-be09-7188268d1b02`, deployed 13 October 2026 with `npm run cf:deploy:production`. `scripts/static-public-pages.mjs` now also copies the prebuilt `manifest.webmanifest` into the static assets with its content type and the security headers.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T14-32-16.757Z`, 27 tables, 598 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. Locally, lint and the Workers checks (now covering the manifest's content and type) passed. After the deploy, `npm run check:production` and the scoped job probes passed, the live manifest returned `application/manifest+json` with the same content, and a live `wrangler tail` showed no Worker invocation for `/`, `/login`, the manifest or `robots.txt`; a control request to `/api/debts` still ran the Worker (11–475 ms).
+
+The owner confirmed on 13 October 2026, with a screen recording, that a signed-in iPhone opening `usetreeti.xyz` in Safari went to the dashboard without the home page showing, and reported that their lawyer has read the terms and privacy pages. Rollback version: `e0256e38-fbac-49ff-ae17-5f245813d4ba`.
+
 ## Release — home and sign-in served as static files
 
 Production at **https://usetreeti.xyz** runs app commit `737ed4e` as Cloudflare version `e0256e38-fbac-49ff-ae17-5f245813d4ba`, deployed 13 October 2026 with `npm run cf:deploy:production`. `/` and `/login` are now prebuilt and packaged by `scripts/static-public-pages.mjs` with the other four public pages. The server-side `redirectSignedInUser` is gone; `src/lib/entry-redirect.ts` is embedded in the document head and, on those two paths only, sends a browser holding a Supabase session cookie to `/app` or the allow-listed `next` path (hiding the page while it leaves, with a 15-second rest so an expired session sent back to sign-in cannot loop) and moves a page opened on an old hostname to `https://usetreeti.xyz`. Private pages still verify the session themselves. `Login` reads `next` and `authError` from the address in the browser.
