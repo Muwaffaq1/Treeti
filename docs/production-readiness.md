@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — notifications lookup within the CPU limit
+
+Production at **https://usetreeti.xyz** runs app commit `f12d6c9` as Cloudflare version `88e1b2d4-4d4a-43c3-a339-82181e54f84d`, deployed 13 October 2026 with `npm run cf:deploy:production`. This fixes a fault from the two notification releases: the bell loaded every agreement in full on each page, and Cloudflare cut `GET /api/notifications` off with “Worker exceeded CPU time limit”. Safari showed the cut-off as “The string did not match the expected pattern.” when the owner tried to turn on notifications on an iPhone.
+
+Live mode now reads the `notifications` table in one query (`recordedNotices`), the bell reuses its list for 60 seconds, and a response that is not JSON shows “treeti is busy right now. Wait a moment and try again.” Demo mode still derives its list from agreements.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T10-24-27.137Z`, 27 tables, 499 rows, 36 foreign keys, nine Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. No migration and no secret changed. Locally, lint, types, 170 unit and integration tests and the Workers checks passed. After the deploy, `npm run check:production` and the read-only scoped job probes passed.
+
+Not verified by the agent: CPU time of the new lookup on the live site, and the owner's iPhone turning notifications on. Rollback version: `9e14aae9-e7a8-4a5a-a679-63e218e19c0c`.
+
 ## Release — device push notifications
 
 Production at **https://usetreeti.xyz** runs app commit `450c1bb` as Cloudflare version `9e14aae9-e7a8-4a5a-a679-63e218e19c0c` (gzip 3,027.95 KiB), deployed 13 October 2026 with `npm run cf:deploy:production`. People can turn on notifications per device from the Notifications or Account page; see [ADR 020](adr/020-device-push-notifications.md).
