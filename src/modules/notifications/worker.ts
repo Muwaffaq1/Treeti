@@ -6,6 +6,7 @@ import { ensureArtifact, verifyIntegrity } from '@/modules/documents/service';
 import type { Aggregate, Outbox, Participant } from '@/modules/agreements/types';
 import {processPersonalDebtReminders} from '@/modules/debts/reminder-worker';
 import {inngest} from './client';
+import {pushToUser} from './push';
 export {inngest} from './client';
 export const messages: Record<string,string> = {
   BORROWER_INVITED:'An agreement is ready for the borrower to review.',
@@ -45,15 +46,22 @@ export async function processOutbox(agreementId?:string){
         await ensureArtifact(a,row.data.payload.settlement?'settlement':'pdf');
       }else if(row.event_type==='INVITATION_DELIVERY'){
         // Invitations are not emailed. The inviter shares the private link, and a person who
-        // already has an account sees the request in their in-app inbox. The queued token is
-        // cleared with the row below.
+        // already has an account sees the request in their in-app inbox and, if they enabled it,
+        // gets a notification on their device. The queued token is cleared with the row below.
+        const i=a.invitations.find(i=>i.id===row.data.payload.invitationId);
+        if(i&&i.status==='PENDING'&&i.versionId===a.currentVersionId&&i.destination.includes('@')){
+          const [member]=await db.query<{id:string}>('select id from auth.users where lower(email)=lower($1) and email_confirmed_at is not null limit 1',[i.destination]);
+          if(member)await pushToUser(db,member.id,{title:'treeti',body:a.participants.find(p=>p.id===i.participantId)?.role==='WITNESS'?'You have been asked to witness an agreement.':'An agreement is waiting for your review.',url:'/app',tag:`invitation-${i.id}`});
+        }
       }else{
         const message=messages[row.event_type];
         if(message){
           const eventId=String(row.data.payload.eventId??row.id),actorId=a.events.find(e=>e.id===eventId)?.actorId;
           // In-app only: lifecycle updates are never emailed, and nobody is notified of their own action.
           for(const p of recipients(a,row.event_type).filter(p=>p.id!==actorId)){
-            await db.query('insert into notifications (id,user_id,agreement_id,event_id,message) values ($1,$2,$3,$4,$5) on conflict (user_id,event_id) do nothing',[randomUUID(),p.userId,a.id,eventId,message]);
+            const [fresh]=await db.query<{id:string}>('insert into notifications (id,user_id,agreement_id,event_id,message) values ($1,$2,$3,$4,$5) on conflict (user_id,event_id) do nothing returning id',[randomUUID(),p.userId,a.id,eventId,message]);
+            // A retried row must not notify twice. The text names no person and no amount.
+            if(fresh&&p.userId)await pushToUser(db,p.userId,{title:'treeti',body:message,url:`/agreements/${a.id}`,tag:`event-${eventId}`});
           }
           if(row.event_type==='REPAYMENT_CONFIRMED'&&a.manifest&&verifyIntegrity(a)){
             const event=a.events.find(e=>e.id===row.data.payload.eventId);

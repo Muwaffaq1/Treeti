@@ -86,3 +86,6 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;op
 .install-nudge{position:fixed;z-index:40;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));max-width:520px;margin-inline:auto;display:grid;gap:16px;padding:20px;border:1px solid var(--faint);border-radius:24px;background:var(--surface-raised);box-shadow:0 16px 48px #00000029}
 .install-nudge strong{font-size:16px;font-weight:600}.install-nudge p{font-size:13px;line-height:1.6;color:var(--muted);margin-top:4px}.install-nudge-actions{display:flex;justify-content:flex-end;gap:8px}
 @media(min-width:801px){.install-nudge{inset-inline:auto 24px;bottom:24px;width:400px}}
+.push-card{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;margin:24px 0;padding:20px;border:1px solid var(--faint);border-radius:24px;background:var(--surface)}
+.push-card-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:16px;background:var(--accent-soft);color:var(--accent)}
+.push-card-copy strong{font-size:15px;font-weight:600}.push-card-copy p{font-size:13px;line-height:1.6;color:var(--muted);margin-top:4px;max-width:60ch}.push-card-action{grid-column:2;display:flex;flex-wrap:wrap;gap:8px}.push-card-action:empty{display:none}

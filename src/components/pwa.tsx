@@ -43,5 +43,5 @@ export function InstallNudge(){
   },[installed]);
   function close(){setOpen(false);try{localStorage.setItem(nudgeKey,String(Date.now()));}catch{}}
   if(installed)return null;
-  return <>{open&&<section className="install-nudge" role="region" aria-label="Add treeti to your device"><div><strong>Keep treeti a tap away</strong><p>Add treeti to your home screen or desktop. It opens in its own window, like an app, so your records are one tap away.</p></div><div className="install-nudge-actions"><Button variant="ghost" onClick={close}>Not now</Button><Button onClick={()=>{close();void install();}}><Download size={17} aria-hidden/>Add treeti</Button></div></section>}{dialog}</>;
+  return <>{open&&<section className="install-nudge" role="region" aria-label="Add treeti to your device"><div><strong>Keep treeti a tap away</strong><p>Add treeti to your home screen or desktop. It opens in its own window, like an app, and on iPhone it is what lets treeti send you notifications.</p></div><div className="install-nudge-actions"><Button variant="ghost" onClick={close}>Not now</Button><Button onClick={()=>{close();void install();}}><Download size={17} aria-hidden/>Add treeti</Button></div></section>}{dialog}</>;
 }

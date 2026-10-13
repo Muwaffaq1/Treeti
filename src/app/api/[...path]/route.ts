@@ -21,6 +21,7 @@ import {investmentRepository} from '@/modules/investments/repository';
 import {reminderCalendar} from '@/modules/debts/reminders';
 import {queueAgreementDelivery,queueDebtReminder} from '@/modules/notifications/wakeups';
 import {notices} from '@/modules/notifications/feed';
+import {pushKeys,removeSubscription,saveSubscription} from '@/modules/notifications/push';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -53,6 +54,7 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
       return json({role:p.role,contact:maskContact(i.destination),expiresAt:i.expiresAt,verificationAvailable:demo||emailDeliveryAvailable(i.destination)});
     }
     const {actor,repo,people,workspace}=await getRuntime(demo);
+    if(path[0]==='push'&&path.length===1)return json({publicKey:demo?null:pushKeys()?.publicKey??null});
     if(path[0]==='notifications'&&path.length===1)return json({notices:notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor)});
     if(path[0]==='debts'&&!path[1])return json({debts:await debtRepository(demo,workspace).listDebts(actor)});
     if(path[0]==='investments'&&path.length===1)return json({investments:await investmentRepository(demo,workspace).listInvestments(actor)});
@@ -105,6 +107,11 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       const a=await runtime.repo.claim(token,runtime.actor);return json({agreementId:a.id});
     }
     const {actor,repo,workspace:runtimeWorkspace}=await getRuntime(demo);await rateLimit(`command:${actor.userId}`,120,demo);
+    if(path[0]==='push'&&path.length===2&&['subscribe','unsubscribe'].includes(path[1])){
+      if(demo||!pushKeys())throw new DomainError('PUSH_UNAVAILABLE','Notifications on this device are not available yet.',404);
+      if(path[1]==='subscribe')await saveSubscription(database(),actor.userId,await readBody(req));else await removeSubscription(database(),actor.userId,await readBody(req));
+      return json({ok:true});
+    }
     if(path[0]==='investments'){
       const investments=investmentRepository(demo,runtimeWorkspace);
       if(path.length===1)return json({investment:await investments.createInvestment(await readBody(req),actor,idempotencyKey(req))},201);

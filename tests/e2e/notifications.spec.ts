@@ -58,6 +58,8 @@ test('a signed-in person is invited to add treeti after a few seconds, and can d
  await page.screenshot({path:'output/qa/install-nudge-mobile.png',animations:'disabled'});
  await nudge.getByRole('button',{name:'Not now'}).click();await expect(nudge).toHaveCount(0);
  await page.reload();await page.waitForTimeout(8000);await expect(nudge).toHaveCount(0);
+ // Device notifications need the live service; the demonstration offers none.
+ expect((await (await page.request.get('/api/demo/push')).json()).publicKey).toBeNull();await page.goto('/demo/notifications');await expect(page.getByRole('heading',{level:1,name:'Notifications'})).toBeVisible();await expect(page.getByRole('region',{name:'Notifications on this device'})).toHaveCount(0);
 });
 
 test('a waiting party can remind the other person on WhatsApp',async({page})=>{
@@ -77,4 +79,22 @@ test('a waiting party can remind the other person on WhatsApp',async({page})=>{
  expect(new URL(opened[0]).searchParams.get('text')).toBe(`Hi Yusuf, please review and approve the terms on treeti: http://127.0.0.1:3000/demo/agreements/${a.id}`);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
  await remind.scrollIntoViewIfNeeded();await page.screenshot({path:'output/qa/remind-whatsapp-mobile.png',animations:'disabled'});
+});
+
+test('the device notification control explains each state without asking for permission on its own',async({browser})=>{
+ const key='BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8';
+ for(const [permission,heading,action] of [['granted','Get notified on this device','Turn on notifications'],['denied','Notifications are blocked for treeti',null]] as const){
+  const context=await browser.newContext({viewport:{width:390,height:844},baseURL:origin,permissions:permission==='granted'?['notifications']:[]});const page=await context.newPage();
+  await page.addInitScript(state=>{Object.defineProperty(Notification,'permission',{get:()=>state});},permission);
+  await page.route('**/api/demo/push',route=>route.fulfill({json:{publicKey:key}}));
+  await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});
+  await page.goto('/demo/notifications');
+  const card=page.getByRole('region',{name:'Notifications on this device'});await expect(card).toContainText(heading);
+  if(action)await expect(card.getByRole('button',{name:action})).toBeVisible();else await expect(card.getByRole('button')).toHaveCount(0);
+  const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({path:`output/qa/push-card-${permission}-mobile.png`,animations:'disabled'});
+  await page.goto('/demo/account');await expect(page.getByRole('region',{name:'Notifications on this device'})).toContainText(heading);
+  await context.close();
+ }
 });
