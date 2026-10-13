@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — in-app notifications replace event and invitation email
+
+Production at **https://usetreeti.xyz** runs app commit `84b96d4` as Cloudflare version `6e40aece-98f2-49a8-ad8b-d46cd3f9f61e` (gzip 3,021.91 KiB), deployed 13 October 2026 with `npm run cf:deploy:production`. Lifecycle updates and invitations are no longer emailed; the only email is the sign-in code. The release adds the Notifications page and bell, WhatsApp-first sharing of invitation links, **Remind on WhatsApp** for a waiting party, and a dismissible install prompt, and removes the email option for private debt reminders; see [ADR 019](adr/019-in-app-notifications-replace-event-email.md). No database migration was needed. Push notifications are not included.
+
+GitHub's Workers job passed on the first commit (`7337e2c`) but its verify job failed in five browser checks: two of the new notification checks raced the bell's first load, and three existing checks were refused by the demonstration's 120-commands-per-person limit because the new checks ran as the same demonstration person. `84b96d4` changes only the test file — the new checks wait for the first load and act as other demonstration people — and both jobs then passed. Locally, lint, types, 160 unit tests and the Workers checks passed; the full browser suite had passed apart from the same rate-limit effect. A fresh private snapshot (`output/backups/2026-10-13T08-34-32.085Z`) restored 26 tables, 498 rows, 36 foreign keys and nine Storage files offline. After the deploy, `npm run check:production` and the read-only scoped job probes passed, `/api/notifications` rejected an unsigned request with 401, and the support page served the new wording. Signed-in screens were not checked by the agent.
+
+Local browser checks use the shared Upstash limiter because its credentials are in `.env.local`; repeated local runs can therefore be rate-limited and consume a little of that quota.
+
+Rollback version: `e8007c60-cb48-4901-9948-d530525ba9f0`. Rolling back restores event and invitation email.
+
 ## Release — link preview card
 
 Production at **https://usetreeti.xyz** runs app commit `6d1c644` as Cloudflare version `e8007c60-cb48-4901-9948-d530525ba9f0` (gzip 3,018.24 KiB), deployed 12 October 2026 with `npm run cf:deploy:production`. Every page now carries Open Graph and X card metadata pointing at `/og/treeti-link-preview.png` (1200×630, 40 KB), regenerated with `node scripts/build-og-image.mjs`. The `robots` setting still asks search engines not to index the site; lift it deliberately for a broader launch.
