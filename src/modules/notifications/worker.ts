@@ -1,9 +1,6 @@
-import {needsInvitationResponse} from '@/modules/agreements/invitation-resend';
 import { randomUUID } from 'node:crypto';
 import {z} from 'zod';
-import { Resend } from 'resend';
 import { database, type Database } from '@/lib/database';
-import { decryptDelivery } from '@/lib/session';
 import { PostgresRepository } from '@/modules/agreements/repository';
 import { ensureArtifact, verifyIntegrity } from '@/modules/documents/service';
 import type { Aggregate, Outbox, Participant } from '@/modules/agreements/types';
@@ -36,16 +33,9 @@ export async function claimBatch(db:Database,agreementId?:string){
   ) update outbox_events o set status='PROCESSING',lease_until=now()+interval '10 minutes',attempts=attempts+1
     from picked where o.id=picked.id returning o.*`,[agreementId??null]));
 }
-async function deliver(to:string,message:string,url:string,key:string){
-  if(!to.includes('@'))throw new Error('SMS_TRANSPORT_REQUIRED');
-  if(!process.env.RESEND_API_KEY||!process.env.AHD_EMAIL_FROM)throw new Error('EMAIL_TRANSPORT_REQUIRED');
-  const {error}=await new Resend(process.env.RESEND_API_KEY).emails.send({from:process.env.AHD_EMAIL_FROM,to,subject:'An update to your treeti record',text:`${message}\n\nOpen your private record: ${url}\n\nAhd records agreements. It does not hold or transfer money. A witness is not a guarantor.`},{idempotencyKey:key});
-  if(error)throw new Error('EMAIL_DELIVERY_FAILED');
-}
 export async function processOutbox(agreementId?:string){
   if(!process.env.SUPABASE_DB_URL)return {configured:false,processed:0};
   const db=database(),repo=new PostgresRepository(db),batch=await claimBatch(db,agreementId);
-  const base=new URL(process.env.AHD_APP_URL!).origin;
   let processed=0,retryable=0;
   for(const row of batch){
     try{
@@ -54,22 +44,16 @@ export async function processOutbox(agreementId?:string){
         if(!verifyIntegrity(a))throw new Error('EVIDENCE_INTEGRITY_FAILED');
         await ensureArtifact(a,row.data.payload.settlement?'settlement':'pdf');
       }else if(row.event_type==='INVITATION_DELIVERY'){
-        const i=a.invitations.find(i=>i.id===row.data.payload.invitationId);
-        const recipient=i&&a.participants.find(p=>p.id===i.participantId);
-        if(i&&recipient&&needsInvitationResponse(a,recipient)&&i.status==='PENDING'&&i.expiresAt>new Date().toISOString()&&i.versionId===a.currentVersionId&&!['CANCELLED','DECLINED'].includes(a.status)){
-          if(!row.encrypted_delivery)throw new Error('DELIVERY_TOKEN_UNAVAILABLE');
-          const {token}=decryptDelivery<{token:string}>(row.encrypted_delivery),p=a.participants.find(p=>p.id===i.participantId)!;
-          await deliver(i.destination,p.role==='WITNESS'?'You are invited to review an agreement as a witness. Read the terms and confirm whether you agree to act as a witness. You are not responsible for repayment.':'You are invited to review a proposed interest-free agreement. Read the terms before deciding whether to approve.',`${base}/invite/${token}`,row.id);
-        }
+        // Invitations are not emailed. The inviter shares the private link, and a person who
+        // already has an account sees the request in their in-app inbox. The queued token is
+        // cleared with the row below.
       }else{
         const message=messages[row.event_type];
         if(message){
-          for(const p of recipients(a,row.event_type)){
-            const eventId=String(row.data.payload.eventId??row.id);
+          const eventId=String(row.data.payload.eventId??row.id),actorId=a.events.find(e=>e.id===eventId)?.actorId;
+          // In-app only: lifecycle updates are never emailed, and nobody is notified of their own action.
+          for(const p of recipients(a,row.event_type).filter(p=>p.id!==actorId)){
             await db.query('insert into notifications (id,user_id,agreement_id,event_id,message) values ($1,$2,$3,$4,$5) on conflict (user_id,event_id) do nothing',[randomUUID(),p.userId,a.id,eventId,message]);
-            // Phone identities receive the in-app update. Email delivery is optional
-            // for lifecycle updates; invitation delivery is separately retried.
-            if(p.contact.includes('@')&&process.env.RESEND_API_KEY)await deliver(p.contact,message,`${base}/agreements/${a.id}`,`${row.id}-${p.id}`);
           }
           if(row.event_type==='REPAYMENT_CONFIRMED'&&a.manifest&&verifyIntegrity(a)){
             const event=a.events.find(e=>e.id===row.data.payload.eventId);

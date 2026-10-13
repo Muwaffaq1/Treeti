@@ -20,6 +20,7 @@ import {debtRepository} from '@/modules/debts/repository';
 import {investmentRepository} from '@/modules/investments/repository';
 import {reminderCalendar} from '@/modules/debts/reminders';
 import {queueAgreementDelivery,queueDebtReminder} from '@/modules/notifications/wakeups';
+import {notices} from '@/modules/notifications/feed';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -52,6 +53,7 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
       return json({role:p.role,contact:maskContact(i.destination),expiresAt:i.expiresAt,verificationAvailable:demo||emailDeliveryAvailable(i.destination)});
     }
     const {actor,repo,people,workspace}=await getRuntime(demo);
+    if(path[0]==='notifications'&&path.length===1)return json({notices:notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor)});
     if(path[0]==='debts'&&!path[1])return json({debts:await debtRepository(demo,workspace).listDebts(actor)});
     if(path[0]==='investments'&&path.length===1)return json({investments:await investmentRepository(demo,workspace).listInvestments(actor)});
     if(path[0]==='debts'&&path[2]==='reminder'&&path[3]==='calendar'){

@@ -28,3 +28,20 @@ export function InstallTreeti({compact=false,rail=false}:{compact?:boolean;rail?
   if(installed)return null;
   return <><Button variant="secondary" className={compact?'icon-button':undefined} onClick={()=>void install()} aria-label={compact?'Install treeti':undefined}><Download size={19} aria-hidden/>{!compact&&(rail?<span><strong>Keep treeti close</strong><small>Install on your device</small></span>:'Install treeti')}</Button>{dialog}</>;
 }
+
+// A gentle, one-time-per-fortnight prompt for signed-in people who have not installed treeti.
+const nudgeKey='treeti:install-nudge',nudgeDelay=7000,nudgeRest=14*86400000;
+export function InstallNudge(){
+  const {installed,install,dialog}=useTreetiInstallation(),[open,setOpen]=useState(false);
+  useEffect(()=>{
+    if(installed)return;
+    let stored:string|null=null;try{stored=localStorage.getItem(nudgeKey);}catch{}
+    // Automated browsers only see the prompt when a test asks for it.
+    if(stored!=='show'&&(navigator.webdriver||(stored&&Date.now()-Number(stored)<nudgeRest)))return;
+    const timer=setTimeout(()=>setOpen(true),nudgeDelay);
+    return ()=>clearTimeout(timer);
+  },[installed]);
+  function close(){setOpen(false);try{localStorage.setItem(nudgeKey,String(Date.now()));}catch{}}
+  if(installed)return null;
+  return <>{open&&<section className="install-nudge" role="region" aria-label="Add treeti to your device"><div><strong>Keep treeti a tap away</strong><p>Add treeti to your home screen or desktop. It opens in its own window, like an app, so your records are one tap away.</p></div><div className="install-nudge-actions"><Button variant="ghost" onClick={close}>Not now</Button><Button onClick={()=>{close();void install();}}><Download size={17} aria-hidden/>Add treeti</Button></div></section>}{dialog}</>;
+}

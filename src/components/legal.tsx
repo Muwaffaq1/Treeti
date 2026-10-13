@@ -4,7 +4,7 @@ import {Brand} from '@/components/shell';
 
 export const OPERATOR='Muwaffaq Yusuf';
 export const CONTACT_EMAIL='yusufmuwaffaq17@gmail.com';
-const UPDATED='12 October 2026';
+const UPDATED='13 October 2026';
 const mail=(subject:string)=>`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 
 export function LegalLinks(){return <nav className="legal-links" aria-label="Policies and support"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></nav>;}
@@ -24,11 +24,11 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
     <li><strong>Your private records.</strong> Debts you track for yourself, reminders you set, and investments you record.</li>
     <li><strong>Technical information.</strong> Limited details such as your IP address and the time of a request, used to keep sign-in secure and to prevent abuse, and a history of actions taken on each agreement.</li>
   </ul>
-  <p>When you invite someone to an agreement, you give us that person’s name and contact so we can send them an invitation. Please only invite people who are expecting it.</p>
+  <p>When you invite someone to an agreement, you give us that person’s name and email so the agreement can be matched to them when they sign in. treeti does not email them: you share the private link yourself. Please only invite people who are expecting it.</p>
   <h2>How we use it</h2>
   <ul>
     <li>To keep the record you and the other people agreed to, and show it to the people it belongs to.</li>
-    <li>To send sign-in codes, invitations and the reminders you ask for.</li>
+    <li>To email you a sign-in code, and to show notifications and the reminders you ask for inside treeti.</li>
     <li>To protect accounts, investigate problems and prevent misuse.</li>
     <li>To meet legal obligations where they apply.</li>
   </ul>
@@ -71,7 +71,7 @@ export function Terms(){return <LegalPage title="Terms of use" lede="The underst
   </ul>
   <h2>What treeti does not promise</h2>
   <p>treeti does not give legal, financial or religious advice. We do not promise that an agreement recorded here is legally enforceable, or that it meets the requirements of any law or religious ruling. If that matters for your agreement, ask someone qualified.</p>
-  <p>Reminders and emails are sent on a best-effort basis and may be late or fail to arrive. treeti is a new service: it is provided as it is, may change, and may sometimes be unavailable. Keep your own copy of any record that is important to you.</p>
+  <p>Notifications, reminders and sign-in emails are provided on a best-effort basis and may be late or fail to arrive. treeti is a new service: it is provided as it is, may change, and may sometimes be unavailable. Keep your own copy of any record that is important to you.</p>
   <h2>Fair use</h2>
   <p>Do not use treeti to deceive, pressure or harass anyone, to record an agreement that is unlawful, to impersonate someone else, or to interfere with the service or other people’s records. We may suspend an account that does.</p>
   <h2>Disagreements between people</h2>
@@ -89,7 +89,7 @@ export function Support(){return <LegalPage title="Help and support" lede="Somet
   <p>Email <Email subject="treeti support"/>. Tell us the email address on your account and what you were trying to do. If it is about an agreement, include its record number (it starts with TREETI). Please do not send passwords or sign-in codes.</p>
   <h2>Quick answers</h2>
   <ul>
-    <li><strong>Someone did not receive their invitation.</strong> Open the agreement, find the person under “Agreed together”, and choose <strong>Resend invitation</strong>. You can also copy their private link and send it yourself.</li>
+    <li><strong>Someone has not seen their invitation.</strong> treeti does not email invitations; you send the private link yourself. Open the agreement, find the person under “Agreed together”, choose <strong>Resend invitation</strong> to get a fresh link, then share it on WhatsApp or copy it.</li><li><strong>Where do updates appear?</strong> Open <strong>Notifications</strong> (the bell) to see what other people have done on your agreements. The only email treeti sends you is your sign-in code.</li>
     <li><strong>My sign-in code did not arrive.</strong> Check your spam folder, wait a minute, then ask for a new code. Codes are sent only to the email address you typed.</li>
     <li><strong>I want to change an agreement.</strong> A confirmed agreement is preserved as it is. Create a new version from the agreement page; it takes effect once the parties approve it.</li>
     <li><strong>I want a copy of my information, or to delete my account.</strong> Email us from the address on your account. Our <Link href="/privacy">privacy policy</Link> explains what happens.</li>

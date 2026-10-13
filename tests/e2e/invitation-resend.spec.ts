@@ -12,7 +12,7 @@ test('four-item mobile navigation and one-click resend for the unsigned lender',
  await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
  const nav=page.getByRole('navigation',{name:'Mobile navigation'});await expect(nav.getByRole('link')).toHaveCount(4);await expect(nav.getByRole('link',{name:'Create',exact:true})).toHaveCount(0);
  const resend=page.getByRole('button',{name:'Resend invitation to Abdullah Musa'});await expect(resend).toBeVisible();const delivery=page.waitForResponse(r=>r.url().endsWith(`/agreements/${a.id}/resend-invitation`)&&r.request().method()==='POST');await resend.click();const renewed=await (await delivery).json();expect(renewed.invitation.url).toBeTruthy();
- await expect(page.locator('.notice-region')).toContainText('A fresh invitation is queued for Abdullah Musa');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('.invite-recipient')).toContainText('Lender');
+ await expect(page.locator('.notice-region')).toContainText('A fresh private link is ready for Abdullah Musa');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('.invite-recipient')).toContainText('Lender');
  const saved=(await (await page.request.get(`/api/demo/agreements/${a.id}`)).json()).agreement;expect(saved.versions).toHaveLength(1);expect(saved.approvals).toHaveLength(0);expect(saved.status).toBe('AWAITING_BORROWER');
  await resend.click();await expect(page.locator('.error-message')).toContainText('wait one minute');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

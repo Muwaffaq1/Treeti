@@ -78,3 +78,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;op
 .landing-footer{flex-wrap:wrap}.landing-footer .legal-links{margin-inline-start:auto}.landing-footer .legal-links a{margin-inline-start:0;font-size:13px}.landing-footer .legal-links+a{margin-inline-start:0}
 .legal-consent{font-size:12px;line-height:1.6;color:var(--muted);text-align:center;margin-top:12px}
 @media(hover:hover){.legal-links a:hover{color:var(--ink)}}
+/* Notifications: a bell with an unread count, a list that reuses the activity rows, and the install prompt. */
+.mobile-header-actions{display:flex;align-items:center;gap:12px}.notice-bell{position:relative}.notice-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--action);color:var(--action-text);font-size:11px;font-weight:600;line-height:1}
+.notice-bell .notice-count{position:absolute;top:-4px;inset-inline-end:-4px}.notice-rail .notice-count{margin-inline-start:auto}
+.notice-new{display:inline-flex;margin-inline-start:10px;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;letter-spacing:0;vertical-align:middle}.activity-event-icon.tone-new{background:var(--accent-soft);color:var(--accent)}
+.notices-page .activity-event time{font-size:12px;color:var(--muted);white-space:nowrap}
+.install-nudge{position:fixed;z-index:40;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));max-width:520px;margin-inline:auto;display:grid;gap:16px;padding:20px;border:1px solid var(--faint);border-radius:24px;background:var(--surface-raised);box-shadow:0 16px 48px #00000029}
+.install-nudge strong{font-size:16px;font-weight:600}.install-nudge p{font-size:13px;line-height:1.6;color:var(--muted);margin-top:4px}.install-nudge-actions{display:flex;justify-content:flex-end;gap:8px}
+@media(min-width:801px){.install-nudge{inset-inline:auto 24px;bottom:24px;width:400px}}
