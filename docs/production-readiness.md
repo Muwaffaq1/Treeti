@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — guide, policy and support pages served as static files
+
+Production at **https://usetreeti.xyz** runs app commit `82f4d0b` as Cloudflare version `3a22fcc3-068d-4379-a6d2-df6d554de4d9`, deployed 13 October 2026 with `npm run cf:deploy:production`. `npm run cf:build` now ends with `scripts/static-public-pages.mjs`, which copies the prebuilt `/guide`, `/privacy`, `/terms` and `/support` pages into `.open-next/assets` and writes a `_headers` file giving them the security headers from `scripts/security-headers.mjs` (shared with `next.config.ts`) and `Cache-Control: private, no-store`. `public/robots.txt` allows all crawlers; pages still carry `noindex`.
+
+Why: a live `wrangler tail` before the change measured Worker CPU per request at 88–756 ms for `/`, 27–329 ms for `/login`, 29–514 ms for each of the four pages and 789 ms for a missing `/robots.txt`, against the Workers Free allowance of 10 ms. After the deploy the same probe showed no Worker invocation for the four pages or `robots.txt`; `/` (348–743 ms) and `/login` (368–414 ms) still run the Worker, as do all signed-in pages (130–284 ms observed).
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T11-29-55.892Z`, 27 tables, 557 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. No migration and no secret changed. Locally, lint, types, 172 tests and the Workers checks (now covering the static pages' headers and content) passed, and links between the pages were followed in a browser against local workerd. After the deploy, `npm run check:production` and the read-only scoped job probes passed and the four live pages returned 200 with the content security policy.
+
+Known differences: the four pages no longer pass through `proxy.ts`, so an old hostname serves them directly instead of redirecting, and in-app links to them load as full pages. Rollback version: `1eea5da2-b212-4c3d-b278-f76fcb3d8e9a`.
+
 ## Release — old-address pages name and move to the current address
 
 Production at **https://usetreeti.xyz** runs app commit `b2748ca` as Cloudflare version `1eea5da2-b212-4c3d-b278-f76fcb3d8e9a`, deployed 13 October 2026 with `npm run cf:deploy:production`. A request refused for coming from another address now answers “Open treeti at usetreeti.xyz and try again.” with a `home` field, and the page moves itself to the same path on that address (`currentAddress` in `src/components/client-api.ts`). The origin check itself is unchanged.
