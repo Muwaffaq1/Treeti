@@ -11,9 +11,9 @@ test.use({browserName,isMobile:true,hasTouch:true});
   const summary=page.locator('.more-options summary');await expect(summary.locator('svg')).toHaveCount(1);expect(await summary.evaluate(e=>getComputedStyle(e).listStyleType)).toBe('none');expect(await summary.evaluate(e=>getComputedStyle(e,'::marker').content)).toBe('""');
   await summary.focus();await page.keyboard.press('Enter');await expect(page.getByLabel('Purpose (optional)')).toBeVisible();await page.getByLabel('Purpose (optional)').fill('Remember this purpose');await summary.focus();await page.keyboard.press('Enter');await expect(page.getByLabel('Purpose (optional)')).toBeHidden();await summary.click();await expect(page.getByLabel('Purpose (optional)')).toHaveValue('Remember this purpose');await summary.click();
   for(const plan of ['SINGLE','MONTHLY','CUSTOM']){
-   await page.getByLabel('Repayment structure').selectOption(plan);
+   await page.getByRole('radiogroup',{name:'Repayment structure'}).locator(`input[value=\"${plan}\"]`).check();
    if(plan==='CUSTOM')await page.getByLabel('Payment 1 date').fill('2027-01-31');
-   const bounds=await page.locator('.creation-form input,.creation-form select,.creation-form textarea').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect(),p=e.closest('.field-control')!.getBoundingClientRect();return r.width<=p.width+1&&r.right<=p.right+1;}));expect(bounds.every(Boolean)).toBe(true);
+   const bounds=await page.locator('.creation-form input:not([type=radio]),.creation-form select,.creation-form textarea').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect(),p=e.closest('.field-control')!.getBoundingClientRect();return r.width<=p.width+1&&r.right<=p.right+1;}));expect(bounds.every(Boolean)).toBe(true);
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
   }
   await page.evaluate(async()=>{await document.fonts.ready;});await mkdir('output/qa',{recursive:true});await page.screenshot({path:`output/qa/date-fields-${browserName}-${width}.png`,fullPage:true});

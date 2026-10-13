@@ -10,7 +10,7 @@ for(const [plan,width] of [['MONTHLY',375],['WEEKLY',1366],['CUSTOM',375]] as co
   await amount.press('Home');await amount.press('ArrowRight');await amount.press('9');await expect(amount).toHaveValue('19,000.01');
   await amount.press('Backspace');await expect(amount).toHaveValue('1,000.01');
   await page.getByLabel('Borrower’s full name').fill('Ahmad Ibrahim');await page.getByLabel('Email or phone number').fill('ahmad@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();
-  await page.getByLabel('Repayment structure').selectOption(plan);
+  await page.getByRole('radiogroup',{name:'Repayment structure'}).locator(`input[value=\"${plan}\"]`).check();
   if(plan==='CUSTOM'){
     await page.getByLabel('Payment 1 date').fill('2027-01-31');await page.getByLabel('Payment 1 amount (NGN)').fill('500');
     await page.getByLabel('Payment 2 date').fill('2027-03-15');await page.getByLabel('Payment 2 amount (NGN)').fill('500');
@@ -30,7 +30,7 @@ for(const [plan,width] of [['MONTHLY',375],['WEEKLY',1366],['CUSTOM',375]] as co
   expect(terms.installments.payments.reduce((sum:bigint,p:{amountMinor:string})=>sum+BigInt(p.amountMinor),0n)).toBe(100001n);
   if(plan==='MONTHLY')expect(terms.installments.payments.map((p:{dueDate:string})=>p.dueDate)).toEqual(['2027-01-31','2027-02-28','2027-03-31']);
   const url=page.url();await page.reload();await expect(page.getByRole('region',{name:'Installment schedule'})).toBeVisible();
-  await page.goto(`${url}/edit`);await expect(amount).toHaveValue('1,000.01');await expect(page.getByRole('heading',{name:'Who are you lending to?'})).toBeVisible();await expect(page.getByLabel('Email or phone number')).toHaveValue('ahmad@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByLabel('Repayment structure')).toHaveValue(plan);await page.getByLabel('Reason for the new version').fill('Review the repayment plan');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByRole('heading',{name:'Review and agree.'})).toBeVisible();await page.getByRole('button',{name:'Save new version',exact:true}).click();await expect(page.getByRole('heading',{name:'Your draft is safely kept.'})).toBeVisible();const revised=await (await page.request.get(endpoint)).json();expect(revised.agreement.versions).toHaveLength(2);expect(revised.agreement.versions[0].terms).toEqual(terms);
+  await page.goto(`${url}/edit`);await expect(amount).toHaveValue('1,000.01');await expect(page.getByRole('heading',{name:'Who are you lending to?'})).toBeVisible();await expect(page.getByLabel('Email or phone number')).toHaveValue('ahmad@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByRole('radiogroup',{name:'Repayment structure'}).locator(`input[value="${plan}"]`)).toBeChecked();await page.getByLabel('Reason for the new version').fill('Review the repayment plan');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByRole('heading',{name:'Review and agree.'})).toBeVisible();await page.getByRole('button',{name:'Save new version',exact:true}).click();await expect(page.getByRole('heading',{name:'Your draft is safely kept.'})).toBeVisible();const revised=await (await page.request.get(endpoint)).json();expect(revised.agreement.versions).toHaveLength(2);expect(revised.agreement.versions[0].terms).toEqual(terms);
 });
 
 test('rejects invalid pasted amounts instead of silently changing their meaning',async({page})=>{
