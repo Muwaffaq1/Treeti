@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — search engines may list the five public pages
+
+Production at **https://usetreeti.xyz** runs app commit `6f85108` as Cloudflare version `52bcad7c-0dfe-4082-8b90-ab0ee56e98e9`, deployed 13 October 2026 with `npm run cf:deploy:production`, at the owner's request. `/`, `/guide`, `/support`, `/privacy` and `/terms` opt in with `listed()` (`src/lib/listed.ts`): `index, follow` and a canonical address on `usetreeti.xyz`. The root layout's default stays `noindex, nofollow`, so sign-in, signed-in pages, invitations and verification pages are not listed. `public/sitemap.xml` names the five pages and `robots.txt` points to it.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T15-08-02.706Z`, 27 tables, 598 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. Locally, lint, types, 170 tests and the Workers checks (now asserting which pages are and are not listable, and the sitemap's contents) passed. After the deploy, `npm run check:production` and the scoped job probes passed, the live public pages carried `index, follow` and their canonical link, `/login` carried `noindex, nofollow`, and the sitemap returned 200.
+
+Not done: registering the site with a search console. Listing is slow to reverse once a search engine has it. Rollback version: `241ae755-6801-4982-be09-7188268d1b02`.
+
 ## Release — install manifest served as a static file
 
 Production at **https://usetreeti.xyz** runs app commit `97c1055` as Cloudflare version `241ae755-6801-4982-be09-7188268d1b02`, deployed 13 October 2026 with `npm run cf:deploy:production`. `scripts/static-public-pages.mjs` now also copies the prebuilt `manifest.webmanifest` into the static assets with its content type and the security headers.
