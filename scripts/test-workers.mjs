@@ -42,6 +42,11 @@ try {
   }
   const manifest = await get(`${app}/manifest.webmanifest`); assert.match(manifest.headers.get('content-type') ?? '', /application\/manifest\+json/); assert.equal(manifest.headers.get('x-content-type-options'), 'nosniff');
   const installed = await manifest.json(); assert.equal(installed.short_name, 'treeti'); assert.equal(installed.start_url, '/launch'); assert.ok(installed.icons.length > 0);
+  // Only pages that are the same for everyone may be listed by search engines.
+  const robotsTag = async path => (await (await get(app + path)).text()).match(/<meta name="robots" content="([^"]*)"/)?.[1] ?? '';
+  for (const path of ['/', '/guide', '/privacy', '/terms', '/support']) { assert.equal(await robotsTag(path), 'index, follow', path); assert.ok((await (await get(app + path)).text()).includes(`<link rel="canonical" href="https://usetreeti.xyz${path === '/' ? '' : path}"`), `${path} canonical`); }
+  for (const path of ['/login', '/verify/TREETI-2026-00000', '/invite/' + 'w'.repeat(43)]) assert.match(await robotsTag(path), /noindex/, path);
+  const sitemap = await get(`${app}/sitemap.xml`); assert.equal(sitemap.status, 200); const listedPages = await sitemap.text(); for (const path of ['/guide', '/support', '/privacy', '/terms']) assert.ok(listedPages.includes(`<loc>https://usetreeti.xyz${path}</loc>`), path); assert.ok(!/login|app|agreements|invite|verify/.test(listedPages));
   const robots = await get(`${app}/robots.txt`); assert.equal(robots.status, 200); assert.match(await robots.text(), /Allow: \//);
   const loginHTML=await (await get(`${app}/login`)).text();
   const configuredSignIn=!loginHTML.includes('Sign-in setup is still in progress. Please check back later.');
