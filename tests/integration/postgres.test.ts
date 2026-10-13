@@ -7,6 +7,8 @@ import {PostgresDebtRepository} from '@/modules/debts/repository';
 import {PostgresInvestmentRepository} from '@/modules/investments/repository';
 import {deliverDebtReminders} from '@/modules/debts/reminder-worker';
 import {claimBatch} from '@/modules/notifications/worker';
+import {recordedNotices} from '@/modules/notifications/feed';
+import {randomUUID} from 'node:crypto';
 import {recurringPlan} from '@/modules/agreements/repayment-plan';
 import {people,input,terms} from '../helpers';
 let pg:PGlite,db:Database,repo:PostgresRepository;
@@ -146,6 +148,23 @@ it('round-trips installment evidence and appends plan revisions without rewritin
  await expect(db.query("update agreement_versions set data='{}' where agreement_id=$1",[a.id])).rejects.toThrow('append-only');
 });
 
+it('lists recorded notifications in one query: others’ actions only, newest first, never another person’s',async()=>{
+ const a=(await repo.create({...input,terms:{...terms,requiredWitnesses:0}},people[0],'notice_feed_create_key')).agreement;
+ const sent=await repo.command(a.id,{action:'send',expectedVersionId:a.currentVersionId},people[0],'notice_feed_send_key1');
+ await repo.claim(sent.invitation!.token,people[1]);
+ const current=(await repo.get(a.id))!,lender=current.participants.find(p=>p.role==='LENDER')!,borrower=current.participants.find(p=>p.role==='BORROWER')!,invited=current.events.find(e=>e.type==='BORROWER_INVITED')!,claimed=current.events.find(e=>e.type==='INVITATION_CLAIMED')!;
+ expect(invited.actorId).toBe(lender.id);expect(claimed.actorId).toBe(borrower.id);
+ const note=(userId:string,eventId:string,message:string,at:string)=>db.query('insert into notifications (id,user_id,agreement_id,event_id,message,created_at) values ($1,$2,$3,$4,$5,$6)',[randomUUID(),userId,a.id,eventId,message,at]);
+ // Older rows were written for everyone, including the person who acted.
+ await note(people[0].userId,invited.id,'An agreement is ready for the borrower to review.','2026-10-08T12:00:00Z');await note(people[1].userId,invited.id,'An agreement is ready for the borrower to review.','2026-10-08T12:00:00Z');
+ await note(people[0].userId,claimed.id,'Invitation opened.','2026-10-08T12:05:00Z');await note(people[1].userId,claimed.id,'Invitation opened.','2026-10-08T12:05:00Z');
+ const reminder=randomUUID();await note(people[0].userId,reminder,'The recorded repayment date is approaching.','2026-10-08T12:10:00Z');
+ const forLender=await recordedNotices(db,people[0].userId),forBorrower=await recordedNotices(db,people[1].userId);
+ expect(forLender.map(n=>[n.type,n.by,n.text])).toEqual([['','','The recorded repayment date is approaching.'],['INVITATION_CLAIMED',people[1].name,'Invitation opened.']]);
+ expect(forBorrower.map(n=>[n.type,n.by])).toEqual([['BORROWER_INVITED',people[0].name]]);
+ expect(forLender.every(n=>n.agreementId===a.id&&n.publicId===a.publicId&&!Number.isNaN(Date.parse(n.createdAt)))).toBe(true);
+ expect(await recordedNotices(db,people[0].userId,1)).toHaveLength(1);expect(await recordedNotices(db,people[4].userId)).toEqual([]);
+});
 it('shows an existing borrower a private pending inbox without claiming or approving; review links the account',async()=>{
   let a=(await repo.create(input,people[0],'pending_inbox_create_unique')).agreement;
   const sent=await repo.command(a.id,{action:'send',expectedVersionId:a.currentVersionId},people[0],'pending_inbox_send_unique');a=sent.agreement;

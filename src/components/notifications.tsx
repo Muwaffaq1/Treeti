@@ -21,12 +21,20 @@ export function NotificationBell({userId,demo,rail=false}:{userId:string;demo:bo
   const [latest,setLatest]=useState<string[]|null>(null),seen=useSeen(userId);
   useEffect(()=>{
     let cancelled=false;
-    const load=()=>fetch(`${apiBase(demo)}/notifications`,{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>r.ok?r.json():null).then((data:{notices:Notice[]}|null)=>{
+    // Moving between pages reuses the last answer for a minute instead of asking the server again.
+    const cacheKey=`treeti:notices:${userId}`;
+    const load=async()=>{
+      let data:{notices:Notice[]}|null=null;
+      try{const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'null') as {at:number;notices:Notice[]}|null;if(cached&&Date.now()-cached.at<60000)data=cached;}catch{}
+      if(!data){
+        data=await fetch(`${apiBase(demo)}/notifications`,{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
+        if(data)try{sessionStorage.setItem(cacheKey,JSON.stringify({at:Date.now(),notices:data.notices}));}catch{}
+      }
       if(cancelled||!data)return;
       // The first visit on a device starts with a clean slate instead of marking old history as new.
       if(!readSeen(userId))writeSeen(userId,new Date().toISOString());
       setLatest(data.notices.map(n=>n.createdAt));
-    }).catch(()=>{});
+    };
     void load();
     const refocus=()=>{if(document.visibilityState==='visible')void load();};
     document.addEventListener('visibilitychange',refocus);
@@ -99,7 +107,7 @@ export function Notifications({notices,userId,demo}:{notices:Notice[];userId:str
   const isNew=(n:Notice)=>seenAtOpen!==undefined&&seenAtOpen!==null&&n.createdAt>seenAtOpen;
   return <div className="activity-page notices-page"><div className="page-heading"><div><h1>Notifications</h1><p className="lede">What other people have done on your agreements. treeti only emails you a sign-in code; everything else arrives here.</p></div></div>
     <PushSettings demo={demo}/>
-    {notices.length>0&&<ol className="activity-events">{notices.map(n=><li key={n.id}><Link className="activity-event" href={n.agreementId?`${appBase(demo)}/agreements/${n.agreementId}`:appBase(demo)||'/app'}><span className={`activity-event-icon ${isNew(n)?'tone-new':''}`} aria-hidden><Bell size={20}/></span><div className="activity-event-copy"><h3>{text[n.type]||'Record updated'}{isNew(n)&&<span className="notice-new">New</span>}</h3><p>{n.by||'treeti'}</p><small>{n.publicId}</small></div><time dateTime={n.createdAt} title={timeZone?formats.full.format(new Date(n.createdAt)):undefined}>{timeZone?`${short.format(new Date(n.createdAt))} · ${formats.clock.format(new Date(n.createdAt))}`:''}</time><ArrowUpRight className="activity-event-arrow" size={18} aria-hidden/></Link></li>)}</ol>}
+    {notices.length>0&&<ol className="activity-events">{notices.map(n=><li key={n.id}><Link className="activity-event" href={n.agreementId?`${appBase(demo)}/agreements/${n.agreementId}`:appBase(demo)||'/app'}><span className={`activity-event-icon ${isNew(n)?'tone-new':''}`} aria-hidden><Bell size={20}/></span><div className="activity-event-copy"><h3>{text[n.type]||n.text||'Record updated'}{isNew(n)&&<span className="notice-new">New</span>}</h3><p>{n.by||'treeti'}</p><small>{n.publicId}</small></div><time dateTime={n.createdAt} title={timeZone?formats.full.format(new Date(n.createdAt)):undefined}>{timeZone?`${short.format(new Date(n.createdAt))} · ${formats.clock.format(new Date(n.createdAt))}`:''}</time><ArrowUpRight className="activity-event-arrow" size={18} aria-hidden/></Link></li>)}</ol>}
     {!notices.length&&<div className="activity-empty"><span className="empty-icon" aria-hidden><Bell size={28}/></span><h2>Nothing new yet</h2><p>When someone approves, witnesses, or records a repayment on one of your agreements, you’ll see it here.</p><Link className="button button-secondary" href={`${appBase(demo)}/agreements`}>View agreements<ArrowRight size={16} aria-hidden/></Link></div>}
   </div>;
 }

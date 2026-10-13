@@ -17,6 +17,8 @@ for(const width of [390,1366])test(`in-app notifications replace event emails at
  const sent=await post(`/api/demo/agreements/${a.id}/agree-and-send`,{action:'agree-and-send',expectedVersionId:a.currentVersionId,signature:'Maryam Bello',affirmed:true});expect(sent.ok()).toBe(true);const {invitation}=await sent.json();
  await post('/api/demo/session',{userId:borrower});await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
  await page.getByRole('button',{name:'Review and approve',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'Approve these terms',exact:true}).click();await expect(dialog).toBeHidden();
+ // The bell reuses its last answer for a minute; a later visit asks again.
+ await page.evaluate(()=>sessionStorage.clear());
  await post('/api/demo/session',{userId:lender});await page.goto('/demo');
  await expect(bell).toHaveAccessibleName(/Notifications, \d+ new/);
  await bell.click();await expect(page).toHaveURL(/\/demo\/notifications$/);await expect(page.getByRole('heading',{level:1,name:'Notifications'})).toBeVisible();
