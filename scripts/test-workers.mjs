@@ -33,6 +33,14 @@ try {
     if (path === '/' || path === '/login') assert.match(response.headers.get('cache-control') ?? '', /private.*no-store/, path);
     await response.arrayBuffer();
   }
+  // Ready-made public pages are served as static files; they must keep the same headers as rendered pages.
+  for (const [path, text] of [['/guide', 'Keep an investment record'], ['/privacy', 'Privacy policy'], ['/terms', 'Terms of use'], ['/support', 'Help and support']]) {
+    const response = await get(app + path); assert.equal(response.status, 200, path);
+    for (const [name, value] of [['content-security-policy', "frame-ancestors 'none'"], ['x-frame-options', 'DENY'], ['x-content-type-options', 'nosniff'], ['referrer-policy', 'no-referrer']]) assert.ok(response.headers.get(name)?.includes(value), `${path} ${name}`);
+    assert.match(response.headers.get('cache-control') ?? '', /private.*no-store/, path); assert.match(response.headers.get('content-type') ?? '', /text\/html/, path);
+    assert.ok((await response.text()).includes(text), path);
+  }
+  const robots = await get(`${app}/robots.txt`); assert.equal(robots.status, 200); assert.match(await robots.text(), /Allow: \//);
   const loginHTML=await (await get(`${app}/login`)).text();
   const configuredSignIn=!loginHTML.includes('Sign-in setup is still in progress. Please check back later.');
   const welcome=await get(`${app}/welcome`);assert.ok([200,307].includes(welcome.status));assert.match(welcome.headers.get('cache-control')??'',/private.*no-store/);

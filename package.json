@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
-    "cf:build": "opennextjs-cloudflare build",
+    "cf:build": "opennextjs-cloudflare build && node scripts/static-public-pages.mjs",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy:staging": "node -e \"console.error('This shared environment is now production. Use npm run cf:deploy:production.'); process.exit(1)\"",
     "cf:deploy:production": "opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
