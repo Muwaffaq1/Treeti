@@ -37,7 +37,9 @@ async function check(){
     if(path==='/login'){assert.match(html,/>Email address<\/label>/);assert.doesNotMatch(html,/>Full name<\/label>/);}
     if(path==='/guide'){assert.match(html,/Keep an investment record/);assert.match(html,/Money owed to you|money owed to you/);assert.doesNotMatch(html,/before public launch|Try every role in one browser|testing-guide/);}
   }
-  for(const alias of aliases)for(const path of ['/login','/invite/domain-probe?next=%2Fagreements%2Fexample','/verify/TREETI-2026-00000']){
+  // Home and sign-in are static files, so an old address serves the page and the page moves itself.
+  for(const alias of aliases){const response=await request(alias,'/login?next=%2Fagreements%2Fexample');assert.equal(response.status,200);assert.match(await response.text(),/https:\/\/usetreeti\.xyz/);}
+  for(const alias of aliases)for(const path of ['/invite/domain-probe?next=%2Fagreements%2Fexample','/verify/TREETI-2026-00000']){
     const response=await request(alias,path);assert.equal(response.status,307,path);
     assert.equal(response.headers.get('location'),current+path);privateResponse(response);
     await response.arrayBuffer();

@@ -14,7 +14,7 @@
     "cf:build": "opennextjs-cloudflare build && node scripts/static-public-pages.mjs",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy:staging": "node -e \"console.error('This shared environment is now production. Use npm run cf:deploy:production.'); process.exit(1)\"",
-    "cf:deploy:production": "opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
+    "cf:deploy:production": "node scripts/static-public-pages.mjs --require-sign-in && opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
     "setup:check": "tsx --env-file-if-exists=.env.local scripts/check-setup.ts",
     "jobs:check:staging": "node --env-file-if-exists=.env.local scripts/check-hosted-jobs.mjs",
     "predev": "node scripts/build-assets.mjs",
@@ -24,7 +24,7 @@
     "postcf:build": "node scripts/package-worker-manifest.mjs",
     "test:workers": "node scripts/test-workers.mjs",
     "backup:project": "node --env-file-if-exists=.env.local scripts/backup-project.mjs",
-    "cf:deploy:promoted": "opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
+    "cf:deploy:promoted": "node scripts/static-public-pages.mjs --require-sign-in && opennextjs-cloudflare deploy --config wrangler.promotion.jsonc --env \"\"",
     "check:production": "node scripts/check-staging-domain.mjs --production"
   },
   "dependencies": {

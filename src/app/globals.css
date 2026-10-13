@@ -67,3 +67,6 @@
 .investment-card-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
 .investment-card-actions .button{padding:12px 16px;min-height:44px;font-size:12px}
 @media(max-width:480px){.investment-toolbar .search-field{width:100%}.investment-card{padding:22px}.investment-card-actions>.button-secondary{width:100%}.investment-card-heading h2{font-size:20px}}
+
+/* A ready-made entry page is moving a signed-in person on; do not flash it first. */
+html[data-leaving] body{visibility:hidden}
