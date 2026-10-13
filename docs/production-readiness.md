@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — device push notifications
+
+Production at **https://usetreeti.xyz** runs app commit `450c1bb` as Cloudflare version `9e14aae9-e7a8-4a5a-a679-63e218e19c0c` (gzip 3,027.95 KiB), deployed 13 October 2026 with `npm run cf:deploy:production`. People can turn on notifications per device from the Notifications or Account page; see [ADR 020](adr/020-device-push-notifications.md).
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T09-31-45.864Z`, 26 tables, 498 rows, 36 foreign keys, nine Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; `npm run db:migrate` applied `202610130008_push_subscriptions.sql` only, and a read-only check confirmed the table is empty, has row level security with no policy, and cannot be read by the `anon` or `authenticated` roles; `node scripts/set-push-keys.mjs` created `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` as Worker secrets and a second run changed nothing; then the deploy. Locally, lint, types, 169 unit and integration tests and the Workers checks passed. After the deploy, `npm run check:production` and the read-only scoped job probes passed, `/api/push` and `/api/push/subscribe` rejected unsigned requests with 401, and the live service worker contained the push handler.
+
+Not verified by the agent: the signed-in control, and a real alert arriving on a phone or computer. The owner should turn notifications on and have a second person act on a shared agreement.
+
+Rollback version: `6e40aece-98f2-49a8-ad8b-d46cd3f9f61e`. A code rollback leaves the new table and the two secrets in place; both are unused by the earlier version. Do not regenerate the keys: that disconnects every enabled device.
+
 ## Release — in-app notifications replace event and invitation email
 
 Production at **https://usetreeti.xyz** runs app commit `84b96d4` as Cloudflare version `6e40aece-98f2-49a8-ad8b-d46cd3f9f61e` (gzip 3,021.91 KiB), deployed 13 October 2026 with `npm run cf:deploy:production`. Lifecycle updates and invitations are no longer emailed; the only email is the sign-in code. The release adds the Notifications page and bell, WhatsApp-first sharing of invitation links, **Remind on WhatsApp** for a waiting party, and a dismissible install prompt, and removes the email option for private debt reminders; see [ADR 019](adr/019-in-app-notifications-replace-event-email.md). No database migration was needed. Push notifications are not included.
