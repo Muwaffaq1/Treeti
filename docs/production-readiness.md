@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — interest-free wording and visible repayment choices
+
+Production at **https://usetreeti.xyz** runs app commit `b35b0ba` as Cloudflare version `a3a85c4b-8fdc-4d13-91a6-061f44711782`, deployed 13 October 2026 with `npm run cf:deploy:production`, in response to a user's feedback. The home page and the create screen say “interest-free” where they said “zero interest, always”; the support page answers “Why interest-free only?” (designed with the prohibition of riba in mind, open to anyone, no religious ruling given); the guide no longer says invitations arrive by email. On step 2 of creating an agreement, “Repayment structure” is a radio group of four described choices instead of a dropdown, because the custom installment plan was not being found.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T16-02-00.075Z`, 28 tables, 599 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. No migration and no secret changed. Locally, lint, types, 178 tests, the Workers checks and the browser tests for all four repayment structures passed. After the deploy, `npm run check:production` and the scoped job probes passed and the live home and support pages carried the new wording.
+
+Not verified by the agent: the new choices with a real account on the live site. Rollback version: `c4c81701-38f9-439e-9fe4-007211dcc1d8`.
+
 ## Release — in-app feedback
 
 Production at **https://usetreeti.xyz** runs app commit `b267151` as Cloudflare version `c4c81701-38f9-439e-9fe4-007211dcc1d8`, deployed 13 October 2026 with `npm run cf:deploy:production`. Signed-in people can open **Send feedback** from the menu or sidebar and send an optional 1–5 rating and a message (`/feedback`, `POST /api/feedback`, six per ten minutes per person). `FeedbackNudge` invites them after five screens and 12 seconds, never before the install prompt has been answered on that device, then rests 30 days after “Not now” and 90 days after sending (per device, in `localStorage`). The same page lists all feedback, with sender name and email, only for accounts in the Worker variable `AHD_OWNER_EMAILS` (set in `wrangler.promotion.jsonc`); those accounts' devices get a push alert. The privacy policy and support page mention feedback.
