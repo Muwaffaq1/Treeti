@@ -38,7 +38,8 @@
     "AHD_ENABLE_DEMO": "false",
     "AHD_RUNTIME": "cloudflare",
     "INNGEST_DEV": "false",
-    "AHD_JOB_SCHEDULES": "false"
+    "AHD_JOB_SCHEDULES": "false",
+    "AHD_OWNER_EMAILS": "yusufmuwaffaq17@gmail.com"
   },
   "observability": {
     "enabled": true,

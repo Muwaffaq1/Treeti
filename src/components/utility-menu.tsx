@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {useRef} from 'react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
-import {Menu,UserRound,Sun,Moon,Download,CircleHelp,ArrowUpRight,Clock3} from 'lucide-react';
+import {Menu,UserRound,Sun,Moon,Download,CircleHelp,ArrowUpRight,Clock3,MessageSquareText} from 'lucide-react';
 import type {Actor} from '@/modules/agreements/types';
 import {useAppearance} from './appearance';
 import {useTreetiInstallation} from './pwa';
@@ -23,6 +23,7 @@ export function UtilityMenu({actor,base,demo}:{actor:Actor;base:string;demo:bool
       {!installed&&<Dropdown.Item className="utility-menu-item" onSelect={()=>{requestAnimationFrame(()=>void install());}}><Download size={20} aria-hidden/><span>Install treeti</span></Dropdown.Item>}
       <Dropdown.Separator className="utility-menu-divider"/>
       <Dropdown.Item className="utility-menu-item" asChild><Link href={`${base}/guide`}><CircleHelp size={20} aria-hidden/><span>How treeti works</span><ArrowUpRight size={16} aria-hidden/></Link></Dropdown.Item>
+      <Dropdown.Item className="utility-menu-item" asChild><Link href={`${base}/feedback`}><MessageSquareText size={20} aria-hidden/><span>Send feedback</span><ArrowUpRight size={16} aria-hidden/></Link></Dropdown.Item>
     </Dropdown.Content></Dropdown.Portal>
   </Dropdown.Root>{dialog}</>;
 }

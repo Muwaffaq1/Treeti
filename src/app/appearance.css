@@ -89,3 +89,13 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;op
 .push-card{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;margin:24px 0;padding:20px;border:1px solid var(--faint);border-radius:24px;background:var(--surface)}
 .push-card-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:16px;background:var(--accent-soft);color:var(--accent)}
 .push-card-copy strong{font-size:15px;font-weight:600}.push-card-copy p{font-size:13px;line-height:1.6;color:var(--muted);margin-top:4px;max-width:60ch}.push-card-action{grid-column:2;display:flex;flex-wrap:wrap;gap:8px}.push-card-action:empty{display:none}
+/* Feedback: the form, the operator's private list, and the prompt (which reuses the install prompt's sheet). */
+.feedback-page{max-width:720px}.feedback-form{display:grid;gap:24px}.feedback-form textarea{width:100%;resize:vertical;min-height:140px}
+.feedback-rating{border:0;padding:0;margin:0;display:grid;gap:10px}.feedback-rating legend{padding:0;font-weight:600;margin-bottom:10px}.feedback-rating legend .quiet-note{font-weight:400;margin-inline-start:8px}
+.feedback-rating>div{display:flex;gap:6px}.feedback-rating label{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;color:var(--muted);cursor:pointer}
+.feedback-rating input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}.feedback-rating label.filled{color:var(--accent)}.feedback-rating label.filled svg,.feedback-stars .filled{fill:currentColor}
+.feedback-rating label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.feedback-thanks{display:grid;gap:12px}.feedback-received{margin-top:48px;display:grid;gap:12px}.feedback-received h2{font-size:20px}
+.feedback-from{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.feedback-from span{color:var(--muted);font-size:13px;overflow-wrap:anywhere}.feedback-stars{display:inline-flex;gap:2px;color:var(--accent)}.feedback-stars svg:not(.filled){color:var(--faint)}
+.feedback-message{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.feedback-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}.feedback-list li{padding:18px 20px;border:1px solid var(--faint);border-radius:20px;background:var(--surface-raised)}.feedback-list small{color:var(--muted)}

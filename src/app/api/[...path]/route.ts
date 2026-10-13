@@ -21,7 +21,8 @@ import {investmentRepository} from '@/modules/investments/repository';
 import {reminderCalendar} from '@/modules/debts/reminders';
 import {queueAgreementDelivery,queueDebtReminder} from '@/modules/notifications/wakeups';
 import {notices,recordedNotices} from '@/modules/notifications/feed';
-import {pushKeys,removeSubscription,saveSubscription} from '@/modules/notifications/push';
+import {pushKeys,pushToUser,removeSubscription,saveSubscription} from '@/modules/notifications/push';
+import {ownerUserIds,saveDemoFeedback,saveFeedback} from '@/modules/feedback/feedback';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -107,6 +108,15 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       const a=await runtime.repo.claim(token,runtime.actor);return json({agreementId:a.id});
     }
     const {actor,repo,workspace:runtimeWorkspace}=await getRuntime(demo);await rateLimit(`command:${actor.userId}`,120,demo);
+    if(path[0]==='feedback'&&path.length===1){
+      await rateLimit(`feedback:${actor.userId}`,6,demo);
+      const input=await readBody(req);
+      if(demo){saveDemoFeedback(runtimeWorkspace!,actor,input);return json({ok:true},201);}
+      const db=database();await saveFeedback(db,actor.userId,input);
+      // Tell the operator's devices; a failed alert never loses the feedback.
+      try{for(const owner of await ownerUserIds(db))if(owner!==actor.userId)await pushToUser(db,owner,{title:'treeti',body:'Someone sent feedback.',url:'/feedback',tag:'feedback'});}catch{}
+      return json({ok:true},201);
+    }
     if(path[0]==='push'&&path.length===2&&['subscribe','unsubscribe'].includes(path[1])){
       if(demo||!pushKeys())throw new DomainError('PUSH_UNAVAILABLE','Notifications on this device are not available yet.',404);
       if(path[1]==='subscribe')await saveSubscription(database(),actor.userId,await readBody(req));else await removeSubscription(database(),actor.userId,await readBody(req));
