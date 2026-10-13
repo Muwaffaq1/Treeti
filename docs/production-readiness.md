@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — home and sign-in served as static files
+
+Production at **https://usetreeti.xyz** runs app commit `737ed4e` as Cloudflare version `e0256e38-fbac-49ff-ae17-5f245813d4ba`, deployed 13 October 2026 with `npm run cf:deploy:production`. `/` and `/login` are now prebuilt and packaged by `scripts/static-public-pages.mjs` with the other four public pages. The server-side `redirectSignedInUser` is gone; `src/lib/entry-redirect.ts` is embedded in the document head and, on those two paths only, sends a browser holding a Supabase session cookie to `/app` or the allow-listed `next` path (hiding the page while it leaves, with a 15-second rest so an expired session sent back to sign-in cannot loop) and moves a page opened on an old hostname to `https://usetreeti.xyz`. Private pages still verify the session themselves. `Login` reads `next` and `authError` from the address in the browser.
+
+Because sign-in is no longer rendered per request, `signInConfigured()` and `demoEnabled()` are fixed when the page is built. `cf:deploy:production` now runs `static-public-pages.mjs --require-sign-in` first and refuses a sign-in page without the email field.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T12-54-33.038Z`, 27 tables, 572 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify job passed and the Workers job passed on a re-run after the local Workers runtime failed to start once; then the deploy. No migration and no secret changed. Locally, lint, types, 170 tests and the Workers checks passed, and the redirect, loop rest, kept destination and link error were exercised in a browser against local workerd with a placeholder cookie. After the deploy, `npm run check:production` (old hostnames now expected to serve `/login` as a page) and the scoped job probes passed, and a live `wrangler tail` showed no Worker invocation for `/`, `/login`, `/guide`, `/privacy` or `robots.txt`. `/manifest.webmanifest` still runs the Worker (15–164 ms).
+
+Not verified by the agent: the redirect with a real signed-in session. Rollback version: `3a22fcc3-068d-4379-a6d2-df6d554de4d9`.
+
 ## Release — guide, policy and support pages served as static files
 
 Production at **https://usetreeti.xyz** runs app commit `82f4d0b` as Cloudflare version `3a22fcc3-068d-4379-a6d2-df6d554de4d9`, deployed 13 October 2026 with `npm run cf:deploy:production`. `npm run cf:build` now ends with `scripts/static-public-pages.mjs`, which copies the prebuilt `/guide`, `/privacy`, `/terms` and `/support` pages into `.open-next/assets` and writes a `_headers` file giving them the security headers from `scripts/security-headers.mjs` (shared with `next.config.ts`) and `Cache-Control: private, no-store`. `public/robots.txt` allows all crawlers; pages still carry `noindex`.
