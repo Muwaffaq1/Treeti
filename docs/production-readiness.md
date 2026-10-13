@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — in-app feedback
+
+Production at **https://usetreeti.xyz** runs app commit `b267151` as Cloudflare version `c4c81701-38f9-439e-9fe4-007211dcc1d8`, deployed 13 October 2026 with `npm run cf:deploy:production`. Signed-in people can open **Send feedback** from the menu or sidebar and send an optional 1–5 rating and a message (`/feedback`, `POST /api/feedback`, six per ten minutes per person). `FeedbackNudge` invites them after five screens and 12 seconds, never before the install prompt has been answered on that device, then rests 30 days after “Not now” and 90 days after sending (per device, in `localStorage`). The same page lists all feedback, with sender name and email, only for accounts in the Worker variable `AHD_OWNER_EMAILS` (set in `wrangler.promotion.jsonc`); those accounts' devices get a push alert. The privacy policy and support page mention feedback.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T15-36-44.361Z`, 27 tables, 598 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; `npm run db:migrate` applied `202610130009_feedback.sql` only (a server-only table with row level security and no policy); then the deploy. Locally, lint, types, 178 unit and integration tests, the Workers checks and four new browser tests passed. After the deploy, `npm run check:production` and the scoped job probes passed, `POST /api/feedback` answered 401 without a session and 403 from another origin.
+
+Not verified by the agent: sending feedback with a real account, the operator's list, and the alert. Rollback version: `52bcad7c-0dfe-4082-8b90-ab0ee56e98e9`; a code rollback leaves the empty table in place, unused.
+
 ## Release — search engines may list the five public pages
 
 Production at **https://usetreeti.xyz** runs app commit `6f85108` as Cloudflare version `52bcad7c-0dfe-4082-8b90-ab0ee56e98e9`, deployed 13 October 2026 with `npm run cf:deploy:production`, at the owner's request. `/`, `/guide`, `/support`, `/privacy` and `/terms` opt in with `listed()` (`src/lib/listed.ts`): `index, follow` and a canonical address on `usetreeti.xyz`. The root layout's default stays `noindex, nofollow`, so sign-in, signed-in pages, invitations and verification pages are not listed. `public/sitemap.xml` names the five pages and `robots.txt` points to it.
