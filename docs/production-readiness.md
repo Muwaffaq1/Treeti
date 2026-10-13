@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — old-address pages name and move to the current address
+
+Production at **https://usetreeti.xyz** runs app commit `b2748ca` as Cloudflare version `1eea5da2-b212-4c3d-b278-f76fcb3d8e9a`, deployed 13 October 2026 with `npm run cf:deploy:production`. A request refused for coming from another address now answers “Open treeti at usetreeti.xyz and try again.” with a `home` field, and the page moves itself to the same path on that address (`currentAddress` in `src/components/client-api.ts`). The origin check itself is unchanged.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-13T11-04-44.674Z`, 27 tables, 557 rows, 36 foreign keys, 12 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. No migration and no secret changed. Locally, lint, types, 172 unit and integration tests and the Workers checks passed. After the deploy, `npm run check:production` and the read-only scoped job probes passed, and a live request carrying the staging origin returned the new message and `home`.
+
+Not verified by the agent: the automatic move in a real browser tab left open on an old address. The owner confirmed on 13 October 2026 that the previous release let an iPhone turn notifications on and that a real alert arrived. Rollback version: `88e1b2d4-4d4a-43c3-a339-82181e54f84d`.
+
 ## Release — notifications lookup within the CPU limit
 
 Production at **https://usetreeti.xyz** runs app commit `f12d6c9` as Cloudflare version `88e1b2d4-4d4a-43c3-a339-82181e54f84d`, deployed 13 October 2026 with `npm run cf:deploy:production`. This fixes a fault from the two notification releases: the bell loaded every agreement in full on each page, and Cloudflare cut `GET /api/notifications` off with “Worker exceeded CPU time limit”. Safari showed the cut-off as “The string did not match the expected pattern.” when the owner tried to turn on notifications on an iPhone.
