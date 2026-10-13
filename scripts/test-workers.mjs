@@ -40,6 +40,8 @@ try {
     assert.match(response.headers.get('cache-control') ?? '', /private.*no-store/, path); assert.match(response.headers.get('content-type') ?? '', /text\/html/, path);
     assert.ok((await response.text()).includes(text), path);
   }
+  const manifest = await get(`${app}/manifest.webmanifest`); assert.match(manifest.headers.get('content-type') ?? '', /application\/manifest\+json/); assert.equal(manifest.headers.get('x-content-type-options'), 'nosniff');
+  const installed = await manifest.json(); assert.equal(installed.short_name, 'treeti'); assert.equal(installed.start_url, '/launch'); assert.ok(installed.icons.length > 0);
   const robots = await get(`${app}/robots.txt`); assert.equal(robots.status, 200); assert.match(await robots.text(), /Allow: \//);
   const loginHTML=await (await get(`${app}/login`)).text();
   const configuredSignIn=!loginHTML.includes('Sign-in setup is still in progress. Please check back later.');
