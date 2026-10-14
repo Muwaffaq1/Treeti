@@ -1,4 +1,5 @@
 'use client';
+import {track} from '@/lib/analytics';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useState,useSyncExternalStore} from 'react';
@@ -33,7 +34,7 @@ export function FeedbackNudge({demo}:{demo:boolean}){
     const visits=Number(read(visitsKey)||0)+1;write(visitsKey,String(visits));
     const installed=window.matchMedia('(display-mode: standalone)').matches||(navigator as Navigator&{standalone?:boolean}).standalone===true;
     if(!shouldAskForFeedback({prompt:read(promptKey),visits,installPrompt:read(installKey),installed,automated:navigator.webdriver,now:Date.now()}))return;
-    const timer=setTimeout(()=>setOpen(true),12000);
+    const timer=setTimeout(()=>{track('feedback_prompt_shown');setOpen(true);},12000);
     return ()=>clearTimeout(timer);
   },[pathname,onFeedback]);
   if(!open||onFeedback)return null;

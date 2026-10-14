@@ -4,7 +4,7 @@ import {Brand} from '@/components/shell';
 
 export const OPERATOR='Muwaffaq Yusuf';
 export const CONTACT_EMAIL='yusufmuwaffaq17@gmail.com';
-const UPDATED='13 October 2026';
+const UPDATED='14 October 2026';
 const mail=(subject:string)=>`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 
 export function LegalLinks(){return <nav className="legal-links" aria-label="Policies and support"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></nav>;}
@@ -24,6 +24,7 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
     <li><strong>Your private records.</strong> Debts you track for yourself, reminders you set, and investments you record.</li>
     <li><strong>Feedback you send.</strong> The rating and message you choose to send from the feedback page, linked to your account so we can understand it and reply if needed.</li>
     <li><strong>Notification settings.</strong> If you turn on notifications on a phone or computer, the delivery address your browser gives us for that device.</li>
+    <li><strong>Anonymous usage statistics.</strong> Which kinds of screens are opened and which actions are taken, for example that an agreement was sent and whether it is repaid in one payment or installments, with the type of device and browser. These never include names, contacts, amounts, anything you write, or which record you opened.</li>
     <li><strong>Technical information.</strong> Limited details such as your IP address and the time of a request, used to keep sign-in secure and to prevent abuse, and a history of actions taken on each agreement.</li>
   </ul>
   <p>When you invite someone to an agreement, you give us that person’s name and email so the agreement can be matched to them when they sign in. treeti does not email them: you share the private link yourself. Please only invite people who are expecting it.</p>
@@ -34,7 +35,7 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
     <li>To protect accounts, investigate problems and prevent misuse.</li>
     <li>To meet legal obligations where they apply.</li>
   </ul>
-  <p>We do not sell your information, show advertising, or use advertising or analytics trackers.</p>
+  <p>We do not sell your information or show advertising. To understand how treeti is used and improve it, we collect anonymous usage statistics through PostHog. They are not linked to your name or account, never include names, contacts, amounts or anything you write, do not use cookies, and never record your screen. If your browser sends a Do Not Track or Global Privacy Control signal, treeti sends none.</p>
   <h2>Who can see your information</h2>
   <ul>
     <li><strong>An agreement</strong> is visible to its lender, its borrower and the witnesses invited to it.</li>
@@ -42,13 +43,13 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
     <li><strong>The operator</strong> can access records only when needed to run, secure or fix the service, or to answer a request you make.</li>
   </ul>
   <h2>Services we rely on</h2>
-  <p>treeti runs on services from other companies, which process information on our behalf: Supabase (database, sign-in and private file storage), Cloudflare (hosting), Resend (email delivery), Inngest (scheduled background tasks) and Upstash (sign-in rate limits). If you turn on notifications on a device, alerts are delivered through your browser’s own notification service, run by Google, Apple, Mozilla or Microsoft; the alert is encrypted and never includes names or amounts. These companies may process information outside Nigeria.</p>
+  <p>treeti runs on services from other companies, which process information on our behalf: Supabase (database, sign-in and private file storage), Cloudflare (hosting), Resend (email delivery), Inngest (scheduled background tasks), Upstash (sign-in rate limits) and PostHog (anonymous usage statistics, stored in the European Union). If you turn on notifications on a device, alerts are delivered through your browser’s own notification service, run by Google, Apple, Mozilla or Microsoft; the alert is encrypted and never includes names or amounts. These companies may process information outside Nigeria.</p>
   <h2>How long we keep it</h2>
   <p>We keep your records while your account is open. An agreement is a shared record: once the people involved have approved it, the exact version is preserved for all of them and cannot be removed by one person alone. If you ask us to delete your account, we delete your private debts, reminders and investments, and your sign-in details. Agreements you took part in may be kept for the other people who rely on them.</p>
   <h2>Keeping it safe</h2>
   <p>Records are sent over encrypted connections and stored in private storage, and uploaded documents can be opened only by the people entitled to them. No online service can promise perfect security, so please keep your own copy of any agreement PDF that matters to you.</p>
   <h2>Cookies and your browser</h2>
-  <p>treeti uses only the cookies needed to keep you signed in, and remembers your light or dark appearance choice in your browser. It does not use tracking cookies.</p>
+  <p>treeti uses only the cookies needed to keep you signed in, and remembers your light or dark appearance choice in your browser. It does not use tracking cookies, and its usage statistics work without any cookies or storage on your device.</p>
   <h2>Your choices</h2>
   <p>You can ask us for a copy of your information, to correct it, to delete your account, or to stop using it in a particular way. Write to <Email subject="treeti privacy request"/> from the email address on your account and we will reply as soon as we can, normally within 30 days. If you are in Nigeria and are unhappy with our answer, you can complain to the Nigeria Data Protection Commission.</p>
   <h2>Age</h2>

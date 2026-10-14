@@ -1,4 +1,5 @@
 'use client';
+import {track} from '@/lib/analytics';
 import {createContext,useContext,useEffect,useState,type ReactNode,type RefObject} from 'react';
 import {Download,Share2,Smartphone,WifiOff} from 'lucide-react';
 import {Button,ErrorMessage,Modal} from './ui';
@@ -8,7 +9,7 @@ export function PwaProvider({children}:{children:ReactNode}){
   const [installEvent,setInstallEvent]=useState<InstallEvent|null>(null),[installed,setInstalled]=useState(false),[offline,setOffline]=useState(false);
   useEffect(()=>{
     const media=window.matchMedia('(display-mode: standalone)'),update=()=>setInstalled(media.matches||(navigator as Navigator&{standalone?:boolean}).standalone===true);
-    const ready=(event:Event)=>{event.preventDefault();setInstallEvent(event as InstallEvent);},done=()=>{setInstalled(true);setInstallEvent(null);},connection=()=>setOffline(!navigator.onLine);
+    const ready=(event:Event)=>{event.preventDefault();setInstallEvent(event as InstallEvent);},done=()=>{track('app_installed');setInstalled(true);setInstallEvent(null);},connection=()=>setOffline(!navigator.onLine);
     window.addEventListener('beforeinstallprompt',ready);window.addEventListener('appinstalled',done);window.addEventListener('online',connection);window.addEventListener('offline',connection);media.addEventListener('change',update);
     const initial=setTimeout(()=>{update();connection();},0);
     if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).catch(()=>{});
@@ -38,10 +39,10 @@ export function InstallNudge(){
     let stored:string|null=null;try{stored=localStorage.getItem(nudgeKey);}catch{}
     // Automated browsers only see the prompt when a test asks for it.
     if(stored!=='show'&&(navigator.webdriver||(stored&&Date.now()-Number(stored)<nudgeRest)))return;
-    const timer=setTimeout(()=>setOpen(true),nudgeDelay);
+    const timer=setTimeout(()=>{track('install_prompt_shown');setOpen(true);},nudgeDelay);
     return ()=>clearTimeout(timer);
   },[installed]);
   function close(){setOpen(false);try{localStorage.setItem(nudgeKey,String(Date.now()));}catch{}}
   if(installed)return null;
-  return <>{open&&<section className="install-nudge" role="region" aria-label="Add treeti to your device"><div><strong>Keep treeti a tap away</strong><p>Add treeti to your home screen or desktop. It opens in its own window, like an app, and on iPhone it is what lets treeti send you notifications.</p></div><div className="install-nudge-actions"><Button variant="ghost" onClick={close}>Not now</Button><Button onClick={()=>{close();void install();}}><Download size={17} aria-hidden/>Add treeti</Button></div></section>}{dialog}</>;
+  return <>{open&&<section className="install-nudge" role="region" aria-label="Add treeti to your device"><div><strong>Keep treeti a tap away</strong><p>Add treeti to your home screen or desktop. It opens in its own window, like an app, and on iPhone it is what lets treeti send you notifications.</p></div><div className="install-nudge-actions"><Button variant="ghost" onClick={()=>{track('install_prompt_dismissed');close();}}>Not now</Button><Button onClick={()=>{track('install_prompt_accepted');close();void install();}}><Download size={17} aria-hidden/>Add treeti</Button></div></section>}{dialog}</>;
 }
