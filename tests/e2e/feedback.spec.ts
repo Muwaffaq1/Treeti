@@ -14,6 +14,7 @@ for(const width of [390,1366])test(`a signed-in person sends feedback and only t
  else await page.locator('.sidebar').getByRole('link',{name:'Send feedback'}).click();
  await expect(page).toHaveURL(/\/demo\/feedback$/);await expect(page.getByRole('heading',{level:1,name:'Share your feedback'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'What people have said'})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'Numbers'})).toHaveCount(0);
  await page.getByRole('button',{name:'Send feedback'}).click();await expect(page.locator('.error-message')).toHaveText('Choose a rating or write a message.');
  await page.getByRole('radio',{name:'4 out of 5, Very good'}).check({force:true});await expect(page.getByText('Very good',{exact:true})).toBeVisible();await expect(page.locator('.error-message')).toHaveCount(0);
  const message=`I could not find custom installments at first (${width}).`;
@@ -27,6 +28,9 @@ for(const width of [390,1366])test(`a signed-in person sends feedback and only t
  // The operator sees it, with who sent it; the sender never sees a list.
  await post('/api/demo/session',{userId:operator});await page.goto('/demo/feedback');
  await expect(page.getByRole('heading',{name:'What people have said'})).toBeVisible();
+ const numbers=page.getByRole('region',{name:'Numbers'});await expect(numbers.getByRole('heading',{name:'Numbers'})).toBeVisible();
+ for(const label of ['Agreements','People signed up','Made an agreement','Recorded'])await expect(numbers.locator('dt',{hasText:new RegExp(`^${label}$`)})).toBeVisible();
+ await expect(numbers.getByRole('table',{name:'Where agreements stand'})).toBeVisible();await expect(numbers.getByRole('table',{name:'Last 7 days'}).getByRole('row')).toHaveCount(8);
  const first=page.locator('.feedback-received li').first();await expect(first).toContainText(message);await expect(first).toContainText('Maryam Bello');await expect(first.getByRole('img',{name:'4 out of 5'})).toBeVisible();
  const inbox=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(inbox.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);

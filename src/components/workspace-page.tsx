@@ -16,6 +16,7 @@ import {notices,recordedNotices} from '@/modules/notifications/feed';
 import {database} from '@/lib/database';
 import {FeedbackPage} from './feedback';
 import {isOwner,listDemoFeedback,listFeedback} from '@/modules/feedback/feedback';
+import {demoNumbers,operatorNumbers} from '@/modules/feedback/numbers';
 import {demoPeople} from '@/modules/agreements/demo-people';
 export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}){
   let runtime;try{runtime=await getRuntime(demo);}catch(e){if(e instanceof DomainError&&e.code==='DEMO_DISABLED')notFound();if(e instanceof DomainError&&[401,503].includes(e.status)){if(demo)return <DemoStart/>;redirect(`/login?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);}throw e;}
@@ -30,7 +31,7 @@ export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}
   else if(path[0]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[1]||'')){const a=await repo.get(path[1]);if(!a||!member(a,actor))notFound();const safe=projectAgreement(a,actor);if(path[2]==='edit'){if(member(a,actor)?.role!=='LENDER'||a.finalizedAt)notFound();content=<CreateAgreement actor={actor} demo={demo} existing={safe}/>;}else {content=<AgreementDetail initial={safe} actor={actor} demo={demo}/>;}}
   else if(path[0]==='activity')content=<Activity agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} demo={demo}/>;
   else if(path[0]==='notifications'&&path.length===1)content=<Notifications notices={demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)} userId={actor.userId} demo={demo}/>;
-  else if(path[0]==='feedback'&&path.length===1){const reader=demo?actor.userId===demoPeople[0].userId:isOwner(actor);content=<FeedbackPage demo={demo} received={!reader?null:demo?listDemoFeedback(workspace!):await listFeedback(database())}/>;}
+  else if(path[0]==='feedback'&&path.length===1){const reader=demo?actor.userId===demoPeople[0].userId:isOwner(actor);content=<FeedbackPage demo={demo} received={!reader?null:demo?listDemoFeedback(workspace!):await listFeedback(database())} numbers={!reader?null:demo?demoNumbers(await repo.list(actor),people?.length??0):await operatorNumbers(database())}/>;}
   else if(path[0]==='account')content=<Account actor={actor} demo={demo}/>;
   else if(path[0]==='guide')content=<Guide/>;
   else if(path[0]==='invite'&&path[1])content=<InvitationPage token={path[1]} demo={demo} authenticated actorName={actor.name}/>;

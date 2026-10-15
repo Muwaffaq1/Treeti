@@ -7,6 +7,8 @@ import {MessageSquareText,Star} from 'lucide-react';
 import {api,apiBase,appBase} from './client-api';
 import {Button,ErrorMessage,Field} from './ui';
 import type {Feedback} from '@/modules/feedback/feedback';
+import {LAUNCH_DAY,statusLabel,type OperatorNumbers} from '@/modules/feedback/numbers';
+import {money} from '@/lib/money';
 
 const promptKey='treeti:feedback-prompt',visitsKey='treeti:feedback-visits',installKey='treeti:install-nudge';
 const day=86400000;
@@ -46,7 +48,25 @@ const labels=['','Poor','Fair','Good','Very good','Excellent'];
 function Stars({value}:{value:number|null}){return value?<span className="feedback-stars" role="img" aria-label={`${value} out of 5`}>{[1,2,3,4,5].map(n=><Star key={n} size={15} aria-hidden className={n<=value?'filled':undefined}/>)}</span>:null;}
 const noSubscription=()=>()=>{};
 
-export function FeedbackPage({demo,received}:{demo:boolean;received:Feedback[]|null}){
+const count=new Intl.NumberFormat('en-NG'),dayLabel=(iso:string)=>new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(`${iso}T00:00:00Z`));
+/** The operator's overview. Counts only; nobody's details. */
+export function Numbers({numbers}:{numbers:OperatorNumbers}){
+  const {agreements,people,days}=numbers,statuses=Object.entries(agreements.byStatus).sort((a,b)=>b[1]-a[1]);
+  const tiles:[string,string,string][]=[
+    ['Agreements',count.format(agreements.total),`${count.format(agreements.sinceLaunch)} since launch · ${count.format(agreements.today)} today`],
+    ['People signed up',count.format(people.total),`${count.format(people.sinceLaunch)} since launch`],
+    ['Made an agreement',count.format(people.creators),`${count.format(people.repeatCreators)} made more than one`],
+    ['Recorded',money(numbers.recordedMinor,'NGN'),'Active or settled agreements'],
+  ];
+  return <section className="numbers" aria-labelledby="numbers-title"><h2 id="numbers-title">Numbers</h2><p className="quiet-note">Live from treeti. Only you can see this. Launch day: {dayLabel(LAUNCH_DAY)}.</p>
+    <dl className="numbers-tiles">{tiles.map(([label,value,note])=><div key={label}><dt>{label}</dt><dd>{value}</dd><dd className="numbers-note">{note}</dd></div>)}</dl>
+    <div className="numbers-tables">
+      <table><caption>Where agreements stand</caption><thead><tr><th scope="col">Status</th><th scope="col">Agreements</th></tr></thead><tbody>{statuses.length?statuses.map(([status,n])=><tr key={status}><th scope="row">{statusLabel(status)}</th><td>{count.format(n)}</td></tr>):<tr><td colSpan={2}>No agreements yet.</td></tr>}</tbody></table>
+      <table><caption>Last 7 days</caption><thead><tr><th scope="col">Day</th><th scope="col">Sign-ups</th><th scope="col">Agreements</th></tr></thead><tbody>{days.map(d=><tr key={d.day}><th scope="row">{dayLabel(d.day)}</th><td>{count.format(d.signups)}</td><td>{count.format(d.agreements)}</td></tr>)}</tbody></table>
+    </div></section>;
+}
+
+export function FeedbackPage({demo,received,numbers}:{demo:boolean;received:Feedback[]|null;numbers?:OperatorNumbers|null}){
   const [rating,setRating]=useState<number|null>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[sent,setSent]=useState(false);
   const timeZone=useSyncExternalStore(noSubscription,()=>Intl.DateTimeFormat().resolvedOptions().timeZone,()=>'UTC'),when=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone});
   async function submit(){
@@ -56,12 +76,13 @@ export function FeedbackPage({demo,received}:{demo:boolean;received:Feedback[]|n
     catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
   return <div className="activity-page feedback-page"><div className="page-heading"><div><h1>Share your feedback</h1><p className="lede">What is working, what is confusing, what is missing? Your message goes privately to the person who runs treeti.</p></div></div>
+    {numbers&&<Numbers numbers={numbers}/>}
+    {received&&<section className="feedback-received" aria-labelledby="feedback-received-title"><h2 id="feedback-received-title">What people have said</h2><p className="quiet-note">Only you can see this list.</p>{received.length?<ol className="feedback-list">{received.map(f=><li key={f.id}><div><p className="feedback-from"><strong>{f.from||f.contact||'A treeti user'}</strong>{f.from&&f.contact&&<span> · {f.contact}</span>}<Stars value={f.rating}/></p>{f.message&&<p className="feedback-message">{f.message}</p>}<small>{when.format(new Date(f.createdAt))}{f.page?` · sent from ${f.page}`:''}</small></div></li>)}</ol>:<p className="panel">No feedback yet. When someone sends some, it appears here and your phone is alerted.</p>}</section>}
     {sent?<section className="panel feedback-thanks" role="status"><h2>Thank you.</h2><p>Your feedback has been sent. It is read by a person, and it shapes what gets built next.</p><div className="dialog-actions"><Button variant="secondary" onClick={()=>setSent(false)}>Send more feedback</Button><Link className="button button-primary" href={demo?'/demo':'/app'}>Back to overview</Link></div></section>
     :<form className="panel feedback-form" onSubmit={e=>{e.preventDefault();void submit();}}>
       <fieldset className="feedback-rating"><legend>How would you rate treeti so far? <span className="quiet-note">Optional</span></legend><div>{[1,2,3,4,5].map(n=><label key={n} className={rating!==null&&n<=rating?'filled':undefined}><input type="radio" name="rating" value={n} checked={rating===n} onChange={()=>{setRating(n);setError('');}} aria-label={`${n} out of 5, ${labels[n]}`}/><Star size={30} aria-hidden/></label>)}</div><p className="quiet-note" aria-hidden>{rating?labels[rating]:'Tap a star'}</p></fieldset>
       <Field label="Your message" hint="Please do not include passwords or sign-in codes."><textarea value={message} onChange={e=>{setMessage(e.target.value);setError('');}} rows={6} maxLength={2000} placeholder="For example: I could not find where to…"/></Field>
       <ErrorMessage message={error}/><div className="dialog-actions"><Button type="submit" busy={busy}>Send feedback</Button></div>
     </form>}
-    {received&&<section className="feedback-received" aria-labelledby="feedback-received-title"><h2 id="feedback-received-title">What people have said</h2><p className="quiet-note">Only you can see this list.</p>{received.length?<ol className="feedback-list">{received.map(f=><li key={f.id}><div><p className="feedback-from"><strong>{f.from||f.contact||'A treeti user'}</strong>{f.from&&f.contact&&<span> · {f.contact}</span>}<Stars value={f.rating}/></p>{f.message&&<p className="feedback-message">{f.message}</p>}<small>{when.format(new Date(f.createdAt))}{f.page?` · sent from ${f.page}`:''}</small></div></li>)}</ol>:<p className="panel">No feedback yet. When someone sends some, it appears here and your phone is alerted.</p>}</section>}
   </div>;
 }
