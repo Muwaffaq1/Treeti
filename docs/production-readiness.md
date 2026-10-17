@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — plain date and amount validation messages
+
+Production at **https://usetreeti.xyz** runs app commit `9203153` as Cloudflare version `c946e0e7-7e25-4063-a286-750b5f38dcb6`, deployed 17 October 2026 with `npm run cf:deploy:production`, at the owner's request. Empty or malformed dates and amounts no longer show raw pattern text such as "Invalid string: must match pattern …". The shared schemas say "Choose a date." and "Enter an amount greater than zero.", and their follow-up checks run only on well-formed values. The agreement form names the missing date and sends an empty custom payment's message to that payment's own field. No wording decision needed an ADR.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-17T15-55-36.147Z`, 28 tables, 748 rows, 36 foreign keys, 13 Storage files, restored offline); GitHub's verify and Workers jobs passed for the commit; then the deploy. No migration and no secret changed. Locally, lint, types, 191 tests (two new), the repayment-plan, mobile-date and feedback-feature browser tests, and the Workers checks passed. After the deploy, `npm run check:production` and the scoped job probes passed.
+
+Rollback version: `9a0210ee-074a-45be-9b27-2124b7822afe`.
+
 ## Release — debt witnesses and interest-free safeguards
 
 Production at **https://usetreeti.xyz** runs app commit `72b41c7` (with test-only commit `df79dda`) as Cloudflare version `9a0210ee-074a-45be-9b27-2124b7822afe`, deployed 17 October 2026 with `npm run cf:deploy:production`, at the owner's request after launch feedback. Private debts take up to four optional witness names. Lender and borrower approvals carry an interest-free declaration (`*_ACCEPT_V2`, printed on the PDF). Interest-like wording in the purpose or additional terms shows a warning to the lender, the borrower and witnesses. The terms of use prohibit interest-based loans. See [ADR 021](adr/021-interest-free-safeguards-and-debt-witnesses.md).
