@@ -40,7 +40,7 @@ test('the invitation is shared by the sender, with WhatsApp first',async({page})
  const amount=page.getByLabel('Principal amount');await expect(amount).toBeEnabled();await amount.fill('300,000');
  await page.getByLabel('Borrower’s full name').fill('Yusuf Ali');await page.getByLabel('Email or phone number').fill('yusuf@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByLabel('Repayment due date').fill('2027-12-31');await page.getByRole('button',{name:'Continue',exact:true}).click();
- await page.getByRole('checkbox',{name:/I have read and agree/}).check();await page.getByRole('button',{name:'Agree and send',exact:true}).click();
+ await page.getByRole('checkbox',{name:/I confirm this loan is interest-free/}).check();await page.getByRole('button',{name:'Agree and send',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Ready to review together.'})).toBeVisible();await expect(page.getByText('treeti does not email invitations.')).toBeVisible();
  await page.getByRole('button',{name:'Share on WhatsApp'}).click();
  const opened=await page.evaluate(()=>(window as unknown as {opened:string[]}).opened);expect(opened).toHaveLength(1);
