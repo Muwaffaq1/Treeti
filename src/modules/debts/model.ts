@@ -8,7 +8,8 @@ import {calendarDateSchema,installmentPlanSchema,validateInstallmentPlan} from '
 export const debtCurrencies=currencies;
 const amount=z.string().regex(/^[1-9]\d{0,13}$/).refine(v=>/^[1-9]\d{0,13}$/.test(v)&&BigInt(v)<=99999999999999n,'Amount is too large.');
 const date=calendarDateSchema;
-const debtFields=z.object({person:z.string().trim().min(2,'Add the person you owe.').max(120),currency:z.enum(debtCurrencies),amountMinor:amount,date,note:z.string().trim().max(2000).default(''),dueDate:date.optional(),installments:installmentPlanSchema.optional()}).strict();
+export const debtWitnessLimit=4;
+const debtFields=z.object({person:z.string().trim().min(2,'Add the person you owe.').max(120),currency:z.enum(debtCurrencies),amountMinor:amount,date,note:z.string().trim().max(2000).default(''),witnesses:z.array(z.string().trim().min(2,'Add each witness’s full name.').max(120)).max(debtWitnessLimit,`Add up to ${debtWitnessLimit} witnesses.`).optional(),dueDate:date.optional(),installments:installmentPlanSchema.optional()}).strict();
 function validateDebt(v:z.infer<typeof debtFields>,ctx:z.RefinementCtx){
  if(v.dueDate&&v.dueDate<v.date)ctx.addIssue({code:'custom',path:['dueDate'],message:'Choose a repayment date on or after the debt date.'});
  if(v.dueDate&&v.installments)ctx.addIssue({code:'custom',path:['dueDate'],message:'Choose a single repayment or an installment plan.'});

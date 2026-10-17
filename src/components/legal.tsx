@@ -4,13 +4,13 @@ import {Brand} from '@/components/shell';
 
 export const OPERATOR='Muwaffaq Yusuf';
 export const CONTACT_EMAIL='yusufmuwaffaq17@gmail.com';
-const UPDATED='14 October 2026';
+const UPDATED='14 October 2026',TERMS_UPDATED='17 October 2026';
 const mail=(subject:string)=>`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 
 export function LegalLinks(){return <nav className="legal-links" aria-label="Policies and support"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></nav>;}
 
-function LegalPage({title,lede,dated=true,children}:{title:string;lede:string;dated?:boolean;children:React.ReactNode}){
-  return <main className="public-guide legal"><Link href="/" aria-label="treeti home"><Brand/></Link><Link className="back-link" href="/"><ArrowLeft size={16}/>Return to treeti</Link><h1>{title}</h1><p className="lede">{lede}</p>{dated&&<p className="legal-updated">Last updated {UPDATED}</p>}{children}<footer className="legal-footer"><LegalLinks/></footer></main>;
+function LegalPage({title,lede,dated=true,updated=UPDATED,children}:{title:string;lede:string;dated?:boolean;updated?:string;children:React.ReactNode}){
+  return <main className="public-guide legal"><Link href="/" aria-label="treeti home"><Brand/></Link><Link className="back-link" href="/"><ArrowLeft size={16}/>Return to treeti</Link><h1>{title}</h1><p className="lede">{lede}</p>{dated&&<p className="legal-updated">Last updated {updated}</p>}{children}<footer className="legal-footer"><LegalLinks/></footer></main>;
 }
 const Email=({subject}:{subject:string})=><a className="legal-email" href={mail(subject)}>{CONTACT_EMAIL}</a>;
 
@@ -58,7 +58,7 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
   <p>If this policy changes in a way that matters, we will update the date above and tell you in the app or by email.</p>
 </LegalPage>;}
 
-export function Terms(){return <LegalPage title="Terms of use" lede="The understanding between you and treeti when you use it.">
+export function Terms(){return <LegalPage title="Terms of use" lede="The understanding between you and treeti when you use it." updated={TERMS_UPDATED}>
   <h2>What treeti is</h2>
   <p>treeti is a tool for recording interest-free agreements between people who know each other, and for keeping private notes about debts and investments. It is operated by {OPERATOR}, an individual based in Nigeria.</p>
   <p>treeti keeps the record. It does not lend, hold, move, collect or guarantee money, and it is not a bank, a payment service, a credit bureau or a debt collector. Any payment happens between you and the other person, outside treeti.</p>
@@ -68,6 +68,7 @@ export function Terms(){return <LegalPage title="Terms of use" lede="The underst
   <ul>
     <li>What you enter should be true, and you should only invite people who are part of the agreement and expecting the invitation.</li>
     <li>Agreements recorded in treeti are interest-free. treeti does not add interest or fees to them.</li>
+    <li>You must not use treeti to record a loan that requires the borrower to pay back more than they borrowed, whether as interest, a fee, a penalty for late payment, a share of profit or any other extra amount, and whether it is written into the terms or agreed separately. When the lender and borrower approve an agreement, each confirms that it is interest-free. We may suspend an account that breaks this rule.</li>
     <li>When the lender, the borrower and any requested witnesses have confirmed, that exact version is preserved. A change needs a new version that the parties approve again.</li>
     <li>A witness confirms that they have read the terms. A witness does not guarantee repayment.</li>
     <li>Repayments are recorded by one party and confirmed by the other. treeti cannot verify that money actually moved.</li>

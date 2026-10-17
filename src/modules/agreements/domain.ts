@@ -15,7 +15,7 @@ function requireThat(test: unknown, code: string, message: string, status = 409)
 }
 export const latest = (a: Aggregate) => a.versions.find(v => v.id === a.currentVersionId)!;
 export const member = (a: Aggregate, actor: Actor) => a.participants.find(p => p.userId === actor.userId);
-export const affirmation = (role: string) => role === 'BORROWER' ? 'I acknowledge that I have reviewed this agreement and that these terms accurately represent the obligation I am agreeing to.' : 'I have reviewed this agreement and agree to these terms.';
+export const affirmation = (role: string) => role === 'BORROWER' ? 'I acknowledge that I have reviewed this agreement and that these terms accurately represent the obligation I am agreeing to. I confirm this loan is interest-free: I will repay only the amount I borrowed, with no interest, fees, penalties or other extra charges.' : 'I have reviewed this agreement and agree to these terms. I confirm this loan is interest-free: I will ask for back only the amount I lent, with no interest, fees, penalties or other extra charges.';
 export const witnessText = legacyWitnessText;
 export const attestationLabels: Record<WitnessType, string> = { FORMATION: 'Agreement formation', EXISTING_DEBT_ACKNOWLEDGEMENT: 'Existing debt acknowledgment', REVIEW_ONLY: 'Record review only', DIGITAL_ACKNOWLEDGEMENT: 'Digital witness acknowledgment' };
 export const statusLabels: Record<string, string> = { DRAFT: 'Draft', AWAITING_BORROWER: 'Awaiting borrower', CHANGES_REQUESTED: 'Changes requested', AWAITING_APPROVAL: 'Awaiting approval', AWAITING_WITNESSES: 'Awaiting witnesses', ACTIVE: 'Active', SETTLEMENT_PENDING: 'Ready for settlement', SETTLED: 'Settled', DECLINED: 'Declined', CANCELLED: 'Cancelled' };
@@ -115,7 +115,7 @@ export function applyCommand(original: Aggregate, input: unknown, ctx: Context):
       requireThat(c.affirmed && c.signature, 'AFFIRMATION_REQUIRED', 'Read the terms and confirm that you agree before sending.', 422);
       requireThat(!isApproved(a, 'LENDER'), 'ALREADY_APPROVED', 'Your approval is already recorded.');
       const v = latest(a);
-      a.approvals.push({ id: randomUUID(), participantId: p.id, versionId: v.id, versionHash: v.hash, role: p.role, action: 'ACCEPTED', affirmation: affirmation(p.role), affirmationVersion: 'LENDER_ACCEPT_V1', signature: c.signature, authenticationLevel: evidence.level, verifiedContact: evidence.contact, createdAt: ctx.now });
+      a.approvals.push({ id: randomUUID(), participantId: p.id, versionId: v.id, versionHash: v.hash, role: p.role, action: 'ACCEPTED', affirmation: affirmation(p.role), affirmationVersion: 'LENDER_ACCEPT_V2', signature: c.signature, authenticationLevel: evidence.level, verifiedContact: evidence.contact, createdAt: ctx.now });
       appendEvent(a, 'LENDER_APPROVED', p.id, {versionHash: v.hash}, ctx.now);
       invitation = issueInvitation(a, a.participants.find(x => x.role === 'BORROWER')!, ctx);
       a.status = isApproved(a, 'BORROWER') ? 'AWAITING_WITNESSES' : 'AWAITING_BORROWER';
@@ -155,7 +155,7 @@ export function applyCommand(original: Aggregate, input: unknown, ctx: Context):
       requireThat(!isApproved(a, p.role), 'ALREADY_APPROVED', 'Your approval is already recorded.');
       const contact = ctx.actor.contacts[0];
       requireThat(contact, 'VERIFICATION_REQUIRED', 'Sign in with a verified contact before approving.', 403);
-      const v = latest(a); a.approvals.push({ id: randomUUID(), participantId: p.id, versionId: v.id, versionHash: v.hash, role: p.role, action: 'ACCEPTED', affirmation: affirmation(p.role), affirmationVersion: `${p.role}_ACCEPT_V1`, signature: c.signature, authenticationLevel: ctx.actor.demo ? 'DEMO_SESSION' : contact.includes('@') ? 'VERIFIED_EMAIL_SESSION' : 'VERIFIED_PHONE_SESSION', verifiedContact: contact, createdAt: ctx.now });
+      const v = latest(a); a.approvals.push({ id: randomUUID(), participantId: p.id, versionId: v.id, versionHash: v.hash, role: p.role, action: 'ACCEPTED', affirmation: affirmation(p.role), affirmationVersion: `${p.role}_ACCEPT_V2`, signature: c.signature, authenticationLevel: ctx.actor.demo ? 'DEMO_SESSION' : contact.includes('@') ? 'VERIFIED_EMAIL_SESSION' : 'VERIFIED_PHONE_SESSION', verifiedContact: contact, createdAt: ctx.now });
       a.status = isApproved(a, 'BORROWER') && isApproved(a, 'LENDER') ? 'AWAITING_WITNESSES' : 'AWAITING_APPROVAL';
       appendEvent(a, `${p.role}_APPROVED`, p.id, { versionHash: v.hash }, ctx.now); break;
     }
