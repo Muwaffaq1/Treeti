@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — debt witnesses and interest-free safeguards
+
+Production at **https://usetreeti.xyz** runs app commit `72b41c7` (with test-only commit `df79dda`) as Cloudflare version `9a0210ee-074a-45be-9b27-2124b7822afe`, deployed 17 October 2026 with `npm run cf:deploy:production`, at the owner's request after launch feedback. Private debts take up to four optional witness names. Lender and borrower approvals carry an interest-free declaration (`*_ACCEPT_V2`, printed on the PDF). Interest-like wording in the purpose or additional terms shows a warning to the lender, the borrower and witnesses. The terms of use prohibit interest-based loans. See [ADR 021](adr/021-interest-free-safeguards-and-debt-witnesses.md).
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-10-17T14-33-39.686Z`, 28 tables, 748 rows, 36 foreign keys, 13 Storage files, restored offline); GitHub's first run failed because two browser tests still looked for the old checkbox wording. They were updated (`df79dda`), and GitHub's verify and Workers jobs then passed. Then came the deploy. No migration and no secret changed. Locally, lint, types, 189 tests (four new), the private-debt, legal-page, journey and invitation-sharing browser tests, and the Workers checks passed. After the deploy, `npm run check:production` and the scoped job probes passed, and the live terms page shows the new clause.
+
+Not verified by the agent: the new forms with a real signed-in account. Rollback version: `98052447-5669-45eb-97a7-213849db06a6`.
+
 ## Release — operator numbers on the feedback page
 
 Production at **https://usetreeti.xyz** runs app commit `5669c35` as Cloudflare version `98052447-5669-45eb-97a7-213849db06a6`, deployed 15 October 2026 with `npm run cf:deploy:production`. For `AHD_OWNER_EMAILS` accounts the feedback page now opens with **Numbers**: agreements (total, since the 14 October launch, today, by status), people signed up, people who created one or more agreements, the recorded amount of active and settled agreements, and the last seven days of sign-ups and agreements, in Lagos time. `operatorNumbers` (`src/modules/feedback/numbers.ts`) is one read-only aggregate query returning counts only; the demonstration derives the same shape from its sample agreements.
