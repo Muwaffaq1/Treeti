@@ -22,16 +22,28 @@ const formSchema=(allowPhone:boolean)=>z.object({currency:z.enum(currencies),amo
   try{parseMoney(v.amount);}catch{return;}
   try{
     const result=termsSchema.safeParse(formTerms(v));
+    const reported=new Set<string>();
     if(!result.success)for(const issue of result.error.issues){
       let path:(string|number)[]=['repaymentPlan'];
       if(issue.path[0]==='agreementDate')path=['agreementDate'];
       else if(issue.path[0]==='dueDate'&&v.repaymentPlan==='SINGLE')path=['dueDate'];
       else if(issue.path[0]==='installments'&&issue.path[1]==='payments'&&typeof issue.path[2]==='number'&&v.repaymentPlan==='CUSTOM')path=['customPayments',issue.path[2],issue.path[3]==='amountMinor'?'amount':'dueDate'];
-      ctx.addIssue({code:'custom',path,message:issue.message});
+      if(reported.has(path.join('.')))continue;
+      reported.add(path.join('.'));
+      ctx.addIssue({code:'custom',path,message:emptyDateMessage(v,path)??issue.message});
     }
-  }catch(error){ctx.addIssue({code:'custom',path:[v.repaymentPlan==='CUSTOM'?'repaymentPlan':!v.firstPaymentDate?'firstPaymentDate':!/^\d+$/.test(v.paymentCount)||Number(v.paymentCount)<2||Number(v.paymentCount)>60?'paymentCount':'repaymentPlan'],message:(error as Error).message});}
+  }catch(error){
+    const blank=v.repaymentPlan==='CUSTOM'?v.customPayments.findIndex(p=>!p.amount.trim()||!p.dueDate):-1;
+    if(blank>=0){const missingAmount=!v.customPayments[blank].amount.trim();ctx.addIssue({code:'custom',path:['customPayments',blank,missingAmount?'amount':'dueDate'],message:missingAmount?`Enter an amount for payment ${blank+1}.`:`Choose a date for payment ${blank+1}.`});return;}
+    ctx.addIssue({code:'custom',path:[v.repaymentPlan==='CUSTOM'?'repaymentPlan':!v.firstPaymentDate?'firstPaymentDate':!/^\d+$/.test(v.paymentCount)||Number(v.paymentCount)<2||Number(v.paymentCount)>60?'paymentCount':'repaymentPlan'],message:(error as Error).message});}
 });
 type Values=z.infer<ReturnType<typeof formSchema>>;
+/** Names the date that is missing, so an empty field never shows the schema's generic message. */
+function emptyDateMessage(v:Values,path:(string|number)[]){
+  if(path[0]==='agreementDate'&&!v.agreementDate)return 'Choose an agreement date.';
+  if(path[0]==='dueDate'&&!v.dueDate)return 'Choose a repayment due date.';
+  if(path[0]==='customPayments'&&typeof path[1]==='number'&&path[2]==='dueDate'&&!v.customPayments[path[1]]?.dueDate)return `Choose a date for payment ${path[1]+1}.`;
+}
 function formTerms(data:Values):Terms {
   const principalMinor=parseMoney(data.amount);
   const installments=data.repaymentPlan==='SINGLE'?undefined:data.repaymentPlan==='CUSTOM'?{frequency:'CUSTOM' as const,payments:data.customPayments.map(p=>({dueDate:p.dueDate,amountMinor:parseMoney(p.amount)}))}:recurringPlan(principalMinor,data.firstPaymentDate,Number(data.paymentCount),data.repaymentPlan);

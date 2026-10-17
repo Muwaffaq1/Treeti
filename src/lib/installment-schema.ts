@@ -1,8 +1,8 @@
 import {z} from 'zod';
 import {installmentDate} from '@/modules/agreements/repayment-plan';
 import type {InstallmentPlan} from '@/modules/agreements/types';
-export const calendarDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v,'Choose a valid calendar date.');
-const amount=z.string().regex(/^[1-9]\d{0,13}$/).refine(v=>/^[1-9]\d{0,13}$/.test(v)&&BigInt(v)<=99999999999999n,'Amount is too large.');
+export const calendarDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/,'Choose a date.').refine(v=>!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v,'Choose a valid calendar date.');
+const amount=z.string().regex(/^[1-9]\d{0,13}$/,'Enter an amount greater than zero.').refine(v=>!/^[1-9]\d{0,13}$/.test(v)||BigInt(v)<=99999999999999n,'Amount is too large.');
 export const installmentPlanSchema=z.object({frequency:z.enum(['WEEKLY','MONTHLY','CUSTOM']),payments:z.array(z.object({dueDate:calendarDateSchema,amountMinor:amount}).strict()).min(2).max(60)}).strict();
 export function validateInstallmentPlan(plan:InstallmentPlan,principal:string,start:string,issue:(path:(string|number)[],message:string)=>void){
  let sum=0n;

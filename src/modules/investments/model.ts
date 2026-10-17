@@ -4,7 +4,7 @@ import {calendarDateSchema} from '@/lib/installment-schema';
 import {currencies} from '@/lib/currencies';
 import {DomainError} from '@/lib/domain-error';
 
-const amount=z.string().regex(/^[1-9]\d{0,13}$/, 'Enter an amount greater than zero.').refine(v=>/^[1-9]\d{0,13}$/.test(v)&&BigInt(v)<=99999999999999n,'Amount is too large.');
+const amount=z.string().regex(/^[1-9]\d{0,13}$/, 'Enter an amount greater than zero.').refine(v=>!/^[1-9]\d{0,13}$/.test(v)||BigInt(v)<=99999999999999n,'Amount is too large.');
 const metadata=z.object({name:z.string().trim().min(2,'Add an investment name or place.').max(120),currency:z.enum(currencies),note:z.string().trim().max(2000).default('')}).strict();
 const contribution=z.object({amountMinor:amount,date:calendarDateSchema,note:z.string().trim().max(2000).default('')}).strict();
 const revision=z.number().int().nonnegative();
