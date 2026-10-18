@@ -18,12 +18,17 @@ import {FeedbackPage} from './feedback';
 import {isOwner,listDemoFeedback,listFeedback} from '@/modules/feedback/feedback';
 import {demoNumbers,operatorNumbers} from '@/modules/feedback/numbers';
 import {demoPeople} from '@/modules/agreements/demo-people';
+import {trustedRepository} from '@/modules/trusted/repository';
+import {lists as trustedLists,openContact} from '@/modules/trusted/api';
+import {access} from '@/modules/trusted/model';
+import {maskContact} from '@/lib/contact';
+import {SharedRecordsView,TrustedContacts,TrustedInvitation} from './trusted-contacts';
 export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}){
   let runtime;try{runtime=await getRuntime(demo);}catch(e){if(e instanceof DomainError&&e.code==='DEMO_DISABLED')notFound();if(e instanceof DomainError&&[401,503].includes(e.status)){if(demo)return <DemoStart/>;redirect(`/login?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);}throw e;}
   const {actor,repo,people,workspace}=runtime;
   if(actor.needsName&&!demo)redirect(`/welcome?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);
   let content:React.ReactNode;
-  if(!path.length||path[0]==='app')content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo}/>;
+  if(!path.length||path[0]==='app'){const trusted=trustedRepository(demo,workspace),now=await trusted.now(),requests=(await trusted.list(actor)).owned.filter(c=>access(c,now)==='WAITING').map(c=>({id:c.id,name:c.name,opensAt:c.opensAt!}));content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} accessRequests={requests}/>;}
   else if(path[0]==='agreements'&&!path[1])content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} listing/>;
   else if(path[0]==='agreements'&&path[1]==='new')content=<CreateAgreement actor={actor} demo={demo}/>;
   else if(path[0]==='debts')content=<DebtTracker key={actor.userId} initial={await debtRepository(demo,workspace).listDebts(actor)} demo={demo} emailAvailable={false}/>;
@@ -32,6 +37,9 @@ export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}
   else if(path[0]==='activity')content=<Activity agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} demo={demo}/>;
   else if(path[0]==='notifications'&&path.length===1)content=<Notifications notices={demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)} userId={actor.userId} demo={demo}/>;
   else if(path[0]==='feedback'&&path.length===1){const reader=demo?actor.userId===demoPeople[0].userId:isOwner(actor);content=<FeedbackPage demo={demo} received={!reader?null:demo?listDemoFeedback(workspace!):await listFeedback(database())} numbers={!reader?null:demo?demoNumbers(await repo.list(actor),people?.length??0):await operatorNumbers(database())}/>;}
+  else if(path[0]==='trusted-contacts'&&path.length===1)content=<TrustedContacts key={actor.userId} initial={await trustedLists(trustedRepository(demo,workspace),actor)} demo={demo}/>;
+  else if(path[0]==='trusted-contacts'&&path.length===2&&/^[a-f0-9-]{36}$/.test(path[1])){const trusted=trustedRepository(demo,workspace);let contact;try{contact=await openContact(trusted,path[1],actor);}catch{notFound();}content=<SharedRecordsView id={contact.id} records={await trusted.records(contact)} demo={demo}/>;}
+  else if(path[0]==='trusted'&&/^[A-Za-z0-9_-]{43}$/.test(path[1]||'')&&path.length===2){const invited=await trustedRepository(demo,workspace).byToken(path[1]),active=invited?.status==='INVITED';content=<TrustedInvitation token={path[1]} ownerName={active?invited.ownerName:null} maskedEmail={active?maskContact(invited.email):null} authenticated demo={demo}/>;}
   else if(path[0]==='account')content=<Account actor={actor} demo={demo}/>;
   else if(path[0]==='guide')content=<Guide/>;
   else if(path[0]==='invite'&&path[1])content=<InvitationPage token={path[1]} demo={demo} authenticated actorName={actor.name}/>;

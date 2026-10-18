@@ -123,3 +123,14 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;op
 .debt-witness .field{margin:0}
 .debt-witnessed{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;color:var(--muted);line-height:1.5}
 .debt-witnessed svg{flex-shrink:0}
+.trusted-section{margin-top:32px}
+.trusted-list{display:grid;gap:16px}
+.trusted-card{display:grid;gap:16px}
+.trusted-card-top{display:flex;align-items:flex-start;gap:12px}
+.trusted-card-top>div{flex:1;min-width:0}
+.trusted-card-top h3{overflow-wrap:anywhere}
+.trusted-card-top .quiet-note{margin:2px 0 0;overflow-wrap:anywhere}
+.trusted-card .callout p{margin:0}
+.trusted-invitation{display:grid;gap:16px;justify-items:start}
+@media(max-width:640px){.trusted-card-top{flex-wrap:wrap}.trusted-card-top>div{flex-basis:calc(100% - 52px)}.trusted-card-top .status-badge{order:3;margin-inline-start:52px}}
+.shared-records .debt-amounts:last-child{border-bottom:0;padding-bottom:0;margin-bottom:0}

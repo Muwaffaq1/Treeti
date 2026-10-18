@@ -4,7 +4,7 @@ import {Brand} from '@/components/shell';
 
 export const OPERATOR='Muwaffaq Yusuf';
 export const CONTACT_EMAIL='yusufmuwaffaq17@gmail.com';
-const UPDATED='14 October 2026',TERMS_UPDATED='17 October 2026';
+const UPDATED='18 October 2026',TERMS_UPDATED='18 October 2026';
 const mail=(subject:string)=>`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 
 export function LegalLinks(){return <nav className="legal-links" aria-label="Policies and support"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></nav>;}
@@ -22,6 +22,7 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
     <li><strong>Your account.</strong> Your email address, the name you give us, and the sign-in codes and sessions needed to verify it is you.</li>
     <li><strong>Agreements you take part in.</strong> The names and contact details of the lender, borrower and any witnesses, the amount, currency, dates, repayment plan, any purpose or extra terms you write, each person’s approval or acknowledgment, repayments recorded and confirmed, and any payment proof or reference you choose to add.</li>
     <li><strong>Your private records.</strong> Debts you track for yourself, reminders you set, and investments you record.</li>
+    <li><strong>Trusted contacts.</strong> The name and email address of up to two people you choose, whether they have accepted, and when they asked to see your records, were refused, or were given access.</li>
     <li><strong>Feedback you send.</strong> The rating and message you choose to send from the feedback page, linked to your account so we can understand it and reply if needed.</li>
     <li><strong>Notification settings.</strong> If you turn on notifications on a phone or computer, the delivery address your browser gives us for that device.</li>
     <li><strong>Anonymous usage statistics.</strong> Which kinds of screens are opened and which actions are taken, for example that an agreement was sent and whether it is repaid in one payment or installments, with the type of device and browser. These never include names, contacts, amounts, anything you write, or which record you opened.</li>
@@ -31,7 +32,7 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
   <h2>How we use it</h2>
   <ul>
     <li>To keep the record you and the other people agreed to, and show it to the people it belongs to.</li>
-    <li>To email you a sign-in code, and to show notifications and the reminders you ask for inside treeti.</li>
+    <li>To email you a sign-in code, to email you if a trusted contact asks to see your records, and to show notifications and the reminders you ask for inside treeti.</li>
     <li>To protect accounts, investigate problems and prevent misuse.</li>
     <li>To meet legal obligations where they apply.</li>
   </ul>
@@ -40,12 +41,14 @@ export function Privacy(){return <LegalPage title="Privacy policy" lede="What tr
   <ul>
     <li><strong>An agreement</strong> is visible to its lender, its borrower and the witnesses invited to it.</li>
     <li><strong>Private debts, reminders and investments</strong> are visible only to you. The people you name in them are not told.</li>
+    <li><strong>Your trusted contacts</strong> can see a read-only summary of your debts and loan agreements, but only after they ask and you don’t refuse within 14 days, or after you share with them yourself. The summary shows the other person’s name, the amounts, what’s left, the dates and the agreement PDF. It never shows anyone’s contact details, your notes or payment proofs. You can stop sharing at any time.</li>
+    <li><strong>If you’re in someone else’s agreement</strong> and that person has a trusted contact, the trusted contact can see your name, the amount and what’s left, once access is open.</li>
     <li><strong>The operator</strong> can access records only when needed to run, secure or fix the service, or to answer a request you make.</li>
   </ul>
   <h2>Services we rely on</h2>
   <p>treeti runs on services from other companies, which process information on our behalf: Supabase (database, sign-in and private file storage), Cloudflare (hosting), Resend (email delivery), Inngest (scheduled background tasks), Upstash (sign-in rate limits) and PostHog (anonymous usage statistics, stored in the European Union). If you turn on notifications on a device, alerts are delivered through your browser’s own notification service, run by Google, Apple, Mozilla or Microsoft; the alert is encrypted and never includes names or amounts. These companies may process information outside Nigeria.</p>
   <h2>How long we keep it</h2>
-  <p>We keep your records while your account is open. An agreement is a shared record: once the people involved have approved it, the exact version is preserved for all of them and cannot be removed by one person alone. If you ask us to delete your account, we delete your private debts, reminders and investments, and your sign-in details. Agreements you took part in may be kept for the other people who rely on them.</p>
+  <p>We keep your records while your account is open. An agreement is a shared record: once the people involved have approved it, the exact version is preserved for all of them and cannot be removed by one person alone. If you ask us to delete your account, we delete your private debts, reminders and investments, and your sign-in details, and remove your trusted contacts so no one can see your records. Agreements you took part in may be kept for the other people who rely on them.</p>
   <h2>Keeping it safe</h2>
   <p>Records are sent over encrypted connections and stored in private storage, and uploaded documents can be opened only by the people entitled to them. No online service can promise perfect security, so please keep your own copy of any agreement PDF that matters to you.</p>
   <h2>Cookies and your browser</h2>
@@ -71,7 +74,14 @@ export function Terms(){return <LegalPage title="Terms of use" lede="The underst
     <li>You must not use treeti to record a loan that requires the borrower to pay back more than they borrowed, whether as interest, a fee, a penalty for late payment, a share of profit or any other extra amount, and whether it is written into the terms or agreed separately. When the lender and borrower approve an agreement, each confirms that it is interest-free. We may suspend an account that breaks this rule.</li>
     <li>When the lender, the borrower and any requested witnesses have confirmed, that exact version is preserved. A change needs a new version that the parties approve again.</li>
     <li>A witness confirms that they have read the terms. A witness does not guarantee repayment.</li>
+    <li>If you or the other party has a trusted contact, that person may see the agreement’s names, amounts, dates and PDF once access is open. They can’t change anything.</li>
     <li>Repayments are recorded by one party and confirmed by the other. treeti cannot verify that money actually moved.</li>
+  </ul>
+  <h2>Trusted contacts</h2>
+  <ul>
+    <li>You can choose up to two trusted contacts. Choose only people you trust with your financial records, and only add someone who expects it.</li>
+    <li>A trusted contact can ask to see your records. We email you, and if you don’t refuse within 14 days, they can see them until you stop sharing. treeti can’t check why they asked, so watch for that email and keep your email address up to date.</li>
+    <li>A trusted contact sees a read-only summary. Seeing it doesn’t make them responsible for any debt, and treeti doesn’t settle estates or decide who inherits.</li>
   </ul>
   <h2>What treeti does not promise</h2>
   <p>treeti does not give legal, financial or religious advice. We do not promise that an agreement recorded here is legally enforceable, or that it meets the requirements of any law or religious ruling. If that matters for your agreement, ask someone qualified.</p>

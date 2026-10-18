@@ -11,8 +11,10 @@ import {demoPeople} from './demo-people';
 import {createDebt,editDebt,recordDebtPayment,type PersonalDebt} from '@/modules/debts/model';
 import {makeReminder} from '@/modules/debts/reminders';
 import {createInvestment,changeInvestment,type Investment} from '@/modules/investments/model';
+import type {TrustedContact,TrustedEventType} from '@/modules/trusted/model';
 export {demoPeople} from './demo-people';
-type State = { agreements: Aggregate[]; responses: Record<string, { hash: string; result: { agreement: Aggregate } }>; used: string[]; counter: number; personalDebts?:PersonalDebt[]; debtEdits?:{debtId:string;before:PersonalDebt;after:PersonalDebt}[]; debtResponses?:Record<string,{hash:string;debt:PersonalDebt}>; investments?:Investment[]; investmentResponses?:Record<string,{hash:string;investment:Investment}>; investmentRevisions?:Investment[] };
+type TrustedEvent={id:string;trustedContactId:string;actorId:string;type:TrustedEventType;createdAt:string};
+type State = { agreements: Aggregate[]; trustedContacts?:TrustedContact[]; trustedEvents?:TrustedEvent[]; responses: Record<string, { hash: string; result: { agreement: Aggregate } }>; used: string[]; counter: number; personalDebts?:PersonalDebt[]; debtEdits?:{debtId:string;before:PersonalDebt;after:PersonalDebt}[]; debtResponses?:Record<string,{hash:string;debt:PersonalDebt}>; investments?:Investment[]; investmentResponses?:Record<string,{hash:string;investment:Investment}>; investmentRevisions?:Investment[] };
 const guards = globalThis as typeof globalThis & { ahdDemoQueues?: Map<string, Promise<unknown>> };
 const queues = guards.ahdDemoQueues ??= new Map();
 export const demoEnabled = () => process.env.AHD_ENABLE_DEMO === 'true' || process.env.NODE_ENV === 'development';
@@ -92,6 +94,8 @@ export class DemoRepository implements Repository {
     queues.set(this.workspace,next); return next;
   }
   async all() { return this.transaction(state=>state.agreements); }
+  /** Trusted contacts live in the same workspace file, so profile switches can play both sides. */
+  async trustedTransaction<T>(work:(contacts:TrustedContact[],events:TrustedEvent[])=>T){return this.transaction(state=>{state.trustedContacts??=[];state.trustedEvents??=[];return work(state.trustedContacts,state.trustedEvents);});}
   async listInvestments(actor:Actor){return this.transaction(state=>(state.investments??[]).filter(record=>record.ownerId===actor.userId));}
   private async investmentWrite(id:string|null,input:unknown,actor:Actor,key:string){return this.transaction(state=>{
     state.investments??=[];state.investmentResponses??={};

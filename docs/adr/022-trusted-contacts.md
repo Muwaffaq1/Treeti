@@ -1,0 +1,16 @@
+# Trusted contacts (next of kin access)
+
+## Owner decision — 18 October 2026
+
+Launch feedback asked that someone's family be able to find out their debts, so they can be settled from the estate. The owner chose a request-and-wait design, like Apple's Legacy Contact or Google's Inactive Account Manager, over a downloadable summary.
+
+- **Who.** Each person can add up to **two** trusted contacts by name and email (`src/modules/trusted/model.ts`). The owner shares the private link themselves (WhatsApp or copy), as with agreement invitations (ADR 019). The contact accepts only after signing in with the invited email, the same identity rule as witnesses. A renewed link replaces the old one. Only a SHA-256 hash of the link is stored.
+- **When.** Accepting gives no access. The contact asks to see the records, and access opens **14 days** later unless the owner refuses. The owner can also share straight away, stop sharing, or remove the contact, and the contact can step down. treeti can't verify death or incapacity, so the waiting period and the owner's chance to refuse are the safeguard. Access is calculated from stored dates when someone opens the page, so no scheduled job is needed.
+- **One more email.** This overrides ADR 019's sign-in-only email rule for one message. When a contact asks, the owner gets an email from Resend (`src/modules/trusted/alerts.ts`), plus a device notification and an overview banner. An in-app notice alone could go unseen by someone who is ill, which would defeat the refusal window. Requests are rate-limited, and Resend idempotency keys prevent duplicates. A failed email never blocks the request.
+- **What they see.** A read-only summary (`src/modules/trusted/summary.ts`): private debts with their witnesses, plus active, settling and settled agreements where the owner is the lender or the borrower. It shows the other party's name, the amounts, what's left, the dates, the record number and the finalized agreement PDF. It never includes contact details, private notes, repayment proofs, the evidence bundle, investments or proposals. Trusted contacts can't act on anything.
+- **Other parties.** The person on the other side of an agreement is not asked before a trusted contact sees their name and the amount. The privacy policy and terms of use say so. This needs the planned legal review.
+- **Storage.** Migration `202610180010` adds `trusted_contacts` (server-only, row level security on with no browser policy, deletes blocked) and the append-only `trusted_contact_events` history. A trigger enforces the two-person limit, immutable identity, sequential revisions and no changes after removal. The demonstration stores the same records in the workspace file, so both sides can be tried by switching profiles.
+
+Limits: the waiting period depends on the owner seeing the email or notification. A contact who is also the owner's email account holder could hide it. Account deletion removes trusted contacts rather than deleting their history.
+
+Validation: unit checks cover every rule and the summary's data minimization. PGlite checks cover the migration, limit, immutability and history. Browser checks cover the whole journey, a wrong identity, an outsider, stopping access and accessibility at 390 and 1366 pixels.

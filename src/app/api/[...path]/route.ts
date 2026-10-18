@@ -23,6 +23,7 @@ import {queueAgreementDelivery,queueDebtReminder} from '@/modules/notifications/
 import {notices,recordedNotices} from '@/modules/notifications/feed';
 import {pushKeys,pushToUser,removeSubscription,saveSubscription} from '@/modules/notifications/push';
 import {ownerUserIds,saveDemoFeedback,saveFeedback} from '@/modules/feedback/feedback';
+import {trustedGet,trustedPost} from '@/modules/trusted/api';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -57,6 +58,7 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
     const {actor,repo,people,workspace}=await getRuntime(demo);
     if(path[0]==='push'&&path.length===1)return json({publicKey:demo?null:pushKeys()?.publicKey??null});
     if(path[0]==='notifications'&&path.length===1)return json({notices:demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)});
+    if(path[0]==='trusted')return await trustedGet(path,actor,demo,workspace);
     if(path[0]==='debts'&&!path[1])return json({debts:await debtRepository(demo,workspace).listDebts(actor)});
     if(path[0]==='investments'&&path.length===1)return json({investments:await investmentRepository(demo,workspace).listInvestments(actor)});
     if(path[0]==='debts'&&path[2]==='reminder'&&path[3]==='calendar'){
@@ -122,6 +124,7 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       if(path[1]==='subscribe')await saveSubscription(database(),actor.userId,await readBody(req));else await removeSubscription(database(),actor.userId,await readBody(req));
       return json({ok:true});
     }
+    if(path[0]==='trusted')return await trustedPost(req,path,actor,demo,runtimeWorkspace);
     if(path[0]==='investments'){
       const investments=investmentRepository(demo,runtimeWorkspace);
       if(path.length===1)return json({investment:await investments.createInvestment(await readBody(req),actor,idempotencyKey(req))},201);
