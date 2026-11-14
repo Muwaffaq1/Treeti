@@ -69,7 +69,7 @@
 @media(prefers-reduced-motion:reduce){.sign-seal{animation:m-plain 300ms ease-out both}.sign-signature.sealed{animation:none}}
 /* Payment recorded: the bar sweeps, the count ticks (Figma: Payment recorded). */
 .detail-progress .kit-bar span{width:100%!important;transform-origin:left;transition:transform 300ms cubic-bezier(.23,1,.32,1)}
-.count-tick{display:inline-block;animation:m-fade 200ms ease-out 150ms both}
+.count-tick{display:inline-block;animation:m-tick 200ms ease-out 150ms both}
 @media(prefers-reduced-motion:reduce){.detail-progress .kit-bar span{transition:none}.count-tick{animation:none}}
 @media(prefers-reduced-motion:reduce){.sign-ink-fill{clip-path:inset(0 100% 0 0)!important}.sign-signature.sealed .sign-ink-fill{clip-path:none!important;animation:m-plain 300ms ease-out both}}
 /* Landing: it writes itself. "ready" hides the parts until the card is on screen, then "play" runs once. */
@@ -83,3 +83,4 @@
 .lw-blank{font-weight:600;color:var(--name-ink)}
 @keyframes m-ink{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @media(prefers-reduced-motion:reduce){.landing-writes .lw,.landing-writes .lw-ink,.landing-writes .landing-seal{opacity:1!important;animation:none!important}}
+@keyframes m-tick{from{transform:translateY(4px)}}

@@ -71,7 +71,7 @@
 }
 @media(min-width:1440px){.agreement-drawer{width:480px}}
 @media(prefers-reduced-motion:no-preference) and (min-width:1101px){.agreement-drawer{animation:detail-in 240ms cubic-bezier(.32,.72,0,1)}}
-@keyframes detail-in{from{transform:translateX(24px);opacity:0}}
+@keyframes detail-in{from{transform:translateX(24px)}}
 @media(min-width:1101px){.workspace:has(> .demo-bar) .agreement-drawer{top:52px}}
 .detail-settled{align-items:flex-start;text-align:start}
 .detail-settled h2{margin:0;font:500 15px/21px var(--font-ui);color:var(--positive-strong)}
