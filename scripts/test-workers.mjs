@@ -104,12 +104,12 @@ try {
       // may contain them; CI's unconfigured build must still show its fallback.
       const unavailable = page.getByText('Sign-in setup is still in progress. Please check back later.');
       if (await unavailable.isVisible()) {
-        assert.equal(await page.getByRole('button', { name: /Send verification code/ }).count(), 0);
+        assert.equal(await page.getByRole('button', { name: /Send my sign-in code/ }).count(), 0);
       } else {
         assert.equal(await page.getByRole('textbox', { name: 'Full name', exact: true }).count(), 0, 'Returning sign-in must not ask for a name');
         const email=page.getByRole('textbox', { name: 'Email address', exact: true });
         await email.waitFor();assert.equal(await email.getAttribute('type'),'email');
-        assert.ok(await page.getByRole('button', { name: /Send verification code/ }).isEnabled());
+        assert.ok(await page.getByRole('button', { name: /Send my sign-in code/ }).isEnabled());
       }
       assert.equal(await page.getByRole('link', { name: /Explore the demonstration/ }).count(), 0);
       await page.evaluate(() => document.fonts.ready);

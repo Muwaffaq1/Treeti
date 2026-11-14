@@ -20,6 +20,6 @@ try{await copyFile('.next/server/app/manifest.webmanifest.body',`${assets}/manif
 const headers=[...securityHeaders().map(h=>`  ${h.key}: ${h.value}`),'  Cache-Control: private, no-store'].join('\n');
 const manifestHeaders=['  Content-Type: application/manifest+json',...securityHeaders().map(h=>`  ${h.key}: ${h.value}`)].join('\n');
 await writeFile(`${assets}/_headers`,[...Object.keys(STATIC_PUBLIC_PAGES).map(path=>`${path}\n${headers}`),`/manifest.webmanifest\n${manifestHeaders}`].join('\n\n')+'\n');
-const signInReady=/>Email address<\/label>/.test(await readFile(`${assets}/login.html`,'utf8'));
+const signInReady=/>Email address<\/(?:label|span)>/.test(await readFile(`${assets}/login.html`,'utf8'));
 if(!signInReady&&process.argv.includes('--require-sign-in')){console.error('The sign-in page was built without the sign-in settings (Supabase and rate-limit variables), so it would tell people sign-in is not ready. Build again with them set before deploying.');process.exit(1);}
 console.log(`Packaged ${Object.keys(STATIC_PUBLIC_PAGES).length} public pages and the install manifest as static files${signInReady?'':' (sign-in form not configured in this build)'}.`);
