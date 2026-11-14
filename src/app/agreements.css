@@ -228,3 +228,7 @@ button.mobile-new,button.sidebar-new{border:0;cursor:pointer}
 .notice-end{display:grid;justify-items:end;gap:6px}
 .notice-end time{font:400 12px/18px var(--font-ui);color:var(--muted);white-space:nowrap}
 .notice-end .notice-new{margin-top:0}
+/* The chip row scrolls sideways; it must never widen its column (320px overflow seen in CI). */
+.agreements-tools{grid-template-columns:minmax(0,1fr)}
+.agreements-tools>*{min-width:0}
+@media(min-width:1101px){.agreements-tools{grid-template-columns:minmax(0,1fr) 260px}}
