@@ -1,0 +1,123 @@
+/* App chrome: desktop side menu, phone header, phone bottom menu, demo bar, profile switcher.
+   Stage 2 of the revamp. Owns every rule for these elements; values come from tokens.css. */
+
+/* Desktop side menu: same paper as the page, so the content leads. */
+.sidebar{position:fixed;inset-block:0;inset-inline-start:0;z-index:20;width:248px;display:flex;flex-direction:column;overflow-y:auto;padding:32px 16px 20px;background:var(--paper);border-inline-end:1px solid var(--faint)}
+.brand-link{display:inline-flex;align-self:flex-start;padding-inline:12px;margin-bottom:28px}
+.sidebar .wordmark{font-size:38px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar-bottom{margin-top:auto;padding-top:24px;display:grid;gap:2px}
+.nav-link{display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 12px;border-radius:var(--radius-sm);font:var(--type-label);font-size:15px;color:var(--muted);transition:background-color 150ms ease,color 150ms ease}
+.nav-link .kubai-icon,.nav-link .treeti-glyph{width:22px;height:22px}
+.nav-link.selected{color:var(--ink);font-weight:600;background:color-mix(in srgb,var(--section,var(--action)) 13%,transparent)}
+.theme-toggle.nav-link{width:100%;border:0;background:none;text-align:start}
+.install-rail{margin-top:12px}
+.install-rail .button{width:100%;justify-content:flex-start;gap:12px;min-height:56px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-soft);color:var(--ink)}
+.install-rail .button strong,.install-rail .button small{display:block;text-align:start}
+.install-rail .button strong{font:var(--type-label)}
+.install-rail .button small{font:var(--type-caption);color:var(--muted)}
+.profile{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px;border-radius:var(--radius-sm)}
+.profile strong{display:block;font:var(--type-label);color:var(--ink);overflow-wrap:anywhere}
+.profile small{display:block;font:var(--type-caption);color:var(--muted)}
+.profile>svg{margin-inline-start:auto;color:var(--muted)}
+/* Initials circle, shared with cards; the menu uses a smaller one. */
+.avatar{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--surface-soft);color:var(--ink);font-size:13px;font-weight:600}
+.avatar.small{width:34px;height:34px;font-size:12px}
+.profile .avatar{width:36px;height:36px;color:var(--muted)}
+.workspace{margin-inline-start:248px;width:calc(100% - 248px)}
+@media(hover:hover) and (pointer:fine){.nav-link:hover:not(.selected),.profile:hover{background:var(--surface-soft);color:var(--ink)}}
+
+/* Demo bar: one quiet line above the page. */
+.demo-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:6px 48px;background:var(--surface-soft);color:var(--muted);font:var(--type-caption)}
+.demo-bar>span{display:flex;align-items:center;gap:8px;min-width:0}
+.demo-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--action)}
+
+/* Demo profile switcher (Radix Select). */
+.profile-switch-trigger{display:flex;align-items:center;gap:8px;width:220px;min-width:0;min-height:40px;padding:4px 12px 4px 4px;border:0;border-radius:var(--radius-pill);background:var(--surface-raised);box-shadow:var(--card-shadow);color:var(--ink);font:var(--type-label)}
+.profile-switch-trigger>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start}
+.profile-switch-avatar{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--surface-soft);color:var(--muted);font:var(--type-caption);font-weight:600}
+.profile-switch-chevron{display:flex;align-items:center;flex-shrink:0;color:var(--muted)}
+.profile-switch-menu{z-index:60;width:280px;min-width:var(--radix-select-trigger-width);max-width:calc(100vw - 32px);max-height:min(400px,var(--radix-select-content-available-height));padding:8px;border-radius:var(--radius-card);background:var(--surface-raised);box-shadow:0 12px 32px -8px #0000002e,0 2px 6px #0000000f;color:var(--ink);transform-origin:var(--radix-select-content-transform-origin)}
+.profile-switch-menu [data-radix-select-viewport]{max-height:320px;overscroll-behavior:contain}
+.profile-switch-label{padding:8px 12px 12px;font:var(--type-overline);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.profile-switch-item{display:grid;grid-template-columns:32px minmax(0,1fr) 18px;align-items:center;gap:12px;min-height:52px;padding:10px 12px;border-radius:var(--radius-sm);font:var(--type-label);outline:none;cursor:pointer}
+.profile-switch-item [id]{overflow-wrap:anywhere}
+.profile-switch-item[data-state=checked]{background:color-mix(in srgb,var(--action) 12%,transparent)}
+.profile-switch-item[data-highlighted]{background:var(--surface-soft);outline:2px solid var(--focus);outline-offset:-2px}
+.profile-switch-selected{display:flex;color:var(--accent)}
+.profile-switch-scroll{display:flex;align-items:center;justify-content:center;min-height:32px;color:var(--muted)}
+@media(prefers-reduced-motion:no-preference){.profile-switch-menu[data-state=open]{animation:chrome-pop 180ms var(--ease-out)}}
+@keyframes chrome-pop{from{opacity:0;transform:scale(.97)}}
+
+/* Phone header and floating bottom menu. */
+.mobile-header,.mobile-nav{display:none}
+/* Phones and tablets up to 1100px use the header and floating bottom menu. */
+@media(max-width:1100px){
+  .sidebar{display:none}
+  .workspace{margin:0;width:100%}
+  .demo-bar{min-height:48px;padding:6px 20px}
+  .demo-bar>span{font-size:13px}
+  .profile-switch-trigger{width:172px}
+  .mobile-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 4px}
+  .mobile-header .wordmark{font-size:34px}
+  .mobile-header-actions{display:flex;align-items:center;gap:8px}
+  .mobile-header-actions .icon-button{width:44px;min-width:44px;min-height:44px;border-radius:50%;background:var(--surface-soft);color:var(--ink)}
+  .mobile-nav{display:flex;position:fixed;z-index:30;inset-inline:12px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:520px;margin-inline:auto;gap:4px;padding:6px;border-radius:26px;background:var(--nav-surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 10px 30px -10px #3b2a1433,0 1px 3px #3b2a1414}
+  .mobile-nav a{flex:1;min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 2px;border-radius:20px;color:var(--muted);font:var(--type-overline);font-size:12px;letter-spacing:var(--tracking)}
+  .mobile-nav a span{white-space:nowrap}
+  .mobile-nav a .kubai-icon,.mobile-nav a .treeti-glyph{width:24px;height:24px}
+  .mobile-nav a[aria-current=page]{color:var(--ink);background:color-mix(in srgb,var(--section,var(--action)) 13%,transparent)}
+}
+@media(min-width:801px) and (max-width:1100px){.mobile-header{padding:20px 32px 4px}.demo-bar{padding-inline:32px}}
+@media(max-width:640px){.demo-detail{display:none}}
+@media(max-width:420px){.profile-switch-trigger{width:150px}.profile-switch-trigger>.profile-switch-avatar{display:none}.profile-switch-trigger{padding-inline-start:14px}}
+@media(max-width:350px){.mobile-nav{inset-inline:8px}.mobile-nav a{font-size:11px}.mobile-header,.demo-bar{padding-inline:16px}}
+:root[data-theme=dark] .mobile-nav{box-shadow:0 10px 30px -10px #000000b0;border:1px solid var(--faint)}
+@media(forced-colors:active){.sidebar,.mobile-nav,.profile-switch-menu{border:1px solid CanvasText;background-image:none}}
+
+/* ── Revamp chrome (Figma v3: Sidebar 150:656, Top bar 150:1002, mobile header "New"). ── */
+.sidebar{width:240px;padding:28px 16px 20px;gap:0}
+@media(min-width:1101px){.workspace{margin-inline-start:240px;width:calc(100% - 240px)}}
+.brand-link{margin-bottom:24px;padding-inline:8px}
+.sidebar .wordmark{font-family:var(--font-hand),cursive;font-weight:400;font-size:30px;line-height:30px;letter-spacing:0;color:var(--ink)}
+.sidebar .wordmark span{color:inherit}
+.sidebar-new{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;margin-bottom:20px;border-radius:999px;font:500 15px/21px var(--font-ui);letter-spacing:var(--tracking);-webkit-tap-highlight-color:transparent}
+.sidebar-new:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+@media(prefers-reduced-motion:no-preference){.sidebar-new{transition:scale 150ms ease-out}.sidebar-new:active{scale:.96}}
+.sidebar nav,.sidebar-bottom{gap:2px}
+.sidebar-bottom{margin-top:0;padding-top:0}
+.sidebar .nav-link{min-height:40px;padding:9px 12px;border-radius:12px;font:400 15px/21px var(--font-ui);letter-spacing:var(--tracking);color:var(--muted)}
+.sidebar .nav-link .kubai-icon,.sidebar .nav-link .treeti-glyph{width:20px;height:20px;color:var(--icon-muted)}
+.sidebar .nav-link.selected{background:var(--surface-soft);color:var(--ink);font-weight:500}
+.sidebar .nav-link.selected .kubai-icon,.sidebar .nav-link.selected .treeti-glyph{color:var(--icon-active)}
+.sidebar .notice-rail .notice-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border:0;border-radius:999px;background:var(--action);color:var(--action-text);font:600 12px/1 var(--font-ui);position:static}
+.sidebar-divider{height:1px;margin:12px 0;background:var(--faint)}
+.sidebar-account{margin-top:auto;padding-top:16px}
+.rail-account{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rail-account:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.rail-account[data-state=open]{background:var(--surface-soft)}
+.rail-account-text{min-width:0;display:grid}
+.rail-account-text strong{font:500 14px/20px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail-account-text small{font:400 13px/18px var(--font-ui);letter-spacing:var(--tracking);color:var(--muted)}
+@media(hover:hover) and (pointer:fine){.sidebar .nav-link:hover:not(.selected),.rail-account:hover{background:var(--surface-soft);color:var(--ink)}}
+
+/* Desktop top bar: page name on the left, search on the right. */
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px;padding:0 32px;border-bottom:1px solid var(--faint)}
+.top-bar-title{margin:0;font:500 17px/24px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink)}
+.top-search{display:flex;align-items:center;gap:8px;width:min(320px,40%);height:40px;padding:0 6px 0 14px;border:1px solid var(--faint);border-radius:999px;background:var(--surface);color:var(--icon-muted)}
+.top-search:focus-within{border-color:var(--accent);outline:2px solid var(--focus);outline-offset:1px}
+.top-search input{flex:1;min-width:0;height:100%;padding:0;border:0;background:none;outline:none;font:400 14px/20px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink)}
+.top-search input::placeholder{color:var(--placeholder)}
+.top-search input::-webkit-search-cancel-button{display:none}
+.top-search kbd{padding:3px 7px;border-radius:8px;background:var(--surface-soft);font:500 12px/16px var(--font-ui);color:var(--muted)}
+
+/* Phone header "New" pill, beside the bell. */
+.mobile-new{display:none}
+@media(max-width:1100px){
+  .top-bar{display:none}
+  .mobile-new .treeti-glyph{color:var(--icon-active)}
+  .mobile-new{display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 14px 0 12px;border-radius:999px;background:var(--surface-soft);color:var(--ink);font:500 14px/20px var(--font-ui);letter-spacing:var(--tracking);-webkit-tap-highlight-color:transparent}
+  .mobile-new:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+  @media(prefers-reduced-motion:no-preference){.mobile-new{transition:scale 150ms ease-out}.mobile-new:active{scale:.96}}
+}
+@media(forced-colors:active){.top-search,.mobile-new,.sidebar-new{border:1px solid CanvasText}}

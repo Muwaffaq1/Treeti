@@ -1,7 +1,7 @@
 'use client';
 import {track} from '@/lib/analytics';
 import {createContext,useContext,useEffect,useState,type ReactNode,type RefObject} from 'react';
-import {Download,Share2,Smartphone,WifiOff} from 'lucide-react';
+import {Download,Share2,Smartphone,WifiOff} from '@/components/icons';
 import {Button,ErrorMessage,Modal} from './ui';
 type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:'accepted'|'dismissed'}>};
 const PwaContext=createContext<{installEvent:InstallEvent|null;installed:boolean}>({installEvent:null,installed:false});

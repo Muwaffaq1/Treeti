@@ -1,4 +1,6 @@
 import {test,expect} from '@playwright/test';
+import {signAgreement} from './sign';
+import {writeAgreement,signAndSend} from './create';
 import AxeBuilder from '@axe-core/playwright';
 import {randomUUID} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
@@ -15,16 +17,16 @@ for(const width of [390,1366])test(`in-app notifications replace event emails at
  await page.waitForFunction(id=>localStorage.getItem(`treeti:notices-seen:${id}`)!==null,lender);
  const created=await post('/api/demo/agreements',{borrowerName:'Yusuf Ali',borrowerContact:'yusuf@example.test',terms:{principalMinor:'30000000',currency:'NGN',interestMinor:'0',agreementDate:'2026-10-10',dueDate:'2027-10-10',repaymentType:'SINGLE',purpose:'Notification test',additionalTerms:'',requiredWitnesses:0}});expect(created.ok()).toBe(true);const {agreement:a}=await created.json();
  const sent=await post(`/api/demo/agreements/${a.id}/agree-and-send`,{action:'agree-and-send',expectedVersionId:a.currentVersionId,signature:'Maryam Bello',affirmed:true});expect(sent.ok()).toBe(true);const {invitation}=await sent.json();
- await post('/api/demo/session',{userId:borrower});await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
- await page.getByRole('button',{name:'Review and approve',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'Approve these terms',exact:true}).click();await expect(dialog).toBeHidden();
+ await post('/api/demo/session',{userId:borrower});await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreement',exact:true})).toBeVisible();
+ await signAgreement(page);
  // The bell reuses its last answer for a minute; a later visit asks again.
  await page.evaluate(()=>sessionStorage.clear());
  await post('/api/demo/session',{userId:lender});await page.goto('/demo');
  await expect(bell).toHaveAccessibleName(/Notifications, \d+ new/);
  await bell.click();await expect(page).toHaveURL(/\/demo\/notifications$/);await expect(page.getByRole('heading',{level:1,name:'Notifications'})).toBeVisible();
- const first=page.locator('.activity-events > li').first();await expect(first).toContainText('Yusuf Ali');await expect(first.locator('.notice-new')).toHaveText('New');
- await expect(bell).toHaveAccessibleName('Notifications');
+ const first=page.locator('.activity-events > li').first();await expect(first).toContainText('Yusuf');await expect(first.locator('.notice-new')).toHaveText('New');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+ await page.goto('/demo');await expect(bell).toHaveAccessibleName('Notifications');await page.goto('/demo/notifications');
  const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
  await mkdir('output/qa',{recursive:true});await page.evaluate(()=>document.fonts.ready.then(()=>undefined));await page.screenshot({path:`output/qa/notifications-${width}.png`,animations:'disabled'});
  await first.getByRole('link').click();await expect(page).toHaveURL(new RegExp(`/demo/agreements/${a.id}$`));
@@ -34,15 +36,12 @@ for(const width of [390,1366])test(`in-app notifications replace event emails at
 
 test('the invitation is shared by the sender, with WhatsApp first',async({page})=>{
  await page.setViewportSize({width:390,height:844});
- await page.addInitScript(()=>{(window as unknown as {opened:string[]}).opened=[];window.open=(url?:string|URL)=>{(window as unknown as {opened:string[]}).opened.push(String(url));return null;};});
+ await page.addInitScript(()=>{(window as unknown as {opened:string[]}).opened=[];window.open=(url?:string|URL)=>{(window as unknown as {opened:string[]}).opened.push(String(url));return null;};Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
  await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{userId:lender}});
  await page.goto('/demo/agreements/new');
- const amount=page.getByLabel('Principal amount');await expect(amount).toBeEnabled();await amount.fill('300,000');
- await page.getByLabel('Borrower’s full name').fill('Yusuf Ali');await page.getByLabel('Email or phone number').fill('yusuf@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();
- await page.getByLabel('Repayment due date').fill('2027-12-31');await page.getByRole('button',{name:'Continue',exact:true}).click();
- await page.getByRole('checkbox',{name:/I confirm this loan is interest-free/}).check();await page.getByRole('button',{name:'Agree and send',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Ready to review together.'})).toBeVisible();await expect(page.getByText('treeti does not email invitations.')).toBeVisible();
- await page.getByRole('button',{name:'Share on WhatsApp'}).click();
+ await writeAgreement(page,{amount:'300,000',name:'Yusuf Ali',contact:'yusuf@example.test',dueDate:'2027-12-31'});
+ await signAndSend(page);
+ await page.getByRole('button',{name:'Share link with Yusuf Ali'}).click();await expect(page.getByText('Shared',{exact:true})).toBeVisible();
  const opened=await page.evaluate(()=>(window as unknown as {opened:string[]}).opened);expect(opened).toHaveLength(1);
  const shared=new URL(opened[0]);expect(shared.origin+shared.pathname).toBe('https://wa.me/');expect(shared.searchParams.get('text')).toMatch(/Please review it here: http:\/\/127\.0\.0\.1:3000\/demo\/invite\/[A-Za-z0-9_-]{43}/);
  await expect(page.getByRole('button',{name:'Copy link'})).toBeVisible();
@@ -71,9 +70,9 @@ test('a waiting party can remind the other person on WhatsApp',async({page})=>{
  await post('/api/demo/session',{fresh:true});await post('/api/demo/session',{userId:lender});
  const created=await post('/api/demo/agreements',{borrowerName:'Yusuf Ali',borrowerContact:'yusuf@example.test',terms:{principalMinor:'5000000',currency:'NGN',interestMinor:'0',agreementDate:'2026-10-10',dueDate:'2027-10-10',repaymentType:'SINGLE',purpose:'Reminder test',additionalTerms:'',requiredWitnesses:0}});const {agreement:a}=await created.json();
  const {invitation}=await (await post(`/api/demo/agreements/${a.id}/agree-and-send`,{action:'agree-and-send',expectedVersionId:a.currentVersionId,signature:'Maryam Bello',affirmed:true})).json();
- await page.goto(`/demo/agreements/${a.id}`);await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
+ await page.goto(`/demo/agreements/${a.id}`);await expect(page.getByRole('heading',{name:'The agreement',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Remind Yusuf Ali on WhatsApp'})).toHaveCount(0);
- await post('/api/demo/session',{userId:borrower});await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
+ await post('/api/demo/session',{userId:borrower});await page.goto(invitation.url);await expect(page.getByRole('heading',{name:'The agreement',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:/Remind .* on WhatsApp/})).toHaveCount(0);
  await post('/api/demo/session',{userId:lender});await page.goto(`/demo/agreements/${a.id}`);
  const remind=page.getByRole('button',{name:'Remind Yusuf Ali on WhatsApp'});await remind.click();
@@ -90,13 +89,12 @@ test('the device notification control explains each state without asking for per
   await page.addInitScript(state=>{Object.defineProperty(Notification,'permission',{get:()=>state});},permission);
   await page.route('**/api/demo/push',route=>route.fulfill({json:{publicKey:key}}));
   await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});
-  await page.goto('/demo/notifications');
+  await page.goto('/demo/account');
   const card=page.getByRole('region',{name:'Notifications on this device'});await expect(card).toContainText(heading);
   if(action)await expect(card.getByRole('button',{name:action})).toBeVisible();else await expect(card.getByRole('button')).toHaveCount(0);
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
   await page.screenshot({path:`output/qa/push-card-${permission}-mobile.png`,animations:'disabled'});
-  await page.goto('/demo/account');await expect(page.getByRole('region',{name:'Notifications on this device'})).toContainText(heading);
   await context.close();
  }
 });

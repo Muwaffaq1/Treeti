@@ -3,7 +3,7 @@ import {track} from '@/lib/analytics';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useState,useSyncExternalStore} from 'react';
-import {MessageSquareText,Star} from 'lucide-react';
+import {MessageSquareText,Star} from '@/components/icons';
 import {api,apiBase,appBase} from './client-api';
 import {Button,ErrorMessage,Field} from './ui';
 import type {Feedback} from '@/modules/feedback/feedback';

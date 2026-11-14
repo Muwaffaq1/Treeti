@@ -5,7 +5,7 @@ const origin='http://127.0.0.1:3000';
 async function changeTheme(page:import('@playwright/test').Page,name:string){
   const menu=page.getByRole('button',{name:'Open menu',exact:true});
   if(await menu.isVisible()){await menu.click();await page.getByRole('menuitem',{name,exact:true}).click();}
-  else await page.getByRole('button',{name,exact:true}).click();
+  else{await page.locator('.sidebar').getByRole('button',{name:/Account/}).click();await page.getByRole('menuitem',{name,exact:true}).click();}
 }
 async function accessible(page:import('@playwright/test').Page){const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))).toEqual([]);}
 for(const width of [375,390,430,1366,1920])test(`dark appearance and profile menu at ${width}px`,async({page})=>{

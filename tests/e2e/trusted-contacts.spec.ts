@@ -15,7 +15,7 @@ for(const width of [390,1366])test(`a trusted contact is invited, asks, is share
  await page.goto('/demo');
  if(width<800){await page.getByRole('button',{name:'Open menu'}).click();await page.getByRole('menuitem',{name:'Trusted contacts'}).click();}
  else await page.locator('.sidebar').getByRole('link',{name:'Trusted contacts'}).click();
- await expect(page.getByRole('heading',{level:1,name:'Trusted contacts.'})).toBeVisible();await axe();
+ await expect(page.getByRole('heading',{level:1,name:'Trusted contacts'})).toBeVisible();await axe();
  await page.getByRole('button',{name:'Add a trusted contact'}).first().click();
  let dialog=page.getByRole('dialog');
  await dialog.getByRole('button',{name:'Add trusted contact'}).click();await expect(dialog.getByLabel('Full name')).toBeFocused();
@@ -33,31 +33,31 @@ for(const width of [390,1366])test(`a trusted contact is invited, asks, is share
  await expect(page.getByRole('heading',{name:'Become Ahmad Ibrahim’s trusted contact?'})).toBeVisible();await axe();
  await page.getByRole('button',{name:'Accept'}).click();await expect(page).toHaveURL(/\/demo\/trusted-contacts$/);
  const card=page.getByRole('article').filter({hasText:'Ahmad Ibrahim'});
- await card.getByRole('button',{name:'Ask to see records'}).click();dialog=page.getByRole('dialog');
+ await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Ask to see records'}).click();dialog=page.getByRole('dialog',{name:'Ask to see Ahmad Ibrahim’s records?'});
  await expect(dialog).toContainText('If they don’t refuse within 14 days');await dialog.getByRole('button',{name:'Send request'}).click();
  await expect(page.getByRole('status').first()).toContainText('Request sent to Ahmad Ibrahim.');await expect(card).toContainText('You can see them from');
  await mkdir('output/qa',{recursive:true});await page.screenshot({path:`output/qa/trusted-contact-waiting-${width}.png`,fullPage:true,animations:'disabled'});
 
  await as(owner);await page.goto('/demo');
- await expect(page.locator('.access-request')).toContainText('Yusuf Ali asked to see your debts.');
- await page.locator('.access-request').getByRole('link',{name:'Review request'}).click();
- const mine=page.getByRole('article').filter({hasText:'Yusuf Ali'});await expect(mine).toContainText('Asked to see records');await axe();
+ await expect(page.locator('.brief')).toContainText('Yusuf asked to see your debts.');
+ await page.locator('.brief').getByRole('link',{name:/Yusuf asked to see your debts/}).click();
+ const mine=page.getByRole('article').filter({hasText:'Yusuf Ali'});await expect(mine).toContainText('Asked to see your records');await axe();
  await page.screenshot({path:`output/qa/trusted-contact-request-${width}.png`,fullPage:true,animations:'disabled'});
- await mine.getByRole('button',{name:'Share now'}).click();await page.getByRole('dialog').getByRole('button',{name:'Share now'}).click();
+ await mine.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Share now'}).click();await page.getByRole('dialog',{name:'Share your records with Yusuf Ali now?'}).getByRole('button',{name:'Share now'}).click();
  await expect(mine).toContainText('Can see your records');
 
  await as(contact);await page.goto('/demo/trusted-contacts');
- await page.getByRole('link',{name:'View Ahmad Ibrahim’s records'}).click();
- await expect(page.getByRole('heading',{level:1,name:'Ahmad Ibrahim’s debts.'})).toBeVisible();
- const debt=page.getByRole('article').filter({hasText:'Owes Bilal Musa'});await expect(debt).toContainText('Witnessed by Aisha Suleiman');await expect(debt).toContainText('25,000');
+ await page.getByRole('article').filter({hasText:'Ahmad Ibrahim'}).getByRole('button').click();await page.getByRole('dialog').getByRole('link',{name:'View Ahmad Ibrahim’s records'}).click();
+ await expect(page.getByRole('heading',{level:1,name:'Ahmad’s records'})).toBeVisible();
+ const debt=page.getByRole('article').filter({hasText:'Bilal Musa'});await expect(debt).toContainText('Witnessed by Aisha Suleiman');await expect(debt).toContainText('25,000');
  await expect(page.getByText('Kept private')).toHaveCount(0);await axe();
  await page.screenshot({path:`output/qa/trusted-contact-records-${width}.png`,fullPage:true,animations:'disabled'});
  const recordsUrl=page.url();
 
  await as(owner);await page.goto('/demo/trusted-contacts');
- await mine.getByRole('button',{name:'Stop sharing'}).click();await page.getByRole('dialog').getByRole('button',{name:'Stop sharing'}).click();
+ await mine.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Stop sharing'}).click();await page.getByRole('dialog',{name:'Stop sharing with Yusuf Ali?'}).getByRole('button',{name:'Stop sharing'}).click();
  await expect(mine).toContainText('Accepted');
- await as(contact);await page.goto(recordsUrl);await expect(page.getByText('Owes Bilal Musa')).toHaveCount(0);
+ await as(contact);await page.goto(recordsUrl);await expect(page.getByText('Bilal Musa')).toHaveCount(0);
  const id=recordsUrl.split('/').pop();expect((await page.request.get(`/api/demo/trusted/${id}/records`)).status()).toBe(403);
  await as(outsider);expect((await page.request.get(`/api/demo/trusted/${id}/records`)).status()).toBe(404);
 });

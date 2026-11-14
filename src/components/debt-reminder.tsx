@@ -1,6 +1,6 @@
 'use client';
 import {useRef,useState} from 'react';
-import {Bell,CalendarPlus} from 'lucide-react';
+import {Bell,CalendarPlus} from '@/components/icons';
 import type {PersonalDebt} from '@/modules/debts/model';
 import {reminderLabel} from '@/modules/debts/reminders';
 import {api,apiBase} from './client-api';

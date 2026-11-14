@@ -1,6 +1,6 @@
 'use client';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X, LoaderCircle, CalendarDays, ChevronDown, type LucideIcon } from 'lucide-react';
+import { X, LoaderCircle, CalendarDays, ChevronDown, type IconComponent } from '@/components/icons';
 import { clsx } from 'clsx';
 import {cloneElement,isValidElement,useId,useRef} from 'react';
 import type { ButtonHTMLAttributes, ReactNode, ReactElement, RefObject } from 'react';
@@ -11,7 +11,7 @@ export function Modal({open,onOpenChange,title,description,children,returnFocus}
 }
 export function ErrorMessage({message}:{message:string}){return message?<p className="error-message" role="alert">{message}</p>:null;}
 export function DisclosureSummary({children}:{children:ReactNode}){return <summary className="disclosure-summary"><span className="disclosure-label">{children}</span><ChevronDown className="disclosure-chevron" size={18} aria-hidden/></summary>;}
-export function Field({label,children,hint,error,icon}:{label:string;children:ReactNode;hint?:string;error?:string;icon?:LucideIcon}){
+export function Field({label,children,hint,error,icon}:{label:string;children:ReactNode;hint?:string;error?:string;icon?:IconComponent}){
   const id=useId(),element=isValidElement(children)?children as ReactElement<Record<string,unknown>>:null;
   const native=element&&typeof element.type==='string'&&['input','textarea','select'].includes(element.type);
   const isSelect=element?.type==='select',Icon=icon??(element?.props.type==='date'||element?.props.type==='datetime-local'?CalendarDays:undefined);

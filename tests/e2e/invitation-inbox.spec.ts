@@ -8,10 +8,10 @@ test('existing borrower sees an invitation before opening its email and can revi
   expect(created.ok()).toBe(true);const {agreement:a}=await created.json();
   const sent=await page.request.post(`/api/demo/agreements/${a.id}/send`,{headers:{...headers,'Idempotency-Key':randomUUID()},data:{action:'send',expectedVersionId:a.currentVersionId}});expect(sent.ok()).toBe(true);
   await page.request.post('/api/demo/session',{headers,data:{userId:borrowerId}});
-  await page.goto('/demo');const card=page.locator('article.attention-row').filter({hasText:a.publicId});await expect(card).toBeVisible();await expect(card).toContainText('Opening it does not mean you accept the terms.');
+  await page.goto('/demo');await page.getByRole('button',{name:'Abdullah invited you to review an agreement'}).click();const panel=page.getByRole('dialog');await expect(panel).toContainText(a.publicId);await expect(panel).toContainText('Opening it does not mean you accept the terms.');await panel.getByRole('button',{name:'Close'}).click();const card=page.locator('article.agreement-invite').filter({hasText:a.publicId});
   expect((await page.request.get(`/api/demo/agreements/${a.id}`)).status()).toBe(404);
   await page.goto('/demo/agreements');await expect(card).toBeVisible();await card.getByRole('button',{name:'Review agreement'}).click();
-  await expect(page).toHaveURL(new RegExp(`/demo/agreements/${a.id}$`));await expect(page.getByRole('heading',{name:'The agreed details'})).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/demo/agreements/${a.id}$`));await expect(page.getByRole('heading',{name:'The agreement',exact:true})).toBeVisible();
   const opened=await (await page.request.get(`/api/demo/agreements/${a.id}`)).json();expect(opened.agreement.approvals).toHaveLength(0);expect(opened.agreement.status).toBe('AWAITING_BORROWER');
-  await page.goto('/demo');await expect(page.locator('article.attention-row').filter({hasText:a.publicId})).toHaveCount(0);await expect(page.locator('a.attention-row').filter({hasText:a.publicId})).toBeVisible();
+  await page.goto('/demo');await expect(page.getByRole('button',{name:/invited you to review/})).toHaveCount(0);await expect(page.getByRole('button',{name:/Abdullah wants to lend you ₦888,888,858/})).toBeVisible();
 });

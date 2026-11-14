@@ -11,7 +11,7 @@ for(const width of [390,1366])test(`a signed-in person sends feedback and only t
  await post('/api/demo/session',{fresh:true});await post('/api/demo/session',{userId:sender});
  await page.goto('/demo');
  if(width<800){await page.getByRole('button',{name:'Open menu'}).click();await page.getByRole('menuitem',{name:'Send feedback'}).click();}
- else await page.locator('.sidebar').getByRole('link',{name:'Send feedback'}).click();
+ else{await page.locator('.sidebar').getByRole('button',{name:/Account/}).click();await page.getByRole('menuitem',{name:'Send feedback'}).click();}
  await expect(page).toHaveURL(/\/demo\/feedback$/);await expect(page.getByRole('heading',{level:1,name:'Share your feedback'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'What people have said'})).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'Numbers'})).toHaveCount(0);

@@ -1,9 +1,29 @@
 import type {Metadata} from 'next';
 import {listed} from '@/lib/listed';
 import Link from 'next/link';
-import {ArrowRight,Check,FileText,HeartHandshake,LockKeyhole,ShieldCheck} from 'lucide-react';
-import {Brand} from '@/components/shell';
+import {Check} from '@/components/icons';
 import {LegalLinks} from '@/components/legal';
+import {PublicHeader} from '@/components/auth';
 import {demoEnabled} from '@/modules/agreements/demo';
+import {LandingCard} from '@/components/landing-card';
 export const metadata:Metadata=listed('/');
-export default function Home(){return <div className="landing"><a href="#main" className="skip-link">Skip to content</a><header className="landing-header"><Link href="/" aria-label="treeti home"><Brand/></Link><Link href="/login" className="button button-secondary">Sign in <ArrowRight size={16}/></Link></header><main id="main"><section className="landing-hero"><div><h1>Put it in writing.<br/>Keep the trust.</h1><p className="lede">A calm, clear way to document interest-free agreements with the people who matter to you.</p><div className="hero-actions"><Link className="button button-primary" href="/login">Create an agreement <ArrowRight size={18}/></Link>{demoEnabled()&&<Link className="button button-ghost" href="/demo">Explore treeti</Link>}</div><div className="hero-assurance"><LockKeyhole size={16}/><span>Private records. Interest-free. Both voices heard.</span></div></div><div className="landing-record"><div className="record-paper"><div className="section-heading"><Brand/><span className="record-id">A shared understanding</span></div><div className="paper-title"><FileText size={25}/><h2>Agreed together.</h2><p>A clear record of what we promised.</p></div><dl><div><dt>The amount</dt><dd>₦300,000</dd></div><div><dt>The terms</dt><dd>Interest-free</dd></div><div><dt>The people</dt><dd>Lender + borrower</dd></div></dl><div className="paper-signatures"><span>Abdullah<small>Lender · Confirmed</small></span><span>Ahmad<small>Borrower · Confirmed</small></span></div><div className="paper-confirmed"><Check size={15}/>One agreement. A shared record.</div></div><span className="floating-record-note"><HeartHandshake size={20}/>Care for the relationship.</span></div></section><section className="landing-principles">{[[FileText,'Clarity, from the beginning.','Define the amount and repayment date. Review the terms together before either person confirms.'],[ShieldCheck,'What you agreed stays agreed.','Changes create a new version. Earlier approvals and records are preserved, never silently rewritten.'],[HeartHandshake,'A record with room for care.','Confirm repayments together, acknowledge forgiveness, and keep proof when the debt is settled.']].map(([Icon,title,body],i)=>{const I=Icon as typeof FileText;return <article key={i}><I size={24}/><h2>{String(title)}</h2><p>{String(body)}</p></article>;})}</section></main><footer className="landing-footer"><Brand/><p>treeti records agreements. It does not lend, hold, or transfer money.</p><LegalLinks/><Link href="/login">Begin with clarity <ArrowRight size={15}/></Link></footer></div>;}
+// Landing (Figma: Public · Landing 174:10268, Desktop · Landing 175:10321).
+export default function Home(){
+  const steps=[['Write it in one sentence','Who, how much, what for, and how it’s repaid. Add witnesses if you like.'],['Agree it together','Everyone reads it and signs with their name. Nothing is agreed until they do.'],['Keep track kindly','Record payments, see what’s left, and offer forgiveness if you choose.']];
+  return <div className="public-page landing-v3"><a href="#main" className="skip-link">Skip to content</a>
+    <PublicHeader signIn links/>
+    <main id="main">
+      <section className="landing-hero-v3">
+        <div className="landing-copy">
+          <h1>Put it in writing.<br/>Keep the trust.</h1>
+          <p>Write down what you lend, agree it together, and keep track of every payment. Interest-free, always.</p>
+          <div className="landing-actions"><Link className="brief-cta" href="/login">Write your first agreement</Link>{demoEnabled()&&<Link className="kit-link landing-demo" href="/demo">Try the demo first</Link>}</div>
+          <ul className="landing-checks">{['Private','Interest-free','Signed by both'].map(t=><li key={t}><Check size={14} aria-hidden/>{t}</li>)}</ul>
+        </div>
+        <LandingCard/>
+      </section>
+      <section className="landing-steps" aria-label="How treeti works">{steps.map(([title,body],i)=><article key={title}><span className="landing-step-number" aria-hidden>{i+1}</span><h2>{title}</h2><p>{body}</p></article>)}</section>
+    </main>
+    <footer className="landing-footer-v3"><p>treeti records agreements. It doesn’t lend, hold or move money.</p><LegalLinks/></footer>
+  </div>;
+}

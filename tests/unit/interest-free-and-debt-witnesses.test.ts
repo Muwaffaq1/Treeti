@@ -24,7 +24,8 @@ describe('private debt witnesses',()=>{
 describe('interest-free safeguards',()=>{
  it('flags interest-like wording but not interest-free statements',()=>{
   expect(interestWording('Borrower pays 10% interest monthly')).toEqual(['10%','interest']);
-  expect(interestWording('A late payment penalty applies','','2.5 % profit share')).toEqual(['penalty','2.5 %','profit']);
+  expect(interestWording('A late payment penalty applies','','2.5 % profit share')).toEqual(['2.5 %']);
+  expect(interestWording('Kid’s school fees','Shop rent and transport fee')).toEqual([]);
   expect(interestWording('Interest-free. No fees, without interest, 0% interest.',undefined)).toEqual([]);
   expect(interestWording('Early repayment is welcome. I am interested in helping.')).toEqual([]);
  });

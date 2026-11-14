@@ -144,7 +144,8 @@ export function applyCommand(original: Aggregate, input: unknown, ctx: Context):
     }
     case 'request-change': case 'decline': {
       prefinal(); requireThat(p.role === 'BORROWER' && ['AWAITING_BORROWER', 'AWAITING_APPROVAL'].includes(a.status), 'INVALID_STATE_TRANSITION', 'Only the borrower can respond to a proposed agreement.');
-      const reason = note(), v = latest(a);
+      // Declining needs no reason (Figma: Reject request); asking for a change always does.
+      const reason = c.action === 'decline' ? (c.reason?.trim() || 'No reason given') : note(), v = latest(a);
       a.approvals.push({ id: randomUUID(), participantId: p.id, versionId: v.id, versionHash: v.hash, role: p.role, action: c.action === 'decline' ? 'DECLINED' : 'REQUESTED_CHANGE', affirmation: reason, affirmationVersion: 'BORROWER_RESPONSE_V1', signature: '', authenticationLevel: 'AUTHENTICATED', verifiedContact: ctx.actor.contacts[0], createdAt: ctx.now });
       a.status = c.action === 'decline' ? 'DECLINED' : 'CHANGES_REQUESTED';
       appendEvent(a, c.action === 'decline' ? 'AGREEMENT_DECLINED' : 'BORROWER_REQUESTED_CHANGE', p.id, { reason }, ctx.now); break;

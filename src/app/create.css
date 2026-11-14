@@ -1,0 +1,66 @@
+/* New agreement (Figma: Create · 1–6, Create · Send it to everyone, Desktop · Write an agreement 152:7858). */
+.create-sentence{margin:8px 0 0;text-align:center;font:400 20px/40px var(--font-ui);letter-spacing:var(--tracking);color:var(--muted);text-wrap:balance}
+.create-sentence .kit-blank{font:inherit;line-height:30px;letter-spacing:inherit}
+.create-sentence .kit-blank-filled{color:var(--name-ink);font-weight:500}
+.create-witnessed{color:var(--accent)}
+.create-links{display:grid;justify-items:center;gap:10px;margin-top:20px}
+.create-links .detail-link-button{font-size:15px}
+.create-flow .interest-warning{margin-top:16px}
+.create-currency{justify-self:center}
+.create-currency select{appearance:none;height:36px;padding:0 28px 0 14px;border:0;border-radius:999px;background:var(--surface-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2367616b' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;font:500 14px/20px var(--font-ui);color:var(--ink);cursor:pointer}
+.create-currency select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.create-amount{display:grid;gap:12px}
+.create-amount-row{display:flex;justify-content:center;align-items:baseline;gap:2px;padding:8px 0}
+.create-amount-sign{font:500 34px/1 var(--font-ui);letter-spacing:var(--tracking);color:var(--money-sign)}
+.create-amount-row input{width:min(260px,70vw);padding:0;border:0;background:none;outline:none;text-align:start;font:600 44px/1.1 var(--font-ui);letter-spacing:var(--tracking);color:var(--ink);font-variant-numeric:tabular-nums;caret-color:var(--action)}
+.create-amount-row input::placeholder{color:var(--faint)}
+.create-amount-row:focus-within{box-shadow:0 2px 0 var(--action)}
+.create-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.create-keypad button{height:52px;border:0;border-radius:16px;background:none;font:500 24px/1 var(--font-ui);color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.create-keypad button:active{background:var(--surface-soft)}
+.create-keypad button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.create-field{display:grid;gap:6px}
+.create-field-label{font:400 13px/18px var(--font-ui);color:var(--muted)}
+.create-field input{width:100%;box-sizing:border-box;height:48px;padding:0 16px;border:1px solid var(--faint);border-radius:16px;background:var(--paper);font:400 16px/22px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink)}
+.create-field input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--accent)}
+.create-field input[aria-invalid=true]{border-color:var(--danger)}
+.create-field-error{margin:0;font-size:13px}
+.create-plans{display:grid;gap:8px;margin:0;padding:0;border:0}
+.create-plan{position:relative;display:grid;grid-template-columns:20px 1fr;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid transparent;border-radius:18px;background:var(--surface-soft);cursor:pointer}
+.create-plan input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.create-plan-dot{width:20px;height:20px;box-sizing:border-box;border:1.5px solid var(--icon-muted);border-radius:999px;background:var(--surface)}
+.create-plan strong{display:block;font:500 15px/21px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink)}
+.create-plan small{display:block;font:400 13px/18px var(--font-ui);color:var(--muted)}
+.create-plan:has(input:checked){border-color:var(--action);background:var(--accent-soft)}
+.create-plan:has(input:checked) .create-plan-dot{border:6px solid var(--action)}
+.create-plan:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.create-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.create-custom{display:grid;gap:10px}
+.create-custom-actions{display:flex;flex-wrap:wrap;gap:12px 16px}
+.create-summary{margin:0;font:500 13px/18px var(--font-ui);color:var(--positive-strong)}
+.create-share{display:grid;gap:0;padding:4px 20px;list-style:none}
+.create-share li{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:12px;padding:14px 0}
+.create-share li+li{border-top:1px solid var(--faint)}
+.create-share strong{display:block;font:500 15px/21px var(--font-ui);letter-spacing:var(--tracking);color:var(--ink)}
+.create-share small{display:block;font:400 13px/18px var(--font-ui);color:var(--muted)}
+.create-share-button{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--surface-soft);font:500 13px/18px var(--font-ui);color:var(--ink);cursor:pointer}
+.create-share-button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.create-shared{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;background:var(--mint);font:500 13px/18px var(--font-ui);color:var(--mint-text)}
+.create-later{font:400 12px/16px var(--font-ui);color:var(--muted);text-align:end}
+.create-share-note{margin:12px 0 0;padding:14px 16px;border-radius:18px;background:var(--accent-soft);font:400 14px/20px var(--font-ui);color:var(--note-ink)}
+@media(min-width:1101px){
+  .create-flow .sign-body{width:640px}
+  .create-sentence{font-size:28px;line-height:52px;letter-spacing:var(--tracking)}
+  .create-sentence .kit-blank{line-height:40px}
+  .create-flow .sign-actions{width:400px;margin-inline:auto}
+}
+.sign-primary:disabled{opacity:1;background:var(--surface-soft);color:var(--muted)}
+/* The create flow is the whole page: no app chrome around it, so nothing hidden can take focus. */
+.create-flow{position:static;min-height:100dvh}
+.app-shell:has(.create-flow) :is(.sidebar,.mobile-header,.mobile-nav,.top-bar,.install-nudge,.feedback-nudge){display:none!important}
+.app-shell:has(.create-flow) .workspace{margin:0!important;width:100%!important}
+.main-content:has(> .create-flow){max-width:none!important;padding:0!important}
+.create-nowrap,.create-sentence>span:has(>.kit-blank){white-space:nowrap}
+.workspace:has(> .demo-bar) .create-flow{min-height:calc(100dvh - 52px)}
+@media(max-width:1100px){.workspace:has(> .demo-bar) .create-flow{min-height:calc(100dvh - 48px)}}
+@media(min-width:1101px){.create-flow .sign-body{padding-bottom:48px}.create-flow .sign-actions{margin-top:auto}}

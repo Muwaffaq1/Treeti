@@ -1,16 +1,18 @@
 'use client';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import {useRef,useState} from 'react';
-import {ArrowLeft,ArrowRight,CheckCircle2,Clock3,Download,HeartHandshake,Mail,Plus,ShieldCheck,UserRound,UsersRound} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+import {ArrowLeft,ArrowRight,CheckCircle2,Eye,HeartHandshake,Mail,UserRound,UsersRound} from '@/components/icons';
 import type {ContactView,OwnerView} from '@/modules/trusted/model';
 import {trustedContactLimit,waitingDays} from '@/modules/trusted/limits';
-import type {SharedAgreement,SharedDebt,SharedRecords} from '@/modules/trusted/summary';
+import type {SharedAgreement,SharedRecords} from '@/modules/trusted/summary';
 import {money} from '@/lib/money';
 import {api,apiBase,appBase} from './client-api';
 import {formatDate} from './agreement-utils';
 import {InviteLink} from './create-agreement';
 import {Button,ErrorMessage,Field,Modal} from './ui';
+import {Amount,Avatar,Panel,RingAvatar,Tag} from './kit';
+import {firstName} from './person-colour';
 
 type Lists={owned:OwnerView[];trustedBy:ContactView[]};
 type Response=Lists&{invitation?:{url:string;name:string}};
@@ -52,41 +54,68 @@ export function TrustedContacts({initial,demo}:{initial:Lists;demo:boolean}){
     setLists(result);setSuccess(doneText[confirm.kind](confirm));setConfirm(null);
   }catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   const copy=confirm&&confirmCopy[confirm.kind](confirm);
-  return <>
-    <div className="page-heading"><div><h1>Trusted contacts.</h1><p className="lede">Choose up to {trustedContactLimit} people who can see your debts if you can’t manage them yourself.</p></div>{!full&&<Button onClick={openAdd}><Plus size={18} aria-hidden/>Add a trusted contact</Button>}</div>
-    <aside className="private-ledger-note" aria-label="How access works"><span className="private-ledger-icon" aria-hidden><ShieldCheck size={20}/></span><div><h2>How access works</h2><p>A trusted contact asks to see your records, and we email you. If you don’t refuse within {waitingDays} days, they can see your debts and loan agreements. You can share straight away, stop sharing or remove someone at any time.</p></div></aside>
+  const [manage,setManage]=useState<{side:'owned'|'by';id:string}|null>(null),[howOpen,setHowOpen]=useState(false),[now,setNow]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setNow(Date.now()),0);return ()=>clearTimeout(t);},[]);
+  const owned=manage?.side==='owned'?lists.owned.find(c=>c.id===manage.id):undefined,by=manage?.side==='by'?lists.trustedBy.find(c=>c.id===manage.id):undefined;
+  const daysLeft=(iso:string)=>now?Math.max(0,Math.ceil((Date.parse(iso)-now)/86400000)):waitingDays;
+  const short=(iso:string)=>formatDate(iso).replace(/ \d{4}$/,'');
+  const then=(next:Confirm)=>{setManage(null);setConfirm(next);};
+  return <div className="ledger trusted">
+    <header className="detail-bar notices-bar"><Link className="detail-icon-button" href={appBase(demo)||'/app'} aria-label="Back to overview"><ArrowLeft size={18} aria-hidden/></Link><h1 className="notices-title">Trusted contacts</h1><span/></header>
+    <p className="ledger-next trusted-intro">If something happens to you, they can ask to see your debts and agreements. You always get <strong>{waitingDays} days</strong> to say no.</p>
     <div role="status">{success&&<div className="success-notice"><CheckCircle2 size={18} aria-hidden/>{success}<button onClick={()=>setSuccess('')}>Dismiss</button></div>}</div>
     {!confirm&&!adding&&<ErrorMessage message={error}/>}
-    <section aria-labelledby="your-contacts" className="trusted-section">
-      <div className="section-heading"><h2 id="your-contacts">Your trusted contacts <span className="count">{lists.owned.length}</span></h2></div>
-      {!lists.owned.length&&<div className="empty-state"><span className="empty-icon" aria-hidden><UsersRound size={30}/></span><h3>No trusted contacts yet</h3><p>If something happens to you, the people you choose can see what you owe and what you’re owed, so it can be settled.</p><Button variant="secondary" onClick={openAdd}>Add a trusted contact <Plus size={16} aria-hidden/></Button></div>}
-      <div className="trusted-list">{lists.owned.map(c=><article className="panel trusted-card" key={c.id}>
-        <div className="trusted-card-top"><span className="avatar small" aria-hidden>{initials(c.name)}</span><div><h3>{c.name}</h3><p className="quiet-note">{c.email}</p></div><OwnerBadge view={c}/></div>
-        {c.access==='WAITING'&&<div className="callout pending"><Clock3 size={20} aria-hidden/><p><strong>{c.name} asked to see your debts on {formatDate(c.requestedAt!)}.</strong> They’ll be able to see them from {formatDate(c.opensAt!)} unless you refuse.</p></div>}
-        {c.access!=='WAITING'&&<p className="quiet-note">{c.status==='INVITED'?'Hasn’t accepted your invitation yet.':c.access==='OPEN'?'Can see your debts and loan agreements.':'Can’t see your records unless they ask and you don’t refuse.'}</p>}
-        <div className="debt-card-actions">
-          {c.access==='WAITING'&&<Button variant="secondary" onClick={()=>setConfirm({kind:'close',id:c.id,name:c.name,closing:'REFUSED'})}>Refuse request</Button>}
-          {c.status==='ACCEPTED'&&c.access!=='OPEN'&&<Button variant="secondary" onClick={()=>setConfirm({kind:'share',id:c.id,name:c.name})}>Share now</Button>}
-          {c.access==='OPEN'&&<Button variant="secondary" onClick={()=>setConfirm({kind:'close',id:c.id,name:c.name,closing:'STOPPED'})}>Stop sharing</Button>}
-          {c.status==='INVITED'&&<Button variant="secondary" busy={busy} onClick={()=>void renew(c)}>Get a new link</Button>}
-          <Button variant="ghost" onClick={()=>setConfirm({kind:'remove',id:c.id,name:c.name})} aria-label={`Remove ${c.name}`}>Remove</Button>
-        </div>
-      </article>)}</div>
+    <section aria-labelledby="your-contacts" className="agreements-group ledger-group">
+      <h2 className="kit-overline agreements-group-title" id="your-contacts">Your trusted contacts · {lists.owned.length}</h2>
+      {lists.owned.length?<ul>{lists.owned.map(c=><li key={c.id}><article className="ledger-row" aria-label={c.name}><button type="button" className="agreement-row ledger-row-button" aria-haspopup="dialog" onClick={()=>setManage({side:'owned',id:c.id})}>
+        <span className="agreement-row-avatar"><Avatar name={c.name} size={32}/></span>
+        <span className="agreement-row-person"><span className="agreement-row-name">{c.name}</span></span>
+        <span className="agreement-row-progress"><span className="agreement-row-meta">{ownerLine(c)}</span>{c.access==='WAITING'&&c.opensAt&&<Tag tone="action">Opens {short(c.opensAt)}</Tag>}{c.access==='OPEN'&&<Tag tone="positive">Sharing now</Tag>}</span>
+        <span className="agreement-row-left"><span className="trusted-pill">{c.access==='WAITING'?'Review':c.status==='INVITED'?'Share link':'Manage'}</span></span>
+      </button></article></li>)}</ul>
+      :<p className="trusted-empty">Nobody yet. Choose someone you trust, like a spouse or an adult child.</p>}
     </section>
-    <section aria-labelledby="trusted-by" className="trusted-section">
-      <div className="section-heading"><h2 id="trusted-by">People who trust you <span className="count">{lists.trustedBy.length}</span></h2></div>
-      {!lists.trustedBy.length&&<p className="panel inline-empty"><HeartHandshake size={24} aria-hidden/>When someone adds you as a trusted contact and you accept, they’ll appear here.</p>}
-      <div className="trusted-list">{lists.trustedBy.map(c=><article className="panel trusted-card" key={c.id}>
-        <div className="trusted-card-top"><span className="avatar small" aria-hidden>{initials(c.ownerName)}</span><div><h3>{c.ownerName}</h3><p className="quiet-note">Added you as a trusted contact</p></div></div>
-        {c.access==='NONE'&&<p>{c.closedAt?`${c.ownerName} isn’t sharing their records with you right now. You can ask again.`:`If ${c.ownerName} can no longer manage their debts, you can ask to see them. We’ll email ${c.ownerName}, and you’ll get access after ${waitingDays} days unless they refuse.`}</p>}
-        {c.access==='WAITING'&&<div className="callout pending"><Clock3 size={20} aria-hidden/><p>You asked to see {c.ownerName}’s records. You can see them from {formatDate(c.opensAt!)} unless they refuse.</p></div>}
-        <div className="debt-card-actions">
-          {c.access==='NONE'&&<Button variant="secondary" onClick={()=>setConfirm({kind:'request',id:c.id,name:c.ownerName})}>Ask to see records</Button>}
-          {c.access==='OPEN'&&<Link className="button button-primary" href={`${appBase(demo)}/trusted-contacts/${c.id}`}>View {c.ownerName}’s records <ArrowRight size={16} aria-hidden/></Link>}
-          <Button variant="ghost" onClick={()=>setConfirm({kind:'leave',id:c.id,name:c.ownerName})}>Stop being a contact</Button>
-        </div>
-      </article>)}</div>
+    <section aria-labelledby="trusted-by" className="agreements-group ledger-group">
+      <h2 className="kit-overline agreements-group-title" id="trusted-by">People who trust you · {lists.trustedBy.length}</h2>
+      {lists.trustedBy.length?<ul>{lists.trustedBy.map(c=><li key={c.id}><article className="ledger-row" aria-label={c.ownerName}><button type="button" className="agreement-row ledger-row-button" aria-haspopup="dialog" onClick={()=>setManage({side:'by',id:c.id})}>
+        <span className="agreement-row-avatar"><Avatar name={c.ownerName} size={32}/></span>
+        <span className="agreement-row-person"><span className="agreement-row-name">{c.ownerName}</span></span>
+        <span className="agreement-row-progress"><span className="agreement-row-meta">{c.access==='OPEN'?'Sharing their records with you':c.access==='WAITING'?`You asked. You can see them from ${short(c.opensAt!)}`:'Added you as a trusted contact'}</span>{c.access==='OPEN'&&<Tag tone="positive">Read only</Tag>}</span>
+        <span className="agreement-row-left"><span className="trusted-pill">{c.access==='OPEN'?'Open':c.access==='WAITING'?'Waiting':'Ask'}</span></span>
+      </button></article></li>)}</ul>
+      :<p className="trusted-empty">When someone adds you and you accept, they’ll show up here.</p>}
     </section>
+    <div className="ledger-dock"><button type="button" className="kit-link detail-link-button" onClick={()=>setHowOpen(true)}>How access works</button>{!full&&<button type="button" className="brief-cta" onClick={openAdd}>Add a trusted contact</button>}</div>
+
+    <Panel open={howOpen} onOpenChange={setHowOpen} title="How access works">
+      <ol className="trusted-steps"><li>Your trusted contact asks to see your records, and we email you.</li><li>If you don’t refuse within {waitingDays} days, they can see your debts and loan agreements. Read only.</li><li>You can share straight away, stop sharing or remove someone at any time.</li></ol>
+    </Panel>
+
+    <Panel open={!!owned} onOpenChange={o=>{if(!o)setManage(null);}} title={owned?(owned.access==='WAITING'?`${firstName(owned.name)} asked to see your records`:owned.name):'Trusted contact'} description={owned?(owned.access==='WAITING'?`${firstName(owned.name)} will see your debts and loan agreements when the time is up, unless you refuse. Nothing is shown before then.`:owned.email):undefined}>
+      {owned&&<div className="ledger-detail">
+        {owned.access==='WAITING'&&owned.opensAt&&<div className="trusted-countdown"><strong>{daysLeft(owned.opensAt)} {daysLeft(owned.opensAt)===1?'day':'days'}</strong><span>left · opens {short(owned.opensAt)}</span></div>}
+        {owned.access!=='WAITING'&&<p className="debt-note">{ownerLine(owned)}.</p>}
+        <div className="ledger-detail-actions">
+          {owned.access==='WAITING'&&<><button type="button" className="button sign-danger" onClick={()=>then({kind:'close',id:owned.id,name:owned.name,closing:'REFUSED'})}>Refuse request</button><button type="button" className="button sign-secondary" onClick={()=>then({kind:'share',id:owned.id,name:owned.name})}>Share now</button><p className="sign-note">Doing nothing is fine. It opens on {short(owned.opensAt!)}.</p></>}
+          {owned.status==='INVITED'&&<button type="button" className="button button-primary sign-primary" disabled={busy} onClick={()=>{setManage(null);void renew(owned);}}>Share link</button>}
+          {owned.status==='ACCEPTED'&&owned.access==='NONE'&&<button type="button" className="button sign-secondary" onClick={()=>then({kind:'share',id:owned.id,name:owned.name})}>Share now</button>}
+          {owned.access==='OPEN'&&<button type="button" className="button sign-secondary" onClick={()=>then({kind:'close',id:owned.id,name:owned.name,closing:'STOPPED'})}>Stop sharing</button>}
+          <button type="button" className="button sign-tertiary" onClick={()=>then({kind:'remove',id:owned.id,name:owned.name})} aria-label={`Remove ${owned.name}`}>Remove</button>
+        </div>
+      </div>}
+    </Panel>
+
+    <Panel open={!!by} onOpenChange={o=>{if(!o)setManage(null);}} title={by?.ownerName??'Trusted contact'} description={by?'You’re their trusted contact.':undefined}>
+      {by&&<div className="ledger-detail">
+        {by.access==='NONE'&&<p className="debt-note">{by.closedAt?`${by.ownerName} isn’t sharing their records with you right now. You can ask again.`:`If ${by.ownerName} can no longer manage their debts, you can ask to see them. We’ll email ${by.ownerName}, and you’ll get access after ${waitingDays} days unless they refuse.`}</p>}
+        {by.access==='WAITING'&&<p className="debt-note">You asked to see {by.ownerName}’s records. You can see them from {formatDate(by.opensAt!)} unless they refuse.</p>}
+        <div className="ledger-detail-actions">
+          {by.access==='NONE'&&<button type="button" className="button button-primary sign-primary" onClick={()=>then({kind:'request',id:by.id,name:by.ownerName})}>Ask to see records</button>}
+          {by.access==='OPEN'&&<Link className="button button-primary sign-primary" href={`${appBase(demo)}/trusted-contacts/${by.id}`}>View {by.ownerName}’s records</Link>}
+          <button type="button" className="button sign-tertiary" onClick={()=>then({kind:'leave',id:by.id,name:by.ownerName})}>Stop being a contact</button>
+        </div>
+      </div>}
+    </Panel>
     <Modal open={adding} onOpenChange={value=>{if(!busy){setAdding(value);setError('');}}} title={invitation?`Send the link to ${invitation.name}`:'Add a trusted contact'} description={invitation?undefined:'Choose someone you trust to handle your affairs, such as a spouse or an adult child.'}>
       {invitation?<><InviteLink url={invitation.url} note={`treeti doesn’t email invitations. Send this private link to ${invitation.name} yourself. They sign in with their email address to accept.`} shareMessage={shareMessage}/><Button onClick={()=>setAdding(false)}>Done</Button></>
       :<form className="dialog-form" onSubmit={e=>{e.preventDefault();void add();}}>
@@ -99,48 +128,43 @@ export function TrustedContacts({initial,demo}:{initial:Lists;demo:boolean}){
     <Modal open={!!confirm} onOpenChange={value=>{if(!busy&&!value){setConfirm(null);setError('');}}} title={copy?.title??''}>
       {copy&&<div className="dialog-form"><p>{copy.body}</p><ErrorMessage message={error}/><div className="dialog-actions"><Button type="button" variant="ghost" onClick={()=>setConfirm(null)} disabled={busy}>Cancel</Button><Button variant={copy.danger?'danger':'primary'} busy={busy} onClick={()=>void act()}>{copy.action}</Button></div></div>}
     </Modal>
-  </>;
+  </div>;
 }
 
-function initials(name:string){return name.split(' ').map(part=>part[0]).slice(0,2).join('');}
-function OwnerBadge({view}:{view:OwnerView}){
-  const [label,tone]=view.status==='INVITED'?['Invited','status-awaiting_borrower']:view.access==='OPEN'?['Can see your records','status-active']:view.access==='WAITING'?['Asked to see records','status-awaiting_approval']:['Accepted','status-settled'];
-  return <span className={`status-badge ${tone}`}><span className="status-dot"/>{label}</span>;
-}
+/** One line saying where things stand with a trusted contact. */
+function ownerLine(c:OwnerView){return c.status==='INVITED'?'Invited. Hasn’t accepted yet':c.access==='OPEN'?'Can see your records':c.access==='WAITING'?'Asked to see your records':'Accepted. Can ask to see your records';}
 
 /** The read-only copy of someone's records that a trusted contact sees once access is open. */
 export function SharedRecordsView({id,records,demo}:{id:string;records:SharedRecords;demo:boolean}){
-  const owner=records.ownerName,owes=records.agreements.filter(a=>a.ownerRole==='BORROWER'),owed=records.agreements.filter(a=>a.ownerRole==='LENDER');
+  const owner=records.ownerName,first=firstName(owner),owes=records.agreements.filter(a=>a.ownerRole==='BORROWER'),owed=records.agreements.filter(a=>a.ownerRole==='LENDER');
   const pdf=(a:SharedAgreement)=>`${apiBase(demo)}/trusted/${id}/agreements/${a.id}/pdf`;
   const empty=!records.agreements.length&&!records.debts.length;
-  return <>
-    <Link className="back-link" href={`${appBase(demo)}/trusted-contacts`}><ArrowLeft size={16} aria-hidden/>Trusted contacts</Link>
-    <div className="page-heading"><div><h1>{owner}’s debts.</h1><p className="lede">Shared with you as a trusted contact. This is a read-only copy of what {owner} recorded in treeti.</p></div></div>
-    {empty&&<section className="empty-state"><span className="empty-icon" aria-hidden><UsersRound size={30}/></span><h3>Nothing recorded</h3><p>{owner} hasn’t recorded any debts or loan agreements in treeti.</p></section>}
-    {(owes.length>0||records.debts.length>0)&&<section aria-labelledby="owes" className="trusted-section"><div className="section-heading"><h2 id="owes">What {owner} owes</h2></div><div className="debt-grid">{owes.map(a=><AgreementCard key={a.id} agreement={a} pdf={pdf(a)}/>)}{records.debts.map(d=><DebtCard key={d.id} debt={d}/>)}</div></section>}
-    {owed.length>0&&<section aria-labelledby="owed" className="trusted-section"><div className="section-heading"><h2 id="owed">What’s owed to {owner}</h2></div><div className="debt-grid">{owed.map(a=><AgreementCard key={a.id} agreement={a} pdf={pdf(a)}/>)}</div></section>}
-    {records.debts.length>0&&<p className="quiet-note debt-footnote">Private records were written down by {owner} alone. The other person didn’t confirm them.</p>}
-  </>;
+  const sum=(items:{remainingMinor:string;currency:string}[])=>{const m=new Map<string,bigint>();for(const i of items)m.set(i.currency,(m.get(i.currency)??0n)+BigInt(i.remainingMinor));return [...m].map(([c,v])=>money(v.toString(),c)).join(' + ');};
+  const oweItems=[...owes,...records.debts],people=new Set([...owes.map(a=>a.otherName),...records.debts.map(d=>d.person)]).size;
+  return <div className="ledger">
+    <header className="detail-bar notices-bar"><Link className="detail-icon-button" href={`${appBase(demo)}/trusted-contacts`} aria-label="Trusted contacts"><ArrowLeft size={18} aria-hidden/></Link><h1 className="notices-title">{first}’s records</h1><span/></header>
+    <p className="trusted-banner"><Eye size={16} aria-hidden/>Read only. {first} can stop sharing at any time.</p>
+    {empty?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><UsersRound size={26}/></span><h2>Nothing recorded</h2><p>{owner} hasn’t recorded any debts or loan agreements in treeti.</p></section>
+    :<header className="ledger-head"><p className="ledger-caption">{oweItems.length?`${first} owes`:`Owed to ${first}`}</p><p className="ledger-amount">{oweItems.length?sum(oweItems):sum(owed)}</p><p className="ledger-caption">{oweItems.length?`across ${people===1?'1 person':`${people} people`}${owed.length?` · and is owed ${sum(owed)}`:''}`:''}</p></header>}
+    {oweItems.length>0&&<section aria-labelledby="owes" className="agreements-group ledger-group"><h2 id="owes" className="kit-overline agreements-group-title">{first} owes</h2><ul>
+      {owes.map(a=><li key={a.id}><SharedRow name={a.otherName} remaining={a.remainingMinor} original={a.principalMinor} currency={a.currency} meta={<>Shared agreement · due {formatDate(a.dueDate).replace(/ \d{4}$/,'')} · <a className="kit-link" href={pdf(a)}>PDF</a></>}/></li>)}
+      {records.debts.map(d=><li key={d.id}><SharedRow name={d.person} remaining={d.remainingMinor} original={d.amountMinor} currency={d.currency} meta={<>Private debt{d.witnesses.length>0&&<> · Witnessed by {d.witnesses.join(', ')}</>}</>}/></li>)}
+    </ul></section>}
+    {owed.length>0&&<section aria-labelledby="owed" className="agreements-group ledger-group"><h2 id="owed" className="kit-overline agreements-group-title">Owed to {first}</h2><ul>
+      {owed.map(a=><li key={a.id}><SharedRow name={a.otherName} remaining={a.remainingMinor} original={a.principalMinor} currency={a.currency} meta={<>Shared agreement · due {formatDate(a.dueDate).replace(/ \d{4}$/,'')} · <a className="kit-link" href={pdf(a)}>PDF</a></>}/></li>)}
+    </ul></section>}
+    {records.debts.length>0&&<p className="quiet-note debt-footnote">Private debts were written down by {owner} alone. The other person didn’t confirm them.</p>}
+  </div>;
 }
-function Amounts({remaining,original,currency}:{remaining:string;original:string;currency:string}){
-  return <div className="debt-amounts"><div><span>Remaining</span><strong>{money(remaining,currency)}</strong></div><div><span>Original amount</span><strong>{money(original,currency)}</strong></div></div>;
+function SharedRow({name,remaining,original,currency,meta}:{name:string;remaining:string;original:string;currency:string;meta:React.ReactNode}){
+  const total=BigInt(original),left=BigInt(remaining),fraction=total>0n?Number(total-left)/Number(total):0,paid=left===0n;
+  return <article className="ledger-row" aria-label={name}><div className="agreement-row">
+    <span className="agreement-row-avatar"><RingAvatar name={name} fraction={fraction}/></span>
+    <span className="agreement-row-person"><span className="agreement-row-name">{name}</span></span>
+    <span className="agreement-row-progress"><span className="agreement-row-meta">{meta}</span></span>
+    <span className="agreement-row-left"><span className="agreement-row-amount"><Amount text={money(paid?original:remaining,currency)} currency={currency}/></span><span className="agreement-row-caption">{paid?'paid back':'left'}</span></span>
+  </div></article>;
 }
-function Paid({paid}:{paid:boolean}){return <span className={`status-badge ${paid?'status-active':'status-awaiting_approval'}`}><span className="status-dot"/>{paid?'Paid back':'Outstanding'}</span>;}
-function AgreementCard({agreement:a,pdf}:{agreement:SharedAgreement;pdf:string}){
-  return <article className="panel debt-card shared-records">
-    <div className="debt-card-top"><div><p className="debt-record-meta">Agreement {a.publicId} · Due {formatDate(a.dueDate)}</p><h3>{a.ownerRole==='BORROWER'?`Borrowed from ${a.otherName}`:`Lent to ${a.otherName}`}</h3></div><Paid paid={a.remainingMinor==='0'}/></div>
-    <Amounts remaining={a.remainingMinor} original={a.principalMinor} currency={a.currency}/>
-    <a className="text-link" href={pdf}><Download size={15} aria-hidden/>Download agreement PDF</a>
-  </article>;
-}
-function DebtCard({debt:d}:{debt:SharedDebt}){
-  return <article className="panel debt-card shared-records">
-    <div className="debt-card-top"><div><p className="debt-record-meta">Private record · Debt date {formatDate(d.date)}</p><h3>Owes {d.person}</h3>{d.witnesses.length>0&&<p className="debt-witnessed"><UsersRound size={14} aria-hidden/>Witnessed by {d.witnesses.join(', ')}</p>}</div><Paid paid={d.remainingMinor==='0'}/></div>
-    <Amounts remaining={d.remainingMinor} original={d.amountMinor} currency={d.currency}/>
-    {d.dueDate&&<p className="quiet-note">Repayment due {formatDate(d.dueDate)}</p>}
-  </article>;
-}
-
 /** Shown at /trusted/<token>: the invited person accepts after signing in with the invited email. */
 export function TrustedInvitation({token,ownerName,maskedEmail,authenticated,demo}:{token:string;ownerName:string|null;maskedEmail:string|null;authenticated:boolean;demo:boolean}){
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),router=useRouter();

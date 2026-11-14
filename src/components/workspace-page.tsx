@@ -33,8 +33,8 @@ export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}
   else if(path[0]==='agreements'&&path[1]==='new')content=<CreateAgreement actor={actor} demo={demo}/>;
   else if(path[0]==='debts')content=<DebtTracker key={actor.userId} initial={await debtRepository(demo,workspace).listDebts(actor)} demo={demo} emailAvailable={false}/>;
   else if(path[0]==='investments'&&path.length===1)content=<InvestmentTracker key={actor.userId} initial={await investmentRepository(demo,workspace).listInvestments(actor)} demo={demo}/>;
-  else if(path[0]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[1]||'')){const a=await repo.get(path[1]);if(!a||!member(a,actor))notFound();const safe=projectAgreement(a,actor);if(path[2]==='edit'){if(member(a,actor)?.role!=='LENDER'||a.finalizedAt)notFound();content=<CreateAgreement actor={actor} demo={demo} existing={safe}/>;}else {content=<AgreementDetail initial={safe} actor={actor} demo={demo}/>;}}
-  else if(path[0]==='activity')content=<Activity agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} demo={demo}/>;
+  else if(path[0]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[1]||'')){const a=await repo.get(path[1]);if(!a||!member(a,actor))notFound();const safe=projectAgreement(a,actor);if(path[2]==='edit'){if(member(a,actor)?.role!=='LENDER'||a.finalizedAt)notFound();content=<CreateAgreement actor={actor} demo={demo} existing={safe}/>;}else {const all=(await repo.list(actor)).map(x=>projectAgreement(x,actor));content=<div className="agreement-split"><div className="agreement-split-list"><Dashboard invitations={await repo.pendingInvitations(actor)} agreements={all} actor={actor} demo={demo} listing/></div><div className="agreement-drawer"><AgreementDetail key={safe.id} initial={safe} actor={actor} demo={demo}/></div></div>;}}
+  else if(path[0]==='activity')content=<Activity agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} demo={demo} userId={actor.userId}/>;
   else if(path[0]==='notifications'&&path.length===1)content=<Notifications notices={demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)} userId={actor.userId} demo={demo}/>;
   else if(path[0]==='feedback'&&path.length===1){const reader=demo?actor.userId===demoPeople[0].userId:isOwner(actor);content=<FeedbackPage demo={demo} received={!reader?null:demo?listDemoFeedback(workspace!):await listFeedback(database())} numbers={!reader?null:demo?demoNumbers(await repo.list(actor),people?.length??0):await operatorNumbers(database())}/>;}
   else if(path[0]==='trusted-contacts'&&path.length===1)content=<TrustedContacts key={actor.userId} initial={await trustedLists(trustedRepository(demo,workspace),actor)} demo={demo}/>;
@@ -43,7 +43,7 @@ export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}
   else if(path[0]==='account')content=<Account actor={actor} demo={demo}/>;
   else if(path[0]==='guide')content=<Guide/>;
   else if(path[0]==='invite'&&path[1])content=<InvitationPage token={path[1]} demo={demo} authenticated actorName={actor.name}/>;
-  else if(path[0]==='verify'&&path[1])content=<Verification publicId={path[1]} demo={demo}/>;
+  else if(path[0]==='verify'&&path[1])content=<Verification publicId={path[1]} demo={demo} inApp/>;
   else notFound();
   return <Shell actor={actor} demo={demo} people={people}>{content}</Shell>;
 }

@@ -1,10 +1,28 @@
 'use client';
-import {useState} from 'react';
-import {FileCheck2,LockKeyhole,ShieldCheck} from 'lucide-react';
+// Record check (Figma: Public · Record check 174:10583). Runs once on open; shows no amounts, names or payments.
+import {useCallback,useEffect,useState} from 'react';
+import {ShieldCheck,TriangleAlert} from '@/components/icons';
 import {api,apiBase} from './client-api';
-import {Button,ErrorMessage} from './ui';
+import {ErrorMessage} from './ui';
 import {formatDate} from './agreement-utils';
-export function Verification({publicId,demo}:{publicId:string;demo:boolean}){
-  const [result,setResult]=useState<{publicId:string;hashConsistent:boolean;finalizedAt:string;version:number;documentStatus:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  return <div className="verification-page"><h1>Check the record.</h1><p className="lede">This check reveals no amount, participant identity, or repayment information.</p><section className="panel"><div className="verification-state"><FileCheck2 size={34}/><div><h2>{publicId}</h2><p>{demo?'Demonstration record':'Agreement identifier'}</p></div></div>{result&&<><div className="callout"><ShieldCheck size={22}/><p>{result.hashConsistent?'The version, evidence manifest and audit hashes are consistent.':'This record’s hashes do not match. Contact treeti before relying on it.'}</p></div><dl className="terms-list"><div><dt>Finalized</dt><dd>{formatDate(result.finalizedAt)}</dd></div><div><dt>Version</dt><dd>{result.version}</dd></div><div><dt>Document check</dt><dd>{result.documentStatus==='MATCHED'?'Saved PDF hash matches':result.documentStatus==='DEMONSTRATION'?'Generated demonstration PDF':result.documentStatus==='MISMATCH'?'Saved PDF hash mismatch':'PDF not yet available'}</dd></div><div><dt>External platform seal</dt><dd>Not configured for this MVP</dd></div></dl><p className="quiet-note">Hash consistency detects changes within the saved evidence. It is not proof of identity, an independent cryptographic signature, a religious ruling, or a legal judgment.</p></>}<ErrorMessage message={error}/><Button busy={busy} onClick={async()=>{setBusy(true);setError('');try{setResult(await api(`${apiBase(demo)}/verify/${encodeURIComponent(publicId)}`));}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>{result?'Check again':'Check record integrity'} <ShieldCheck size={17}/></Button></section><p className="ceremony-footnote"><LockKeyhole size={14}/>The full record is available only to authorized participants.</p></div>;
+import {PublicHeader} from './auth';
+type Result={publicId:string;hashConsistent:boolean;finalizedAt:string;version:number;documentStatus:string};
+const documentText:Record<string,string>={MATCHED:'Matches',DEMONSTRATION:'Demonstration PDF',MISMATCH:'Doesn’t match'};
+export function Verification({publicId,demo,inApp=false}:{publicId:string;demo:boolean;inApp?:boolean}){
+  const [result,setResult]=useState<Result|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState('');
+  const check=useCallback(async()=>{setBusy(true);setError('');try{setResult(await api<Result>(`${apiBase(demo)}/verify/${encodeURIComponent(publicId)}`));}catch(e){setError((e as Error).message);}finally{setBusy(false);}},[demo,publicId]);
+  useEffect(()=>{const t=setTimeout(()=>void check(),0);return ()=>clearTimeout(t);},[check]);
+  const ok=result?.hashConsistent;
+  return <div className={`public-page verification-page${inApp?' in-app':''}`}>
+    {!inApp&&<PublicHeader signIn/>}
+    <main id="main" className="public-main">
+      <div className="public-heading"><span className={`public-mark${result&&!ok?' warn':' ok'}`} aria-hidden>{result&&!ok?<TriangleAlert size={22}/>:<ShieldCheck size={22}/>}</span>
+        <h1>{!result?(busy?'Checking the record…':'Check the record'):ok?'This record hasn’t changed':'This record doesn’t match'}</h1>
+        <p>{!result?`${publicId}${demo?' · demonstration':''}`:ok?`${publicId} matches what was saved when it was finalised.`:`Contact treeti before relying on ${publicId}.`}</p></div>
+      {result&&<dl className="public-card public-facts"><div><dt>Finalised</dt><dd>{formatDate(result.finalizedAt)}</dd></div><div><dt>Version</dt><dd>{result.version}</dd></div><div><dt>Saved PDF</dt><dd>{documentText[result.documentStatus]??'Not available yet'}</dd></div></dl>}
+      <ErrorMessage message={error}/>
+      {(error||result)&&<button type="button" className="button sign-tertiary public-recheck" disabled={busy} onClick={()=>void check()}>Check again</button>}
+      <p className="public-note">This check shows no amounts, names or payments. It confirms the saved record hasn’t been changed. It isn’t proof of identity, a cryptographic signature, a religious ruling or a legal judgment.</p>
+    </main>
+  </div>;
 }

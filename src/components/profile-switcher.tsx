@@ -1,7 +1,7 @@
 'use client';
 import * as Select from '@radix-ui/react-select';
 import {useEffect,useState} from 'react';
-import {Check,ChevronDown,ChevronUp} from 'lucide-react';
+import {Check,ChevronDown,ChevronUp} from '@/components/icons';
 import type {Actor} from '@/modules/agreements/types';
 
 const initials=(name:string)=>name.split(' ').map(part=>part[0]).slice(0,2).join('');

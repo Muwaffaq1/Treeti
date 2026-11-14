@@ -4,16 +4,28 @@ import {ScreenStatistics} from '@/components/analytics';
 import {AppearanceProvider} from '@/components/appearance';
 import {appearanceBootstrap} from '@/lib/appearance';
 import {entryRedirectScript} from '@/lib/entry-redirect';
-import '@fontsource/geist/400.css';
-import '@fontsource/geist/500.css';
-import '@fontsource/geist/600.css';
-import '@fontsource/geist/700.css';
-import '@fontsource/lora/400.css';
-import '@fontsource/lora/500.css';
+import localFont from 'next/font/local';
+import {Just_Another_Hand,Mrs_Saint_Delafield} from 'next/font/google';
 import './globals.css';
+import './tokens.css';
 import './design-system.css';
 import './appearance.css';
+import './elements.css';
+import './shell.css';
+import './overview.css';
+import './brief.css';
+import './kit.css';
+import './agreements.css';
+import './detail.css';
+import './sign.css';
+import './create.css';
+import './public.css';
+import './moments.css';
+const intern=localFont({src:'./fonts/intern-variable.woff2',weight:'100 900',style:'normal',display:'swap',variable:'--font-intern',fallback:['ui-sans-serif','system-ui','sans-serif']});
+// The wordmark face from the Figma header ("treeti." in Just Another Hand, 34px).
+const hand=Just_Another_Hand({weight:'400',subsets:['latin'],display:'swap',variable:'--font-hand'});
+const script=Mrs_Saint_Delafield({weight:'400',subsets:['latin'],display:'swap',variable:'--font-script',preload:false});
 const preview={title:'treeti — put it in writing, keep the trust',description:'A private record for interest-free agreements between people. Agree the terms together, add a witness, and track every repayment.',image:{url:'/og/treeti-link-preview.png',width:1200,height:630,alt:'treeti. Put it in writing. Keep the trust.'}};
 export const metadata:Metadata={metadataBase:new URL('https://usetreeti.xyz'),title:{default:'treeti — clarity today, trust tomorrow',template:'%s · treeti'},description:'A private, thoughtful record of interest-free agreements between people.',openGraph:{type:'website',siteName:'treeti',url:'/',title:preview.title,description:preview.description,images:[preview.image]},twitter:{card:'summary_large_image',title:preview.title,description:preview.description,images:[preview.image]},robots:{index:false,follow:false},applicationName:'treeti',appleWebApp:{capable:true,title:'treeti',statusBarStyle:'default'},icons:{icon:[{url:'/icons/treeti.svg',type:'image/svg+xml'},{url:'/icons/treeti-favicon-32.png',sizes:'32x32',type:'image/png'}],apple:'/icons/treeti-apple.png'}};
-export const viewport:Viewport={width:'device-width',initialScale:1,viewportFit:'cover',themeColor:'#f3ede2'};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" suppressHydrationWarning><head><script id="ahd-appearance" dangerouslySetInnerHTML={{__html:appearanceBootstrap}}/><script id="treeti-entry" dangerouslySetInnerHTML={{__html:entryRedirectScript}}/></head><body><AppearanceProvider><PwaProvider>{children}</PwaProvider><ScreenStatistics/></AppearanceProvider></body></html>;}
+export const viewport:Viewport={width:'device-width',initialScale:1,viewportFit:'cover',themeColor:'#f7f4ee'};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" className={`${intern.variable} ${hand.variable} ${script.variable}`} suppressHydrationWarning><head><script id="ahd-appearance" dangerouslySetInnerHTML={{__html:appearanceBootstrap}}/><script id="treeti-entry" dangerouslySetInnerHTML={{__html:entryRedirectScript}}/></head><body><AppearanceProvider><PwaProvider>{children}</PwaProvider><ScreenStatistics/></AppearanceProvider></body></html>;}

@@ -8,7 +8,7 @@ for(const width of [390,1024])test(`responsive utility menu at ${width}px`,async
   await page.goto('/demo');await mkdir('output/qa',{recursive:true});
   for(const theme of ['light','dark']){
     const trigger=page.getByRole('button',{name:'Open menu',exact:true});
-    await expect(page.locator('.mobile-header button')).toHaveCount(1);
+    await expect(page.locator('.mobile-header button')).toHaveCount(2);
     await trigger.focus();await page.keyboard.press('Enter');
     await expect(page.getByRole('menuitem',{name:'Account',exact:true})).toBeVisible();
     await expect(page.getByRole('menuitem',{name:'Install treeti',exact:true})).toBeVisible();
@@ -20,6 +20,7 @@ for(const width of [390,1024])test(`responsive utility menu at ${width}px`,async
     await dialog.getByRole('button',{name:'Got it',exact:true}).click();await expect(dialog).toBeHidden();await expect(trigger).toBeFocused();
     await trigger.click();await page.getByRole('menuitem',{name:`Switch to ${theme==='light'?'dark':'light'} mode`,exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-theme',theme==='light'?'dark':'light');
   }
+  await page.goto('/demo/agreements');
   const search=page.getByRole('textbox',{name:'Search agreements',exact:true});await search.focus();await expect(search).toBeFocused();await page.screenshot({path:`output/qa/search-focus-light-${width}.png`,animations:'disabled'});
   await search.fill('Ahmad Ibrahim');await expect(page.locator('.agreement-card h3')).toHaveText(['Ahmad Ibrahim','Ahmad Ibrahim']);
   await page.getByRole('button',{name:'Open menu',exact:true}).click();await page.getByRole('menuitem',{name:'Account',exact:true}).click();await expect(page).toHaveURL('/demo/account');

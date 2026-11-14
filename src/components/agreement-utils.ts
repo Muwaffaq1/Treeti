@@ -9,7 +9,8 @@ export const formatDate=(date:string)=>new Intl.DateTimeFormat('en-NG',{day:'num
 export const formatTime=(date:string)=>new Intl.DateTimeFormat('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}).format(new Date(date));
 // Phrases that confirm a loan is interest-free, removed before looking for interest-like wording.
 const interestFreePhrases=/\b(?:interest[- ]free|(?:no|without|zero|0%?) (?:interest|fees?|penalt(?:y|ies)|extra charges?|charges?))\b/gi;
-const interestWords=/\b(?:interest|riba|usury|profits?|percent|per ?cent|fees?|penalt(?:y|ies)|late charges?|surcharges?|commissions?|mark-?ups?|extra charges?|extra amounts?|on top)\b|\d+(?:[.,]\d+)?\s*%/gi;
+// Only interest itself is flagged (owner's call, Nov 2026): words like "school fees" are everyday purposes, not charges.
+const interestWords=/\b(?:interest|riba|usury|percent|per ?cent)\b|\d+(?:[.,]\d+)?\s*%/gi;
 /** Interest-like wording in free text, so people can be reminded that agreements must stay interest-free. */
 export function interestWording(...texts:(string|undefined)[]){const found=new Set<string>();for(const text of texts)for(const match of (text??'').replace(interestFreePhrases,' ').matchAll(interestWords))found.add(match[0].toLowerCase().replace(/\s+/g,' '));return [...found];}
 export const affirmation=(role:Role)=>role==='BORROWER'?'I acknowledge that I have reviewed this agreement and that these terms accurately represent the obligation I am agreeing to. I confirm this loan is interest-free: I will repay only the amount I borrowed, with no interest, fees, penalties or other extra charges.':'I have reviewed this agreement and agree to these terms. I confirm this loan is interest-free: I will ask for back only the amount I lent, with no interest, fees, penalties or other extra charges.';
@@ -37,3 +38,6 @@ export function activityFormatters(timeZone:string){return {
   clock:new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hourCycle:'h23',timeZone}),
   full:new Intl.DateTimeFormat('en-GB',{dateStyle:'full',timeStyle:'long',timeZone})
 };}
+
+/** What the person did, written to follow their name ("Maryam witnessed your agreement"). */
+export const eventByline:Record<string,string>={BORROWER_INVITED:'sent you an agreement to review',INVITED_TO_REVIEW:'invited you to review an agreement',INVITATION_RESENT:'sent you a fresh link',VERSION_CREATED:'sent a new version to review',BORROWER_REQUESTED_CHANGE:'asked for a change',AGREEMENT_DECLINED:'said no to the agreement',LENDER_APPROVED:'signed the agreement',BORROWER_APPROVED:'signed the agreement',WITNESS_ATTESTED:'witnessed your agreement',WITNESS_DECLINED:'declined to witness',AGREEMENT_FINALIZED:'completed the last signature. The agreement is active',REPAYMENT_PROPOSED:'recorded a payment. Check it came in',REPAYMENT_CONFIRMED:'confirmed a payment',REPAYMENT_DISPUTED:'asked about a payment',FORGIVENESS_PROPOSED:'offered to forgive part of the balance',FORGIVENESS_CONFIRMED:'acknowledged your forgiveness',SETTLEMENT_ACKNOWLEDGED:'confirmed the agreement is settled',AGREEMENT_SETTLED:'settled the agreement',AGREEMENT_CANCELLED:'cancelled the proposal'};

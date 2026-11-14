@@ -1,7 +1,7 @@
 'use client';
 
 import {createContext,useContext,useSyncExternalStore} from 'react';
-import {Laptop,Moon,Sun} from 'lucide-react';
+import {Laptop,Moon,Sun} from '@/components/icons';
 
 type Preference='light'|'dark'|'system';
 type Appearance={preference:Preference;theme:'light'|'dark';setPreference:(value:Preference)=>void};
@@ -34,7 +34,8 @@ export function ThemeToggle({compact=false}:{compact?:boolean}){
   const {theme,setPreference}=useAppearance(),dark=theme==='dark',Icon=dark?Sun:Moon,label=`Switch to ${dark?'light':'dark'} mode`;
   return <button type="button" className={compact?'icon-button theme-toggle':'theme-rail'} aria-label={label} title={label} onClick={()=>setPreference(dark?'light':'dark')}><Icon size={20} aria-hidden/>{!compact&&<span>{dark?'Light mode':'Dark mode'}</span>}</button>;
 }
-export function AppearanceSettings(){
+export function AppearanceSettings({compact=false}:{compact?:boolean}){
   const {preference,setPreference}=useAppearance();
+  if(compact)return <fieldset className="account-row account-appearance"><legend className="sr-only">Appearance</legend><span aria-hidden><strong>Appearance</strong></span><div className="account-segment">{([{value:'light',label:'Light'},{value:'dark',label:'Dark'},{value:'system',label:'Device'}] as const).map(({value,label})=><button key={value} type="button" aria-pressed={preference===value} onClick={()=>setPreference(value)}>{label}</button>)}</div></fieldset>;
   return <fieldset className="appearance-settings"><legend>Appearance</legend><p>Choose a theme, or follow your device setting.</p><div className="appearance-options">{([{value:'light',label:'Light',Icon:Sun},{value:'dark',label:'Dark',Icon:Moon},{value:'system',label:'Device',Icon:Laptop}] as const).map(({value,label,Icon})=><button key={value} type="button" aria-pressed={preference===value} onClick={()=>setPreference(value)}><Icon size={18} aria-hidden/>{label}</button>)}</div></fieldset>;
 }

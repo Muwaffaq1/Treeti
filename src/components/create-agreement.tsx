@@ -6,7 +6,7 @@ import {useState,useSyncExternalStore} from 'react';
 import {useForm,useWatch,useFieldArray} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {z} from 'zod';
-import {ArrowLeft,ArrowRight,Check,CheckCircle2,Copy,FileText,LockKeyhole,MessageCircle,Send,UserRound,Mail,UsersRound,NotebookPen,TriangleAlert} from 'lucide-react';
+import {ArrowLeft,ArrowRight,Check,CheckCircle2,Copy,FileText,LockKeyhole,MessageCircle,Send,UserRound,Mail,UsersRound,NotebookPen,TriangleAlert} from '@/components/icons';
 import {currencies,currencyNames} from '@/lib/currencies';
 import {money,moneyInput,parseMoney,groupMoneyInput} from '@/lib/money';
 import type {Actor,Aggregate,Terms} from '@/modules/agreements/types';
@@ -17,8 +17,9 @@ import {formatMoneyChange} from './money-input';
 import {RepaymentSchedule} from './repayment-schedule';
 import {recurringPlan,repaymentLabel} from '@/modules/agreements/repayment-plan';
 import {termsSchema} from '@/modules/agreements/schema';
+import {CreateBlanks} from './create-blanks';
 const subscribeToHydration=()=>()=>{};
-const formSchema=(allowPhone:boolean)=>z.object({currency:z.enum(currencies),amount:z.string().refine(v=>{try{parseMoney(v);return true;}catch{return false;}},'Enter a positive amount with up to two decimal places.'),borrowerName:z.string().trim().min(2,'Enter the borrower’s full name.').max(120),borrowerContact:z.string().trim().refine(v=>z.email().safeParse(v).success||allowPhone&&/^\+[1-9]\d{7,14}$/.test(v),allowPhone?'Enter an email or a phone number with country code.':'Enter the borrower’s email address.'),agreementDate:z.string().min(10,'Choose an agreement date.'),dueDate:z.string(),purpose:z.string().max(200),additionalTerms:z.string().max(5000),repaymentPlan:z.enum(['SINGLE','WEEKLY','MONTHLY','CUSTOM']),paymentCount:z.string(),firstPaymentDate:z.string(),customPayments:z.array(z.object({dueDate:z.string(),amount:z.string()})),requiredWitnesses:z.string().regex(/^[012]$/),reason:z.string().max(2000)}).superRefine((v,ctx)=>{
+export const formSchema=(allowPhone:boolean)=>z.object({currency:z.enum(currencies),amount:z.string().refine(v=>{try{parseMoney(v);return true;}catch{return false;}},'Enter a positive amount with up to two decimal places.'),borrowerName:z.string().trim().min(2,'Enter the borrower’s full name.').max(120),borrowerContact:z.string().trim().refine(v=>z.email().safeParse(v).success||allowPhone&&/^\+[1-9]\d{7,14}$/.test(v),allowPhone?'Enter an email or a phone number with country code.':'Enter the borrower’s email address.'),agreementDate:z.string().min(10,'Choose an agreement date.'),dueDate:z.string(),purpose:z.string().max(200),additionalTerms:z.string().max(5000),repaymentPlan:z.enum(['SINGLE','WEEKLY','MONTHLY','CUSTOM']),paymentCount:z.string(),firstPaymentDate:z.string(),customPayments:z.array(z.object({dueDate:z.string(),amount:z.string()})),requiredWitnesses:z.string().regex(/^[012]$/),reason:z.string().max(2000)}).superRefine((v,ctx)=>{
   try{parseMoney(v.amount);}catch{return;}
   try{
     const result=termsSchema.safeParse(formTerms(v));
@@ -37,14 +38,14 @@ const formSchema=(allowPhone:boolean)=>z.object({currency:z.enum(currencies),amo
     if(blank>=0){const missingAmount=!v.customPayments[blank].amount.trim();ctx.addIssue({code:'custom',path:['customPayments',blank,missingAmount?'amount':'dueDate'],message:missingAmount?`Enter an amount for payment ${blank+1}.`:`Choose a date for payment ${blank+1}.`});return;}
     ctx.addIssue({code:'custom',path:[v.repaymentPlan==='CUSTOM'?'repaymentPlan':!v.firstPaymentDate?'firstPaymentDate':!/^\d+$/.test(v.paymentCount)||Number(v.paymentCount)<2||Number(v.paymentCount)>60?'paymentCount':'repaymentPlan'],message:(error as Error).message});}
 });
-type Values=z.infer<ReturnType<typeof formSchema>>;
+export type Values=z.infer<ReturnType<typeof formSchema>>;
 /** Names the date that is missing, so an empty field never shows the schema's generic message. */
 function emptyDateMessage(v:Values,path:(string|number)[]){
   if(path[0]==='agreementDate'&&!v.agreementDate)return 'Choose an agreement date.';
   if(path[0]==='dueDate'&&!v.dueDate)return 'Choose a repayment due date.';
   if(path[0]==='customPayments'&&typeof path[1]==='number'&&path[2]==='dueDate'&&!v.customPayments[path[1]]?.dueDate)return `Choose a date for payment ${path[1]+1}.`;
 }
-function formTerms(data:Values):Terms {
+export function formTerms(data:Values):Terms {
   const principalMinor=parseMoney(data.amount);
   const installments=data.repaymentPlan==='SINGLE'?undefined:data.repaymentPlan==='CUSTOM'?{frequency:'CUSTOM' as const,payments:data.customPayments.map(p=>({dueDate:p.dueDate,amountMinor:parseMoney(p.amount)}))}:recurringPlan(principalMinor,data.firstPaymentDate,Number(data.paymentCount),data.repaymentPlan);
   return {principalMinor,currency:data.currency,interestMinor:'0',agreementDate:data.agreementDate,dueDate:installments?.payments.at(-1)?.dueDate??data.dueDate,repaymentType:installments?'INSTALLMENTS':'SINGLE',...(installments?{installments}:{}),purpose:data.purpose,additionalTerms:data.additionalTerms,requiredWitnesses:Number(data.requiredWitnesses)};
@@ -54,6 +55,11 @@ export function InviteLink({url,name,role,note,shareMessage}:{url:string;name?:s
 // Shown as visible choices: people did not find "Custom" when it sat inside a dropdown.
 const repaymentChoices=[['SINGLE','One payment','The full amount on one date.'],['WEEKLY','Weekly installments','Equal payments every week.'],['MONTHLY','Monthly installments','Equal payments every month.'],['CUSTOM','Custom installments','You choose each date and amount.']] as const;
 export function CreateAgreement({actor,demo,existing}:{actor:Actor;demo:boolean;existing?:Aggregate}){
+  if(!existing)return <CreateBlanks actor={actor} demo={demo}/>;
+  return <EditAgreement actor={actor} demo={demo} existing={existing}/>;
+}
+/** Proposing a new version of an existing agreement keeps the step-by-step form. */
+function EditAgreement({actor,demo,existing}:{actor:Actor;demo:boolean;existing?:Aggregate}){
   const hydrated=useSyncExternalStore(subscribeToHydration,()=>true,()=>false);
   const old=existing?currentVersion(existing):null,b=existing?.participants.find(p=>p.role==='BORROWER');
   const [step,setStep]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Aggregate|null>(null),[invitation,setInvitation]=useState<InvitationLinkData|null>(null),[draft,setDraft]=useState<Aggregate|null>(existing??null);

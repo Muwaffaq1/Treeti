@@ -1,0 +1,106 @@
+/* treeti design tokens: the one place colours, type, spacing, radius and motion are defined.
+   Light mode is warm paper; dark mode is neutral charcoal. Component styles only read these. */
+:root {
+  color-scheme:light;
+  --paper-texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='.9'/%3E%3C/svg%3E");
+  --surface-texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='.045'/%3E%3C/svg%3E");
+  /* Bone (agreed 12 Nov 2026, Figma Color v3): off-white page, purple only for the one main action. */
+  --paper:#f7f4ee;--surface:#fffdf9;--surface-soft:#ece7df;--surface-raised:#fffdf9;
+  --ink:#1a1720;--muted:#67616b;--faint:#e5dfd5;--field-border:#8a838c;
+  --accent:#5a2db0;--accent-hover:#4c2596;--accent-soft:#efe9f8;
+  --mint:#e6f0e7;--mint-text:#256f49;--mint-strong:#2f7d55;--focus:#5a2db0;
+  --action:#5a2db0;--action-text:#fbf8f2;--action-hover:#4c2596;--action-glow:#5a2db073;
+  --selection:#1a1720;--selection-text:var(--surface);
+  --warning:#775015;--warning-bg:#fff3d7;--danger:#b23a2b;--danger-bg:#f8e4df;--danger-solid:#b23a2b;
+  --nav-surface:#fffdf9f2;--overlay:#0f0d1461;--texture-opacity:0;
+  --progress-complete:#2f7d55;--progress-track:#e1dacf;
+  --name-ink:#210d47;--money-sign:#706a73;--border-default:#d9d2c6;
+  /* Figma Color v3 roles added 14 Nov 2026 (token pass). */
+  --avatar-fill:#210d47;--avatar-ring:#5a2db0;--avatar-text:#f7f4ee;--avatar-glow:#8b6bc9;
+  --note-ink:#3d2a73;--placeholder:#78717b;--faded:#736c75;--icon-muted:#938f89;--icon-active:#8b6bc9;
+  --positive-strong:#07731a;--split-partner:#c4adfa;--scrim:#0f0d1461;--weight:#4a4450;
+  --float-shadow:0 8px 24px #3b332614,0 1px 3px #3b33260f;
+  --radius:24px;--space:8px;
+    --text-caption:12px; --text-label:14px; --text-body:16px;
+  --text-title:clamp(28px,3vw,40px); --text-money:clamp(32px,4vw,48px);
+  --font-ui:var(--font-intern),'Intern',ui-sans-serif,system-ui,sans-serif;
+  --font-brand:var(--font-ui);
+  --tracking-display:var(--tracking);--tracking-heading:var(--tracking);--tracking-text:var(--tracking);
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  /* Design system (Figma: treeti Design System, 12 Nov 2026). One font, doubling spacing. */
+  --space-2:2px;--space-4:4px;--space-8:8px;--space-16:16px;--space-32:32px;--space-64:64px;--space-128:128px;
+  --radius-8:8px;--radius-16:16px;--radius-32:32px;--radius-full:999px;
+  --radius-sm:var(--radius-16);--radius-card:var(--radius-32);--radius-pill:var(--radius-full);
+  --type-display-large:700 48px/56px var(--font-ui);
+  --type-display:700 32px/40px var(--font-ui);
+  --type-heading:600 24px/32px var(--font-ui);
+  --type-title:600 20px/28px var(--font-ui);
+  --type-sentence:500 24px/34px var(--font-ui);
+  --type-voice:var(--type-sentence);
+  --type-body:400 16px/24px var(--font-ui);
+  --type-body-strong:600 16px/24px var(--font-ui);
+  --type-label:500 14px/20px var(--font-ui);
+  --type-caption:400 12px/16px var(--font-ui);
+  --type-overline:600 12px/16px var(--font-ui);
+  --type-money:700 48px/56px var(--font-ui);
+  --type-money-card:700 32px/40px var(--font-ui);
+  --type-money-small:600 16px/24px var(--font-ui);
+  --card-shadow:0 1px 2px #3b2a1408,0 6px 20px -12px #3b2a1414;
+  --section-overview:#7a3fd6;--section-agreements:#2b72c4;--section-debts:#c47a12;
+  --section-investments:#178a66;--section-trusted:#c8436a;--section-notifications:#d33b3a;
+  --glow-from:#ffd58a;--glow-to:#f6a04d;--glow-ink:#412402;--glow-muted:#633806;
+  --ink-card:#1f1d1a;--ink-card-text:#f3ede2;--ink-card-muted:#b7b7b3;
+}
+:root[data-theme=dark] {
+  color-scheme:dark;
+  --paper:#16141a;--surface:#1d1b21;--surface-soft:#26232a;--surface-raised:#26232a;
+  --ink:#f4f0ea;--muted:#a9a3a0;--faint:#2c2930;--field-border:#7a747d;
+  --accent:#c4adfa;--accent-hover:#d6c6fc;--accent-soft:#221d2c;
+  --mint:#15281d;--mint-text:#79cfa0;--mint-strong:#5dbb8a;--focus:#c4adfa;
+  --action:#7b4bdb;--action-text:#ffffff;--action-hover:#8a5de6;--action-glow:#7b4bdb59;
+  --selection:#f4f0ea;--selection-text:#16141a;
+  --warning:#f2ce91;--warning-bg:#352b1d;--danger:#f59582;--danger-bg:#3a2320;--danger-solid:#f59582;
+  --nav-surface:#1d1b21f2;--overlay:#000000b8;--texture-opacity:0;
+  --progress-complete:#5dbb8a;--progress-track:#302c33;
+  --name-ink:#e6def3;--money-sign:#968f8c;--border-default:#3a3640;
+  --avatar-fill:#e6def3;--avatar-ring:#7b4bdb;--avatar-text:#16141a;--avatar-glow:#c4adfa;
+  --note-ink:#d6c6fc;--placeholder:#938c95;--faded:#8e8790;--icon-muted:#a9a3a0;--icon-active:#c4adfa;
+  --positive-strong:#5dbb8a;--split-partner:#5b3fa8;--scrim:#000000a3;--weight:#3a3640;
+  --float-shadow:0 8px 24px #00000052,0 1px 3px #0000003d;
+  --card-shadow:none;
+  --section-overview:#b58afc;--section-agreements:#7fb5f0;--section-debts:#f2b85c;
+  --section-investments:#5dcaa5;--section-trusted:#f08aa2;--section-notifications:#f09595;
+  --glow-from:#5a3d12;--glow-to:#6e3a14;--glow-ink:#ffe6bf;--glow-muted:#f2ce91;
+  --ink-card:#f1ece2;--ink-card-text:#1a1815;--ink-card-muted:#5b5750;
+}
+
+/* Kubai icons draw on a 31-unit canvas with room for motion, so they read small at the size we pass.
+   Their inner detail is white by default; in dark mode it becomes the page colour so it stays visible. */
+.kubai-icon{scale:1.18}
+.has-leading-icon .kubai-icon{transform-origin:left center}
+:root[data-theme=dark] .kubai-icon{--ki-w:var(--paper)}
+
+/* Person colours: six hues, light and dark. */
+:root{--tracking:-.06em;
+  --hue-0-from:#ece3ff;--hue-0-to:#d3c0fb;--hue-0-ink:#2a1660;--hue-0-muted:#5a3f9c;--hue-0-solid:#8a63e8;
+  --hue-1-from:#ffe9cc;--hue-1-to:#ffc98a;--hue-1-ink:#4a2a05;--hue-1-muted:#7a4a12;--hue-1-solid:#e08a2a;
+  --hue-2-from:#dcf5ea;--hue-2-to:#a6e3c9;--hue-2-ink:#063a2c;--hue-2-muted:#1f6b52;--hue-2-solid:#25a07a;
+  --hue-3-from:#dfeeff;--hue-3-to:#b2d3f7;--hue-3-ink:#0b2f57;--hue-3-muted:#2c5f96;--hue-3-solid:#3f86d6;
+  --hue-4-from:#ffe3ea;--hue-4-to:#f9b8c8;--hue-4-ink:#5a1325;--hue-4-muted:#943a54;--hue-4-solid:#d9506f;
+  --hue-5-from:#f3ecdc;--hue-5-to:#e2d3b1;--hue-5-ink:#3b2e10;--hue-5-muted:#6b5a2e;--hue-5-solid:#a8893f;
+}
+:root[data-theme=dark]{
+  --hue-0-from:#2c2147;--hue-0-to:#3b2a66;--hue-0-ink:#efe7ff;--hue-0-muted:#c9b6f5;--hue-0-solid:#b08cff;
+  --hue-1-from:#3d2a14;--hue-1-to:#553718;--hue-1-ink:#fff0dc;--hue-1-muted:#f2c88e;--hue-1-solid:#f4a650;
+  --hue-2-from:#143329;--hue-2-to:#1b4637;--hue-2-ink:#e3fbf1;--hue-2-muted:#9fdcc4;--hue-2-solid:#4fcfa2;
+  --hue-3-from:#14273d;--hue-3-to:#1c3757;--hue-3-ink:#e5f1ff;--hue-3-muted:#a9cbf2;--hue-3-solid:#6eaaf0;
+  --hue-4-from:#3a1a23;--hue-4-to:#522331;--hue-4-ink:#ffe8ee;--hue-4-muted:#f2a9bb;--hue-4-solid:#f07f9b;
+  --hue-5-from:#2f291b;--hue-5-to:#433a24;--hue-5-ink:#f7f0df;--hue-5-muted:#d8c597;--hue-5-solid:#cdb06a;
+}
+.hue-0{--p-from:var(--hue-0-from);--p-to:var(--hue-0-to);--p-ink:var(--hue-0-ink);--p-muted:var(--hue-0-muted);--p-solid:var(--hue-0-solid)}
+.hue-1{--p-from:var(--hue-1-from);--p-to:var(--hue-1-to);--p-ink:var(--hue-1-ink);--p-muted:var(--hue-1-muted);--p-solid:var(--hue-1-solid)}
+.hue-2{--p-from:var(--hue-2-from);--p-to:var(--hue-2-to);--p-ink:var(--hue-2-ink);--p-muted:var(--hue-2-muted);--p-solid:var(--hue-2-solid)}
+.hue-3{--p-from:var(--hue-3-from);--p-to:var(--hue-3-to);--p-ink:var(--hue-3-ink);--p-muted:var(--hue-3-muted);--p-solid:var(--hue-3-solid)}
+.hue-4{--p-from:var(--hue-4-from);--p-to:var(--hue-4-to);--p-ink:var(--hue-4-ink);--p-muted:var(--hue-4-muted);--p-solid:var(--hue-4-solid)}
+.hue-5{--p-from:var(--hue-5-from);--p-to:var(--hue-5-to);--p-ink:var(--hue-5-ink);--p-muted:var(--hue-5-muted);--p-solid:var(--hue-5-solid)}
+

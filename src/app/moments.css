@@ -1,0 +1,85 @@
+/* Moments (Figma 184:11100). Delays come from --d; animation-fill-mode both so nothing flashes its end state. */
+.moment{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;justify-content:center;gap:20px;padding:calc(24px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));background:var(--paper);color:var(--ink);overflow:hidden;text-align:center}
+.moment:focus{outline:none}
+.moment-body{position:relative;display:grid;justify-items:center;gap:12px;width:min(358px,100%);margin:0 auto}
+.moment-actions{display:grid;gap:8px;width:min(358px,100%);margin:0 auto}
+.moment-actions .button{width:100%;justify-content:center;border-radius:999px}
+.moment-stage{position:relative;display:grid;justify-items:center;gap:14px;width:100%;padding:24px 0}
+.moment-halo{position:absolute;left:50%;top:50%;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:999px;background:radial-gradient(circle,color-mix(in srgb,var(--avatar-glow) 45%,transparent) 0%,transparent 70%);opacity:0;animation:m-bloom 500ms ease-out var(--d) both}
+.moment-pair{position:relative;display:flex;gap:6px}
+.moment-from-left{animation:m-left 620ms cubic-bezier(.23,1,.32,1) var(--d) both,m-lean-l 380ms ease-in-out 620ms both}
+.moment-from-right{animation:m-right 620ms cubic-bezier(.23,1,.32,1) var(--d) both,m-lean-r 380ms ease-in-out 620ms both}
+.moment-witnesses{position:relative;display:flex;gap:8px}
+.moment-rise{animation:m-rise 520ms cubic-bezier(.23,1,.32,1) var(--d) both}
+.moment-fade{animation:m-fade 320ms ease-out var(--d) both}
+.moment-words h2{margin:0;font:500 24px/32px var(--font-ui);color:var(--ink)}
+.moment-words p{margin:6px 0 0;font:400 15px/21px var(--font-ui);color:var(--muted)}
+.moment-line{padding:12px 16px;border-radius:16px;background:var(--accent-soft);color:var(--note-ink)!important}
+.moment-list{display:grid;gap:8px;width:100%;margin:8px 0 0;padding:16px 20px;border:1px solid var(--faint);border-radius:20px;background:var(--surface);list-style:none;text-align:start}
+.moment-list li{display:flex;align-items:center;gap:10px;font:400 15px/21px var(--font-ui);color:var(--muted)}
+.moment-list strong{font-weight:500;color:var(--ink)}
+.moment-list small{margin-inline-start:auto;font:400 13px/18px var(--font-ui)}
+.moment-tick{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:var(--positive-strong);color:#fff}
+.moment-caption{margin:0;font:400 15px/21px var(--font-ui);color:var(--muted)}
+.moment-amount{margin:0;font:600 44px/52px var(--font-ui);color:var(--ink);font-variant-numeric:tabular-nums}
+.moment-pop{animation:m-pop 220ms ease-out 560ms both}
+.moment-bar{width:100%;height:6px;border-radius:3px;background:var(--progress-track);overflow:hidden}
+.moment-bar span{display:block;height:100%;background:var(--progress-complete);transform-origin:left;animation:m-fill 520ms cubic-bezier(.23,1,.32,1) both}
+.moment-count{margin:0;font:500 13px/18px var(--font-ui);color:var(--mint-text)}
+.moment-keepsake{position:relative;width:100%;margin-top:12px;padding:20px;border:1px solid var(--faint);border-radius:24px;background:var(--surface);box-shadow:var(--float-shadow);text-align:start}
+.moment-keepsake h2{margin:0;font:500 18px/24px var(--font-ui)}
+.moment-keepsake p{margin:4px 0 0;font:400 14px/20px var(--font-ui);color:var(--muted)}
+.moment-stamp{position:absolute;top:14px;right:14px;padding:4px 8px;border:1.5px solid var(--positive-strong);border-radius:8px;font:600 11px/14px var(--font-ui);letter-spacing:.04em;text-transform:uppercase;color:var(--positive-strong);transform:rotate(-6deg)}
+.moment-signatures{display:flex;justify-content:space-between;gap:12px;margin-top:14px;padding-top:10px;border-top:1px dashed var(--faint);font-family:var(--font-script),cursive;font-size:24px;line-height:30px;letter-spacing:0;color:var(--name-ink)}
+.moment-leaves{position:fixed;inset:0;pointer-events:none}
+.moment-leaf{position:absolute;top:-24px;color:var(--progress-complete);opacity:0;animation:m-leaf 2400ms ease-in var(--d) both}
+.moment-burden{min-height:220px;align-content:end}
+.moment-person{position:relative;transform-origin:bottom;animation:m-squash 900ms ease-in-out both,m-relief 700ms ease-out 1250ms both}
+.moment-weight{position:relative;padding:8px 12px;border-radius:12px;background:var(--ink);color:var(--paper);font:600 15px/20px var(--font-ui);animation:m-lift 1100ms cubic-bezier(.32,.72,0,1) 1000ms both}
+.moment-weight .kit-sign{color:inherit;opacity:.7}
+.moment-spark{position:absolute;bottom:40px;width:6px;height:6px;border-radius:999px;background:var(--avatar-glow);opacity:0;animation:m-spark 900ms ease-out var(--d) both}
+.moment-done{animation:m-fade 320ms ease-out 1350ms both}
+.moment-skip *,.moment-skip *::before,.moment-skip *::after{animation-duration:1ms!important;animation-delay:0ms!important}
+@keyframes m-fade{from{opacity:0;transform:translateY(6px)}}
+@keyframes m-rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes m-left{from{opacity:0;transform:translateX(-90px)}}
+@keyframes m-right{from{opacity:0;transform:translateX(90px)}}
+@keyframes m-lean-l{50%{transform:translateX(6px) rotate(4deg)}}
+@keyframes m-lean-r{50%{transform:translateX(-6px) rotate(-4deg)}}
+@keyframes m-bloom{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes m-pop{50%{transform:scale(1.06)}}
+@keyframes m-fill{from{transform:scaleX(.85)}}
+@keyframes m-leaf{0%{opacity:0;transform:translate(0,0) rotate(0)}10%{opacity:.9}100%{opacity:0;transform:translate(var(--drift),105vh) rotate(160deg)}}
+@keyframes m-squash{0%,100%{transform:scaleY(.93)}50%{transform:scaleY(.93) translateY(-6px)}}
+@keyframes m-relief{0%{transform:scaleY(.93)}55%{transform:scaleY(1.05)}100%{transform:scaleY(1)}}
+@keyframes m-lift{0%{opacity:1;transform:translateY(0)}20%{transform:translateY(-30px)}100%{opacity:0;transform:translateY(-180px)}}
+@keyframes m-spark{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(-120px)}}
+@media(prefers-reduced-motion:reduce){
+  .moment *,.moment *::before,.moment *::after{animation:m-plain 300ms ease-out both!important}
+  .moment-leaves,.moment-spark,.moment-weight{display:none}
+  .moment-halo{opacity:1}
+}
+@keyframes m-plain{from{opacity:0}}
+/* Hold to sign: the seal (Figma: Hold to sign, +0–460 ms). */
+.sign-seal{position:absolute;right:14px;bottom:14px;display:grid;place-items:center;width:44px;height:44px;border-radius:999px;background:var(--action);color:var(--action-text);box-shadow:0 4px 14px -4px #5a2db08c;animation:m-seal 460ms cubic-bezier(.23,1,.32,1) both}
+.sign-signature{position:relative}
+.sign-signature.sealed{animation:m-dip 460ms ease-out both}
+@keyframes m-seal{0%{opacity:0;transform:scale(1.6) rotate(-14deg)}60%{opacity:1;transform:scale(.92) rotate(0)}100%{transform:scale(1)}}
+@keyframes m-dip{40%{transform:translateY(2px)}}
+@media(prefers-reduced-motion:reduce){.sign-seal{animation:m-plain 300ms ease-out both}.sign-signature.sealed{animation:none}}
+/* Payment recorded: the bar sweeps, the count ticks (Figma: Payment recorded). */
+.detail-progress .kit-bar span{width:100%!important;transform-origin:left;transition:transform 300ms cubic-bezier(.23,1,.32,1)}
+.count-tick{display:inline-block;animation:m-fade 200ms ease-out 150ms both}
+@media(prefers-reduced-motion:reduce){.detail-progress .kit-bar span{transition:none}.count-tick{animation:none}}
+@media(prefers-reduced-motion:reduce){.sign-ink-fill{clip-path:inset(0 100% 0 0)!important}.sign-signature.sealed .sign-ink-fill{clip-path:none!important;animation:m-plain 300ms ease-out both}}
+/* Landing: it writes itself. "ready" hides the parts until the card is on screen, then "play" runs once. */
+.landing-writes{position:relative}
+.landing-seal{right:16px;bottom:auto;top:-14px;width:36px;height:36px}
+.landing-writes.still .landing-seal{animation:none}
+.landing-writes.ready .lw,.landing-writes.ready .lw-ink,.landing-writes.ready .landing-seal{opacity:0;animation:none}
+.landing-writes.play .lw{display:inline;animation:m-fade 260ms ease-out var(--d) both}
+.landing-writes.play .lw-ink{display:inline-block;animation:m-ink 700ms ease-in-out var(--d) both}
+.landing-writes.play .landing-seal{animation:m-seal 460ms cubic-bezier(.23,1,.32,1) var(--d) both}
+.lw-blank{font-weight:600;color:var(--name-ink)}
+@keyframes m-ink{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@media(prefers-reduced-motion:reduce){.landing-writes .lw,.landing-writes .lw-ink,.landing-writes .landing-seal{opacity:1!important;animation:none!important}}

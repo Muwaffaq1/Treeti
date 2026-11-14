@@ -1,0 +1,39 @@
+/* treeti element primitives. Screens adopt these stage by stage; values come from tokens.css. */
+
+/* Section colour: set on a container, read by icons and tiles inside it. */
+.section-overview{--section:var(--section-overview)}
+.section-agreements{--section:var(--section-agreements)}
+.section-debts{--section:var(--section-debts)}
+.section-investments{--section:var(--section-investments)}
+.section-trusted{--section:var(--section-trusted)}
+.section-notifications{--section:var(--section-notifications)}
+[class*=section-] .kubai-icon{color:var(--section)}
+
+/* A coloured icon on a soft tile, for lists, empty states and settings rows. */
+.ui-icon-tile{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:14px;background:color-mix(in srgb,var(--section,var(--action)) 14%,var(--surface-raised))}
+.ui-icon-tile .kubai-icon{color:var(--section,var(--action))}
+.ui-icon-tile.large{width:64px;height:64px;border-radius:20px}
+
+.ui-overline{font:var(--type-overline);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* Cards: Paper is the default. Glow is only for "your turn"; Ink for one key invitation. Never nest cards. */
+.ui-card{background:var(--surface-raised);border-radius:var(--radius-card);padding:20px;box-shadow:var(--card-shadow);color:var(--ink)}
+.ui-card-glow{background:linear-gradient(160deg,var(--glow-from),var(--glow-to));color:var(--glow-ink);box-shadow:none}
+.ui-card-glow .ui-overline,.ui-card-glow .ui-muted{color:var(--glow-muted)}
+.ui-card-ink{background:var(--ink-card);color:var(--ink-card-text);box-shadow:none}
+.ui-card-ink .ui-muted{color:var(--ink-card-muted)}
+.ui-sentence{font:var(--type-voice);color:var(--muted);text-wrap:pretty}
+.ui-sentence strong{font-weight:400;color:var(--ink)}
+.ui-sentence .blank{color:var(--ink);text-decoration:underline;text-decoration-color:var(--action);text-decoration-thickness:2px;text-underline-offset:6px}
+.ui-muted{color:var(--muted)}
+
+/* List rows inside one Paper card, separated by hairlines. */
+.ui-rows{padding-block:4px}
+.ui-row{display:flex;align-items:center;gap:12px;min-height:68px;padding-block:12px}
+.ui-row+.ui-row{border-top:1px solid var(--faint)}
+
+@media(forced-colors:active){.ui-card,.ui-card-glow,.ui-card-ink{border:1px solid CanvasText}}
+
+/* One font: the wordmark is Intern too. */
+.wordmark{font-family:var(--font-ui);font-weight:700;letter-spacing:var(--tracking)}
+.wordmark span{color:var(--action)}

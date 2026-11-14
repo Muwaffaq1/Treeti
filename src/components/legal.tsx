@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import {ArrowLeft} from 'lucide-react';
-import {Brand} from '@/components/shell';
+import {PublicHeader} from '@/components/auth';
 
 export const OPERATOR='Muwaffaq Yusuf';
 export const CONTACT_EMAIL='yusufmuwaffaq17@gmail.com';
@@ -10,7 +9,7 @@ const mail=(subject:string)=>`mailto:${CONTACT_EMAIL}?subject=${encodeURICompone
 export function LegalLinks(){return <nav className="legal-links" aria-label="Policies and support"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></nav>;}
 
 function LegalPage({title,lede,dated=true,updated=UPDATED,children}:{title:string;lede:string;dated?:boolean;updated?:string;children:React.ReactNode}){
-  return <main className="public-guide legal"><Link href="/" aria-label="treeti home"><Brand/></Link><Link className="back-link" href="/"><ArrowLeft size={16}/>Return to treeti</Link><h1>{title}</h1><p className="lede">{lede}</p>{dated&&<p className="legal-updated">Last updated {updated}</p>}{children}<footer className="legal-footer"><LegalLinks/></footer></main>;
+  return <div className="public-page"><PublicHeader signIn/><main id="main" className="public-guide legal public-legal"><h1>{title}</h1>{dated&&<p className="legal-updated">Updated {updated}</p>}<p className="lede">{lede}</p>{children}<footer className="legal-footer"><LegalLinks/></footer></main></div>;
 }
 const Email=({subject}:{subject:string})=><a className="legal-email" href={mail(subject)}>{CONTACT_EMAIL}</a>;
 

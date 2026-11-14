@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
-import {ArrowLeft,ArrowRight,LockKeyhole,Mail} from 'lucide-react';
+import {Mail} from '@/components/icons';
 import {api,apiBase} from './client-api';
-import {Button,ErrorMessage,Field} from './ui';
+import {ErrorMessage} from './ui';
 import {Brand} from './shell';
 import {authReturnPath} from '@/lib/auth-return';
 const noSubscription=()=>()=>{};
@@ -25,12 +25,36 @@ export function Login({configured,demoAvailable=false}:{configured:boolean;demoA
     try{const r=await api<{needsName:boolean}>('/api/auth/verify',{code});router.push(r.needsName?`/welcome?next=${encodeURIComponent(authReturnPath(next))}`:authReturnPath(next));router.refresh();}
     catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
-  return <div className="auth-layout"><div className="auth-story"><Link href="/" aria-label="treeti home"><Brand/></Link><h1>Good intentions.<br/>Clear agreements.</h1><p>A thoughtful way to preserve what you agreed to, and care for the relationship along the way.</p><div className="auth-trust"><LockKeyhole size={19}/><span>Your agreements stay private.</span></div></div><div className="auth-form-wrap"><Link className="back-link" href="/"><ArrowLeft size={16}/>Back to treeti</Link><h2>{sent?'Check your email.':'Welcome to treeti.'}</h2><p>{sent?`Enter the code sent to ${masked}.`:'Sign in with your email. No password needed.'}</p>{!configured?<div className="panel"><p>{demoAvailable?"Sign-in is not connected yet. You can explore treeti with sample records.":"Sign-in setup is still in progress. Please check back later."}</p>{demoAvailable&&<Link className="button button-primary" href="/demo">Explore the demonstration <ArrowRight size={17}/></Link>}</div>:<form onSubmit={e=>{e.preventDefault();void submit();}}><div className="auth-fields">{sent?<Field label="Verification code" hint="Paste the code from your email."><input ref={codeInput} value={code} onChange={e=>setCode(e.target.value)} autoComplete="one-time-code" inputMode="numeric" required pattern="[0-9]{6,8}" maxLength={8} autoFocus/></Field>:<Field label="Email address"><input type="email" value={contact} onChange={e=>setContact(e.target.value)} autoComplete="email" required placeholder="name@example.com"/></Field>}<ErrorMessage message={error||(tried?'':linkError)}/>{notice&&<p className="quiet-note" role="status">{notice}</p>}<Button type="submit" busy={busy}>{sent?'Verify and continue':'Send verification code'} <ArrowRight size={17}/></Button>{sent&&<><p className="quiet-note">Code expired or missing? Request a new one here.</p><Button type="button" variant="secondary" disabled={busy} onClick={()=>void sendCode(true)}>Resend code</Button><Button type="button" variant="ghost" disabled={busy} onClick={()=>{setSent(false);setCode('');setError('');setNotice('');}}>Change email</Button></>}</div><p className="ceremony-footnote">Verify once to access your private records. treeti does not transfer money.</p><p className="legal-consent">By continuing you agree to the <Link href="/terms">terms</Link> and <Link href="/privacy">privacy policy</Link>.</p></form>}</div></div>;
+  return <div className="public-page">
+    <PublicHeader/>
+    <main id="main" className="public-main">
+      <div className="public-heading"><h1>{sent?'Check your email':'Welcome to treeti'}</h1><p>{sent?`We sent a 6-digit code to ${masked}`:'Sign in with your email. No password needed.'}</p></div>
+      {!configured?<div className="public-card"><p>{demoAvailable?'Sign-in isn’t connected yet. You can explore treeti with sample records.':'Sign-in setup is still in progress. Please check back later.'}</p>{demoAvailable&&<Link className="button button-primary sign-primary" href="/demo">Explore the demonstration</Link>}</div>
+      :<form className="public-form" onSubmit={e=>{e.preventDefault();void submit();}}>
+        {sent?<CodeBoxes inputRef={codeInput} value={code} onChange={setCode}/>
+          :<label className="create-field"><span className="create-field-label">Email address</span><input type="email" value={contact} onChange={e=>setContact(e.target.value)} autoComplete="email" required placeholder="name@example.com"/></label>}
+        {sent&&<div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void sendCode(true)}>Send a new code</button><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>{setSent(false);setCode('');setError('');setNotice('');}}>Change email</button></div>}
+        <ErrorMessage message={error||(tried?'':linkError)}/>{notice&&<p className="quiet-note public-note" role="status">{notice}</p>}
+        <div className="sign-actions public-actions"><button type="submit" className="button button-primary sign-primary" disabled={busy} aria-busy={busy}>{sent?'Verify and continue':'Send my sign-in code'}</button>
+          <p className="sign-note">By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">privacy policy</Link>.</p></div>
+      </form>}
+    </main>
+  </div>;
 }
 export function CompleteProfile({next}:{next:string}) {
   const router=useRouter(),[name,setName]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
   async function submit(){setBusy(true);setError('');try{await api('/api/auth/profile',{name});router.replace(authReturnPath(next));router.refresh();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
-  return <div className="invitation-page"><Brand/><h1>What’s your full name?</h1><p className="lede">We’ll use it on your agreements. You only need to add it once.</p><form className="panel dialog-form" onSubmit={e=>{e.preventDefault();void submit();}}><Field label="Full name"><input value={name} onChange={e=>setName(e.target.value)} autoComplete="name" required minLength={2} maxLength={120}/></Field><ErrorMessage message={error}/><Button type="submit" busy={busy}>Save and continue <ArrowRight size={17}/></Button></form></div>;
+  return <div className="public-page">
+    <PublicHeader/>
+    <main id="main" className="public-main">
+      <div className="public-heading"><h1>What’s your full name?</h1><p>It goes on your agreements, so use the name people know you by. You only add it once.</p></div>
+      <form className="public-form" onSubmit={e=>{e.preventDefault();void submit();}}>
+        <label className="create-field"><span className="create-field-label">Full name</span><input value={name} onChange={e=>setName(e.target.value)} autoComplete="name" required minLength={2} maxLength={120}/></label>
+        <ErrorMessage message={error}/>
+        <div className="sign-actions public-actions"><button type="submit" className="button button-primary sign-primary" disabled={busy} aria-busy={busy}>Save and continue</button></div>
+      </form>
+    </main>
+  </div>;
 }
 export function InvitationPage({token,demo,actorName,authenticated}:{token:string;demo:boolean;actorName?:string;authenticated:boolean}){
   const router=useRouter();
@@ -59,8 +83,37 @@ export function InvitationPage({token,demo,actorName,authenticated}:{token:strin
     catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
   const witness=info?.role==='WITNESS';
-  return <div className="invitation-page"><Link href="/" aria-label="treeti home"><Brand/></Link><h1>{witness?'You’re invited to be a witness.':'You’re invited to review an agreement.'}</h1><p className="lede">{witness?'Read the terms and decide whether to act as a witness. You are not responsible for repayment.':'Opening this invitation does not mean you accept the terms.'}</p><section className="panel"><span className="empty-icon"><Mail size={28}/></span><h2>{busy&&!info?'Opening your invitation…':sent?'Check your email':'Read the terms privately'}</h2>{info&&<p>This {witness?'witness':info.role==='LENDER'?'lender':'borrower'} invitation is for <strong>{info.contact}</strong>.</p>}<ErrorMessage message={error}/>{notice&&<p className="quiet-note" role="status">{notice}</p>}
-    {error&&(!info||authenticated)&&<><Button variant="secondary" busy={busy} onClick={()=>setRetry(n=>n+1)}>Try again</Button>{authenticated&&!demo&&<Button variant="ghost" onClick={async()=>{await api('/api/auth/sign-out',{});router.replace(`/login?next=${encodeURIComponent(`/invite/${token}`)}`);router.refresh();}}>Use a different email</Button>}</>}
-    {info&&info.verificationAvailable===false?<p>Phone verification is not available yet. Ask the inviter for an email invitation.</p>:info&&!authenticated&&(witness&&!demo?<><form className="witness-invitation-form" onSubmit={e=>{e.preventDefault();void verifyWitness();}}>{sent&&<Field label="Verification code" hint="Enter the code sent to the invited email."><input ref={codeInput} value={code} onChange={e=>setCode(e.target.value)} autoComplete="one-time-code" inputMode="numeric" required pattern="[0-9]{6,8}" maxLength={8} autoFocus/></Field>}<Button type="submit" busy={busy}>{sent?'Verify and read the terms':'Send verification code'} <ArrowRight size={17}/></Button>{sent&&<><p className="quiet-note">Code expired or missing? Request a new one here.</p><Button type="button" variant="secondary" disabled={busy} onClick={()=>void sendWitnessCode(true)}>Resend code</Button></>}</form><p className="quiet-note">Verify your email once. No password or profile setup. Your witness response is recorded only when you agree.</p></>:<><p>Sign in with the invited email to read the terms.</p><Link className="button button-primary" href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}>Sign in to read <ArrowRight size={17}/></Link></>)}
-    <Link className="button button-ghost" href={demo?'/demo':'/'}>This invitation is not for me</Link></section></div>;
+  return <div className="public-page">
+    <PublicHeader/>
+    <main id="main" className="public-main">
+      <div className="public-heading"><span className="public-mark" aria-hidden><Mail size={22}/></span><h1>{witness?'You’re invited to be a witness':'You’re invited to review an agreement'}</h1><p>{witness?'Read the terms and decide whether to witness them. You’re not responsible for repayment.':'Sign in with the email it was sent to, then read it privately.'}</p></div>
+      {!witness&&<p className="public-callout">Opening it doesn’t mean you accept anything. You can ask for a change or say no.</p>}
+      <div className="public-form">
+        {busy&&!info&&<p className="quiet-note public-note">Opening your invitation…</p>}
+        {info&&<div className="public-email"><span className="create-field-label">{witness?'Witness invitation for':'Sent to'}</span><strong>{info.contact}</strong></div>}
+        <ErrorMessage message={error}/>{notice&&<p className="quiet-note public-note" role="status">{notice}</p>}
+        {error&&(!info||authenticated)&&<div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>setRetry(n=>n+1)}>Try again</button>{authenticated&&!demo&&<button type="button" className="kit-link detail-link-button" onClick={async()=>{await api('/api/auth/sign-out',{});router.replace(`/login?next=${encodeURIComponent(`/invite/${token}`)}`);router.refresh();}}>Use a different email</button>}</div>}
+        {info&&info.verificationAvailable===false?<p className="public-note">Phone verification is not available yet. Ask the inviter for an email invitation.</p>
+        :info&&!authenticated&&(witness&&!demo?<form className="public-form" onSubmit={e=>{e.preventDefault();void verifyWitness();}}>
+            {sent&&<><CodeBoxes inputRef={codeInput} value={code} onChange={setCode}/><div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void sendWitnessCode(true)}>Send a new code</button></div></>}
+            <div className="sign-actions public-actions"><button type="submit" className="button button-primary sign-primary" disabled={busy} aria-busy={busy}>{sent?'Verify and read the terms':'Send my sign-in code'}</button><p className="sign-note">Verify your email once. No password or profile. Your response is only recorded when you agree.</p></div>
+          </form>
+          :<div className="sign-actions public-actions"><Link className="button button-primary sign-primary" href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}>Sign in to read</Link></div>)}
+        <Link className="button sign-tertiary public-not-me" href={demo?'/demo':'/'}>This isn’t for me</Link>
+      </div>
+    </main>
+  </div>;
+}
+
+/** Six boxes drawn around one real input, so paste and one-time-code autofill keep working. */
+function CodeBoxes({value,onChange,inputRef}:{value:string;onChange:(v:string)=>void;inputRef:React.RefObject<HTMLInputElement|null>}){
+  const digits=value.replace(/\D/g,'').slice(0,8),count=Math.max(6,digits.length);
+  return <label className="code-boxes"><span className="sr-only">Verification code</span>
+    <input ref={inputRef} value={digits} onChange={e=>onChange(e.target.value.replace(/\D/g,'').slice(0,8))} autoComplete="one-time-code" inputMode="numeric" required pattern="[0-9]{6,8}" maxLength={8} autoFocus/>
+    <span className="code-boxes-row" aria-hidden>{Array.from({length:count},(_,i)=><span key={i} className={`code-box${i===digits.length?' current':''}${i<digits.length?' filled':''}`}>{digits[i]??''}</span>)}</span>
+  </label>;
+}
+/** The public pages' top bar: wordmark, and Sign in where it helps. */
+export function PublicHeader({signIn=false,links=false}:{signIn?:boolean;links?:boolean}){
+  return <header className="public-header"><Link href="/" aria-label="treeti home"><Brand/></Link>{(signIn||links)&&<nav className="public-nav" aria-label="treeti">{links&&<><Link href="/demo/guide" className="public-nav-link">How it works</Link><Link href="/privacy" className="public-nav-link">Privacy</Link></>}{signIn&&<Link href="/login" className="public-signin">Sign in</Link>}</nav>}</header>;
 }

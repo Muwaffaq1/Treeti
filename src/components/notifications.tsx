@@ -1,9 +1,11 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useState,useSyncExternalStore} from 'react';
-import {ArrowRight,ArrowUpRight,Bell,BellRing} from 'lucide-react';
+import {ArrowLeft,Bell,BellRing,Settings} from '@/components/icons';
+import {activityAppearance} from './activity-look';
+import {firstName} from './person-colour';
 import type {Notice} from '@/modules/notifications/feed';
-import {activityFormatters,eventText} from './agreement-utils';
+import {activityFormatters,eventByline as byline,eventText} from './agreement-utils';
 import {api,apiBase,appBase} from './client-api';
 import {Button,ErrorMessage} from './ui';
 import {InstallTreeti} from './pwa';
@@ -42,7 +44,7 @@ export function NotificationBell({userId,demo,rail=false}:{userId:string;demo:bo
   },[userId,demo]);
   const unread=latest&&seen?latest.filter(createdAt=>createdAt>seen).length:0,label=unread?`Notifications, ${unread} new`:'Notifications';
   const badge=unread>0&&<span className="notice-count" aria-hidden>{unread>9?'9+':unread}</span>;
-  if(rail)return <Link className="nav-link notice-rail" href={`${appBase(demo)}/notifications`} aria-label={label}><Bell size={19}/>Notifications{badge}</Link>;
+  if(rail)return <Link className="nav-link notice-rail section-notifications" href={`${appBase(demo)}/notifications`} aria-label={label}><Bell size={19}/>Notifications{badge}</Link>;
   return <Link className="button button-secondary icon-button notice-bell" href={`${appBase(demo)}/notifications`} aria-label={label}><Bell size={20} aria-hidden/>{badge}</Link>;
 }
 
@@ -100,14 +102,32 @@ export function PushSettings({demo}:{demo:boolean}){
 }
 
 export function Notifications({notices,userId,demo}:{notices:Notice[];userId:string;demo:boolean}){
-  const timeZone=useSyncExternalStore(subscribeTimeZone,browserTimeZone,serverTimeZone),formats=activityFormatters(timeZone??'UTC'),short=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:timeZone??'UTC'});
+  const timeZone=useSyncExternalStore(subscribeTimeZone,browserTimeZone,serverTimeZone),formats=activityFormatters(timeZone??'UTC');
   // Remember what was new when the page opened, then mark everything as seen.
   const [seenAtOpen,setSeenAtOpen]=useState<string|null|undefined>(undefined);
   useEffect(()=>{const timer=setTimeout(()=>{setSeenAtOpen(readSeen(userId));writeSeen(userId,new Date().toISOString());},0);return ()=>clearTimeout(timer);},[userId]);
   const isNew=(n:Notice)=>seenAtOpen!==undefined&&seenAtOpen!==null&&n.createdAt>seenAtOpen;
-  return <div className="activity-page notices-page"><div className="page-heading"><div><h1>Notifications</h1><p className="lede">What other people have done on your agreements. treeti only emails you a sign-in code; everything else arrives here.</p></div></div>
-    <PushSettings demo={demo}/>
-    {notices.length>0&&<ol className="activity-events">{notices.map(n=><li key={n.id}><Link className="activity-event" href={n.agreementId?`${appBase(demo)}/agreements/${n.agreementId}`:appBase(demo)||'/app'}><span className={`activity-event-icon ${isNew(n)?'tone-new':''}`} aria-hidden><Bell size={20}/></span><div className="activity-event-copy"><h3>{text[n.type]||n.text||'Record updated'}{isNew(n)&&<span className="notice-new">New</span>}</h3><p>{n.by||'treeti'}</p><small>{n.publicId}</small></div><time dateTime={n.createdAt} title={timeZone?formats.full.format(new Date(n.createdAt)):undefined}>{timeZone?`${short.format(new Date(n.createdAt))} · ${formats.clock.format(new Date(n.createdAt))}`:''}</time><ArrowUpRight className="activity-event-arrow" size={18} aria-hidden/></Link></li>)}</ol>}
-    {!notices.length&&<div className="activity-empty"><span className="empty-icon" aria-hidden><Bell size={28}/></span><h2>Nothing new yet</h2><p>When someone approves, witnesses, or records a repayment on one of your agreements, you’ll see it here.</p><Link className="button button-secondary" href={`${appBase(demo)}/agreements`}>View agreements<ArrowRight size={16} aria-hidden/></Link></div>}
+  // Minutes since epoch on the client, 0 on the server, so relative times never mismatch during hydration.
+  const minute=useSyncExternalStore(subscribeMinute,currentMinute,()=>0),now=minute*60000;
+  const dayKey=(iso:string)=>formats.dateKey.format(new Date(iso)),todayKey=minute?formats.dateKey.format(new Date(now)):'',yesterdayKey=minute?formats.dateKey.format(new Date(now-86400000)):'';
+  const groups=new Map<string,Notice[]>();for(const n of notices){const k=dayKey(n.createdAt);const g=groups.get(k);if(g)g.push(n);else groups.set(k,[n]);}
+  const dayLabel=(key:string,iso:string)=>key===todayKey?'Today':key===yesterdayKey?'Yesterday':new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:timeZone??'UTC'}).format(new Date(iso));
+  return <div className="notices activity-page">
+    <header className="detail-bar notices-bar"><Link className="detail-icon-button" href={appBase(demo)||'/app'} aria-label="Back to overview"><ArrowLeft size={18} aria-hidden/></Link><h1 className="notices-title">Notifications</h1><Link className="detail-icon-button" href={`${appBase(demo)}/account`} aria-label="Notification settings"><Settings size={18} aria-hidden/></Link></header>
+    {notices.length>0?(timeZone?Array.from(groups,([key,list])=><section key={key} className="activity-day notices-group" aria-labelledby={`notices-${key}`}>
+      <div className="activity-day-heading"><h2 className="kit-overline agreements-group-title" id={`notices-${key}`} title={formats.day.format(new Date(list[0].createdAt))}>{dayLabel(key,list[0].createdAt)}</h2></div>
+      <ol className="activity-events notices-list">{list.map(n=>{const {Icon,tone}=activityAppearance(n.type);return <li key={n.id}><Link className="activity-event notice-row activity-row" href={n.agreementId?`${appBase(demo)}/agreements/${n.agreementId}`:appBase(demo)||'/app'}>
+        <span className={`activity-tile tone-${tone}`} aria-hidden><Icon size={16}/></span>
+        <span className="notice-copy"><span className="notice-text"><strong className="notice-by">{firstName(n.by||'treeti')}</strong> {byline[n.type]??sentence(text[n.type]||n.text||'Record updated')}</span>
+          {n.publicId&&<span className="notice-meta">{n.publicId}</span>}</span>
+        <span className="notice-end"><time dateTime={n.createdAt} title={formats.full.format(new Date(n.createdAt))}>{formats.clock.format(new Date(n.createdAt))}</time>{isNew(n)&&<span className="notice-new"><span className="sr-only">New</span></span>}</span>
+      </Link></li>;})}</ol>
+    </section>):null)
+    :<section className="agreements-empty notices-empty"><span className="agreements-empty-icon" aria-hidden><Bell size={26}/></span><h2>You’re all caught up</h2><p>Requests, payments and signatures will show up here.</p></section>}
+    <p className="quiet-note debt-footnote">treeti only emails you a sign-in code. Everything else arrives here.</p>
   </div>;
 }
+const subscribeMinute=(update:()=>void)=>{const t=setInterval(update,60000);return ()=>clearInterval(t);};
+const currentMinute=()=>Math.floor(Date.now()/60000);
+/** Turns "Borrower approved the terms" into "approved the terms", so it reads after the person's name. */
+function sentence(t:string){const rest=t.replace(/^(The )?(Borrower|Lender|Witness|A witness|Someone)\s+/i,'');return rest===t?t.charAt(0).toLowerCase()+t.slice(1):rest;}
