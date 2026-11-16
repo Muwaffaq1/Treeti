@@ -36,6 +36,7 @@
   ],
   "vars": {
     "AHD_ENABLE_DEMO": "false",
+    "AHD_INVESTMENT_AGREEMENTS": "true",
     "AHD_RUNTIME": "cloudflare",
     "INNGEST_DEV": "false",
     "AHD_JOB_SCHEDULES": "false",
