@@ -34,7 +34,7 @@ async function check(){
     const response=await request(current,path);assert.equal(response.status,200,path);
     assert.ok(response.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"));
     const html=await response.text();assert.match(html,/treeti/);privateResponse(response);
-    if(path==='/login'){assert.match(html,/>Email address<\/label>/);assert.doesNotMatch(html,/>Full name<\/label>/);}
+    if(path==='/login'){assert.match(html,/>Email address<\/(?:label|span)>/);assert.doesNotMatch(html,/>Full name<\/(?:label|span)>/);}
     if(path==='/guide'){assert.match(html,/Keep an investment record/);assert.match(html,/Money owed to you|money owed to you/);assert.doesNotMatch(html,/before public launch|Try every role in one browser|testing-guide/);}
   }
   // Home and sign-in are static files, so an old address serves the page and the page moves itself.
