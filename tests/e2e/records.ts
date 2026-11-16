@@ -22,7 +22,10 @@ export async function addDebt(page:Page,d:Debt){
 
 /** "I put [how much] into [what] on [when]." then save. */
 export async function addInvestment(page:Page,d:Investment){
-  await page.getByRole('button',{name:'Add an investment',exact:true}).first().click();
+  // Empty page: the two kinds sit on the page. Otherwise "Add an investment" asks which kind first.
+  const add=page.getByRole('button',{name:'Add an investment',exact:true});
+  if(await add.count())await add.first().click();
+  await page.getByRole('button',{name:/^A private record/}).click();
   await page.getByRole('button',{name:'Choose how much you put in',exact:true}).click();
   let p=panel(page,'How much did you put in?');if(d.currency)await p.getByLabel('Currency',{exact:true}).selectOption(d.currency);
   await p.getByLabel(`Amount invested (${d.currency??'NGN'})`).fill(d.amount);await p.getByRole('button',{name:'Next: what',exact:true}).click();

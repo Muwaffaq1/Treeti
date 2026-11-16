@@ -11,7 +11,7 @@ import {groupMoneyInput,money,moneyInput,parseMoney} from '@/lib/money';
 import {maskContact} from '@/lib/contact';
 import type {Actor} from '@/modules/agreements/types';
 import type {View} from '@/modules/investment-agreements/model';
-import {lossShares,partnerAffirmation,partnerLimit,percent,sharesByMoney,witnessAffirmation,witnessLimit} from '@/modules/investment-agreements/shared';
+import {partnerAffirmation,partnerLimit,witnessAffirmation,witnessLimit} from '@/modules/investment-agreements/shared';
 import {api,apiBase,appBase} from './client-api';
 import {formatDate,interestWording} from './agreement-utils';
 import {InterestWordingWarning} from './create-agreement';
@@ -25,7 +25,7 @@ import {firstName} from './person-colour';
 export type JointSummary=View&{turn:'sign'|'witness'|'revise'|null};
 type Link={personId:string;name:string;role:'PARTNER'|'WITNESS';url:string};
 type Person={name:string;contact:string};
-type Sheet='what'|'who'|'money'|'profit'|'when'|'manager'|'review'|'exit'|'note'|'witness'|null;
+type Sheet='what'|'who'|'money'|'when'|'manager'|'review'|'exit'|'note'|'witness'|null;
 type Stage='write'|'promise'|'hold'|'share';
 
 const currencyLabel=(c:string)=>c==='NGN'?'₦ Naira':`${c} · ${currencyNames[c as keyof typeof currencyNames]}`;
@@ -56,32 +56,27 @@ export function JointCreate({actor,demo,existing}:{actor:Actor;demo:boolean;exis
   const [manager,setManager]=useState(v?.terms.manager??''),[exit,setExit]=useState(v?.terms.exit??''),[note,setNote]=useState(v?.terms.note??'');
   const [people,setPeople]=useState<Person[]>(existing?existing.partners.filter(p=>!p.creator).map(p=>({name:p.name,contact:p.contact})):[]);
   const [amounts,setAmounts]=useState<string[]>(existing?[stakeOf(meId!).capitalMinor,...existing.partners.filter(p=>!p.creator).map(p=>stakeOf(p.id).capitalMinor)].map(toInput):['']);
-  const [shares,setShares]=useState<string[]>(existing?[stakeOf(meId!).profitShare,...existing.partners.filter(p=>!p.creator).map(p=>stakeOf(p.id).profitShare)].map(String):['']);
   const [witnesses,setWitnesses]=useState<Person[]>([]);
-  const [done,setDone]=useState({what:!!existing,who:!!existing,money:!!existing,profit:!!existing,when:!!existing});
+  const [done,setDone]=useState({what:!!existing,who:!!existing,money:!!existing,when:!!existing});
   const [sheet,setSheet]=useState<Sheet>(null),[stage,setStage]=useState<Stage>('write'),[panelError,setPanelError]=useState('');
   const [draftPerson,setDraftPerson]=useState<Person>({name:'',contact:''});
   const [affirmed,setAffirmed]=useState(false),[style,setStyle]=useState<Style>('script'),[error,setError]=useState('');
   const [sent,setSent]=useState<{a:JointSummary;links:Link[]}|null>(null),[key]=useState(()=>crypto.randomUUID());
   const everyone=[actor.name,...people.map(p=>p.name)];
-  const ready=done.what&&done.who&&done.money&&done.profit&&done.when;
-  const nextBlank:Sheet=!done.what?'what':!done.who?'who':!done.money?'money':!done.profit?'profit':!done.when?'when':null,focus=sheet??nextBlank;
+  const ready=done.what&&done.who&&done.money&&done.when;
+  const nextBlank:Sheet=!done.what?'what':!done.who?'who':!done.money?'money':!done.when?'when':null,focus=sheet??nextBlank;
   const state=(s:Exclude<Sheet,null>,filled:boolean)=>focus===s?'current':filled?'filled':'empty';
   const open=(s:Sheet)=>{setPanelError('');setSheet(s);};
-  const capitals=amounts.map(a=>{const m=minor(a);return m?BigInt(m):0n;});
-  const loss=lossShares(capitals.map((c,i)=>({partnerId:String(i),capitalMinor:c.toString()})));
-  const total=shares.reduce((sum,s)=>sum+(Number(s)||0),0);
   const finish=(key:keyof typeof done,next:Sheet)=>{setDone(d=>({...d,[key]:true}));setPanelError('');setSheet(ready?null:next);};
-  const label=(i:number)=>i===0?'me':firstName(everyone[i]);
 
   function savePeople(list:Person[]){
     setPeople(list);
-    setAmounts(a=>[a[0]??'',...list.map((_,i)=>a[i+1]??'')]);setShares(s=>[s[0]??'',...list.map((_,i)=>s[i+1]??'')]);
+    setAmounts(a=>[a[0]??'',...list.map((_,i)=>a[i+1]??'')]);
     if(manager&&!list.some(p=>p.name===manager)&&manager!==actor.name)setManager('');
   }
   function body(){
     const terms={venture:venture.trim(),currency,startDate,reviewDate:reviewDate||null,manager:manager||null,exit:exit.trim(),note:note.trim()};
-    const stakes=amounts.map((a,i)=>({capitalMinor:minor(a),profitShare:Number(shares[i])}));
+    const stakes=amounts.map(a=>({capitalMinor:minor(a)}));
     if(existing){const others=existing.partners.filter(p=>!p.creator);return {expectedVersionId:existing.currentVersionId,terms,stakes:[{partnerId:meId!,...stakes[0]},...others.map((p,i)=>({partnerId:p.id,...stakes[i+1]}))],signature:actor.name,affirmed:true};}
     return {terms,me:stakes[0],partners:people.map((p,i)=>({...p,...stakes[i+1]})),witnesses,signature:actor.name,affirmed:true};
   }
@@ -113,8 +108,6 @@ export function JointCreate({actor,demo,existing}:{actor:Actor;demo:boolean;exis
             <W>I’m putting in</W> <Blank state={state('money',done.money)} label="Change how much each person puts in" onClick={()=>open('money')}>{done.money?money(minor(amounts[0])||'0',currency):'how much'}</Blank>
             {people.map((p,i)=>{const last=i===people.length-1,blank=<Blank state={state('money',done.money)} label="Change how much each person puts in" onClick={()=>open('money')}>{done.money?money(minor(amounts[i+1])||'0',currency):'how much'}</Blank>;return <Fragment key={i}><W>{last?' and ':', '}{firstName(p.name)} is putting in</W> {last?<span className="create-nowrap">{blank}<W>.</W></span>:blank}</Fragment>;})}{' '}
           </>:<><W>We each put in</W> <span className="create-nowrap"><Blank state={state('money',false)} label="Add how much each person puts in" onClick={()=>open(done.who?'money':'who')}>how much</Blank><W>.</W></span>{' '}</>}
-          <W>Profit is split</W> <span className="create-nowrap"><Blank state={state('profit',done.profit)} label={done.profit?'Change the profit split':'Choose how profit is split'} onClick={()=>open(done.money?'profit':done.who?'money':'who')}>{done.profit?shares.map((s,i)=>`${s}% ${label(i)}`).join(' · '):'how'}</Blank><W>.</W></span>{' '}
-          <W>Any loss is shared by what we each put in.</W>{' '}
           <W>We start on</W> <span className="create-nowrap"><Blank state={state('when',done.when)} label={`Start date: ${formatDate(startDate)}. Change`} onClick={()=>open('when')}>{done.when?formatDate(startDate):'when'}</Blank><W>.</W></span>
           {ready&&manager&&<>{' '}<Blank state="filled" label={`Looked after by ${manager}. Change`} onClick={()=>open('manager')}>{manager===actor.name?'I':manager}</Blank> <W>{manager===actor.name?'look':'looks'} after it day to day.</W></>}
           {ready&&reviewDate&&<>{' '}<W>We’ll review it on</W> <span className="create-nowrap"><Blank state="filled" label={`Review date: ${formatDate(reviewDate)}. Change`} onClick={()=>open('review')}>{formatDate(reviewDate)}</Blank><W>.</W></span></>}
@@ -173,18 +166,9 @@ export function JointCreate({actor,demo,existing}:{actor:Actor;demo:boolean;exis
       </form>
     </Panel>
     <Panel open={sheet==='money'} onOpenChange={o=>setSheet(o?'money':null)} title="How much does each person put in?" description="Losses are shared by these amounts.">
-      <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(amounts.some(a=>!minor(a))){setPanelError('Enter an amount for each person, greater than zero.');return;}finish('money',done.profit?null:'profit');}}>
+      <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(amounts.some(a=>!minor(a))){setPanelError('Enter an amount for each person, greater than zero.');return;}finish('money',done.when?null:'when');}}>
         <label className="create-currency"><span className="sr-only">Currency</span><span className="create-currency-face" aria-hidden>{currencyLabel(currency)}</span><select aria-label="Currency" value={currency} onChange={e=>setCurrency(e.target.value)} disabled={!!existing}>{currencies.map(c=><option key={c} value={c}>{currencyLabel(c)}</option>)}</select></label>
         {everyone.map((n,i)=><div key={i} className="joint-amount"><span className="create-field-label">{i===0?'You':n}</span><AmountInput label={`Amount ${i===0?'you put':`${n} puts`} in (${currency})`} value={amounts[i]??''} onChange={v=>setAmounts(a=>a.map((x,k)=>k===i?v:x))} currency={currency}/></div>)}
-        <ErrorMessage message={panelError}/>
-        <button type="submit" className="button button-primary sign-primary">{done.profit?'Done':'Next: profit'}</button>
-      </form>
-    </Panel>
-    <Panel open={sheet==='profit'} onOpenChange={o=>setSheet(o?'profit':null)} title="How is profit split?" description="Any split you agree. Losses always follow the money.">
-      <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(shares.some(s=>!/^\d+$/.test(s)||Number(s)<1||Number(s)>99)){setPanelError('Give each person a whole percentage from 1 to 99.');return;}if(total!==100){setPanelError(`Profit shares must add up to 100%. They add up to ${total}% now.`);return;}finish('profit',done.when?null:'when');}}>
-        {everyone.map((n,i)=><label key={i} className="joint-share"><span>{i===0?'You':n}</span><span className="joint-share-input"><input aria-label={`${i===0?'Your':`${n}’s`} profit share, in percent`} value={shares[i]??''} onChange={e=>setShares(s=>s.map((x,k)=>k===i?e.target.value.replace(/\D/g,'').slice(0,2):x))} inputMode="numeric" placeholder="0"/>%</span><small>Loss {percent(loss.get(String(i))??0)}</small></label>)}
-        <p className={`record-hint${total===100?' joint-total-ok':''}`} aria-live="polite">{total===100?'Adds up to 100%.':total<100?`${100-total}% left to share.`:`${total-100}% too much.`}</p>
-        <button type="button" className="kit-link detail-link-button" onClick={()=>setShares(sharesByMoney(capitals).map(String))}>Split profit by money put in</button>
         <ErrorMessage message={panelError}/>
         <button type="submit" className="button button-primary sign-primary">{done.when?'Done':'Next: start date'}</button>
       </form>
@@ -275,7 +259,7 @@ export function JointDetail({initial,actor,demo}:{initial:JointSummary;actor:Act
   const [a,setA]=useState(initial),[stage,setStage]=useState<'view'|'promise'|'hold'>('view');
   const [affirmed,setAffirmed]=useState(false),[style,setStyle]=useState<Style>('script'),[error,setError]=useState('');
   const [ask,setAsk]=useState<'change'|'decline'|'cancel'|null>(null),[askNote,setAskNote]=useState(''),[busy,setBusy]=useState(false),[links,setLinks]=useState<Link[]>([]);
-  const v=latestOf(a),t=v.terms,loss=lossShares(v.stakes),me=a.partners.find(p=>p.id===a.me.personId);
+  const v=latestOf(a),t=v.terms,me=a.partners.find(p=>p.id===a.me.personId);
   const signed=(id:string)=>a.signatures.some(s=>s.partnerId===id&&s.versionId===v.id),witnessed=(id:string)=>a.attestations.some(s=>s.witnessId===id&&s.versionId===v.id);
   const open=['AWAITING_SIGNATURES','CHANGES_REQUESTED','AWAITING_WITNESSES'].includes(a.status);
   const request=a.status==='CHANGES_REQUESTED'?a.changeRequests.at(-1):undefined;
@@ -331,7 +315,7 @@ export function JointDetail({initial,actor,demo}:{initial:JointSummary;actor:Act
       <h3 className="kit-overline">Partners</h3>
       <ul className="joint-rows">{a.partners.map(p=>{const s=v.stakes.find(x=>x.partnerId===p.id)!;return <li key={p.id}>
         <Avatar name={p.name} size={32}/>
-        <span className="joint-row-main"><strong>{p.id===a.me.personId?`${p.name} (you)`:p.name}</strong><small>Puts in {money(s.capitalMinor,t.currency)} · profit {s.profitShare}% · loss {percent(loss.get(p.id)!)}</small></span>
+        <span className="joint-row-main"><strong>{p.id===a.me.personId?`${p.name} (you)`:p.name}</strong><small>Puts in {money(s.capitalMinor,t.currency)}</small></span>
         <span className="joint-row-end">{signed(p.id)?<Tag tone="positive">Signed</Tag>:p.joined?<Tag tone="neutral">Not signed</Tag>:<Tag tone="neutral">Hasn’t opened it</Tag>}
           {a.me.creator&&open&&!p.joined&&<button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void run('renew',{personId:p.id})}>New link</button>}</span>
       </li>;})}</ul>
@@ -339,7 +323,6 @@ export function JointDetail({initial,actor,demo}:{initial:JointSummary;actor:Act
         <ul className="joint-rows">{a.witnesses.map(w=><li key={w.id}><Avatar name={w.name} size={32}/><span className="joint-row-main"><strong>{w.id===a.me.personId?`${w.name} (you)`:w.name}</strong><small>Witness</small></span>
           <span className="joint-row-end">{witnessed(w.id)?<Tag tone="positive">Witnessed</Tag>:w.joined?<Tag tone="neutral">Not yet</Tag>:<Tag tone="neutral">Hasn’t opened it</Tag>}
             {a.me.creator&&open&&!w.joined&&<button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void run('renew',{personId:w.id})}>New link</button>}</span></li>)}</ul></>}
-      <p className="joint-rule">Profit is shared as agreed. Any loss is shared by how much money each partner put in. No one is promised a fixed return.</p>
     </section>
 
     <section className="kit-card joint-wording"><h3 className="kit-overline">The agreed wording</h3><p>{v.text}</p></section>
@@ -353,7 +336,7 @@ export function JointDetail({initial,actor,demo}:{initial:JointSummary;actor:Act
     <Panel open={ask==='change'} onOpenChange={o=>setAsk(o?'change':null)} title="What would you like changed?" description={`${firstName(a.partners.find(p=>p.creator)!.name)} gets your note and can send a new version for everyone to sign.`}>
       <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(!askNote.trim()){setError('Say what you’d like changed.');return;}void run('change',{expectedVersionId:a.currentVersionId,note:askNote});}}>
         <label className="sr-only" htmlFor="joint-change">What you’d like changed</label>
-        <textarea id="joint-change" className="ask-text" rows={4} maxLength={1000} value={askNote} onChange={e=>setAskNote(e.target.value)} placeholder="Can we split profit 50/50?"/>
+        <textarea id="joint-change" className="ask-text" rows={4} maxLength={1000} value={askNote} onChange={e=>setAskNote(e.target.value)} placeholder="Can we start in January instead?"/>
         <ErrorMessage message={error}/>
         <button type="submit" className="button button-primary sign-primary" disabled={busy}>Send request</button>
       </form>

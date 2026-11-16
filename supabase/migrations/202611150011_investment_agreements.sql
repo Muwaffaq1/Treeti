@@ -1,5 +1,5 @@
 -- Investment agreements: two to five partners sign the same version of a joint investment (owner, Nov 2026).
--- Profit by agreed shares, loss by money put in, no fixed return. Server-only: browsers never read these tables.
+-- Records who invests together and how much each puts in; no profit or loss terms. Server-only: browsers never read these tables.
 create table public.investment_agreements (
   id uuid primary key,
   public_id text not null unique check(public_id ~ '^INV-[0-9A-F]{8}$'),

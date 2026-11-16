@@ -22,7 +22,7 @@ afterAll(async()=>{await pg?.close();});
 
 describe('investment agreements in PostgreSQL',()=>{
  it('stores, joins, signs, finalizes once and gives each partner a linked investment',async()=>{
-  const input={terms:{venture:'Sister’s shop in Kano',currency:'NGN',startDate:'2026-11-01'},me:{capitalMinor:'20000000',profitShare:60},partners:[{name:'Aisha Suleiman',contact:'aisha@example.test',capitalMinor:'10000000',profitShare:40}],signature:'Abdullah Musa',affirmed:true};
+  const input={terms:{venture:'Sister’s shop in Kano',currency:'NGN',startDate:'2026-11-01'},me:{capitalMinor:'20000000'},partners:[{name:'Aisha Suleiman',contact:'aisha@example.test',capitalMinor:'10000000'}],signature:'Abdullah Musa',affirmed:true};
   const created=await repo.create(input,abdullah,'key-1');
   expect((await repo.create(input,abdullah,'key-1')).agreement.id).toBe(created.agreement.id);
   const token=created.links![0].token;
@@ -35,7 +35,7 @@ describe('investment agreements in PostgreSQL',()=>{
   const done=await repo.change(created.agreement.id,aisha,{expectedVersionId:created.agreement.currentVersionId,signature:'Aisha Suleiman',affirmed:true},signAgreement);
   expect(done.agreement.status).toBe('ACTIVE');
   const records=await db.query<{owner_id:string;data:{myShare:number;agreementId:string;contributions:{amountMinor:string}[]}}>('select owner_id,data from personal_investments order by owner_id');
-  expect(records.map(r=>[r.owner_id,r.data.myShare,r.data.contributions[0].amountMinor])).toEqual([[abdullah.userId,60,'20000000'],[aisha.userId,40,'10000000']]);
+  expect(records.map(r=>[r.owner_id,r.data.myShare,r.data.contributions[0].amountMinor])).toEqual([[abdullah.userId,67,'20000000'],[aisha.userId,33,'10000000']]);
   expect(records.every(r=>r.data.agreementId===created.agreement.id)).toBe(true);
   const events=await db.query<{type:string}>('select type from investment_agreement_events order by sequence');
   expect(events.map(e=>e.type)).toEqual(['CREATED','SIGNED','JOINED','SIGNED','FINALIZED']);

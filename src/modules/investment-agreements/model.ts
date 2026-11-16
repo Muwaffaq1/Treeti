@@ -11,17 +11,17 @@ import type {Actor} from '@/modules/agreements/types';
 
 /**
  * An investment agreement: two to five partners put money into one venture and each signs the same version.
- * Profit is split by the percentages they agree; any loss is always shared by how much money each put in,
- * and no partner can be promised a fixed return (owner, Nov 2026). The wording needs scholar review before launch.
+ * It records who is investing together and how much each puts in. It sets no profit or loss terms (owner, 16 Nov 2026).
+ * The wording needs scholar review before launch.
  */
-import {lossShares,partnerAffirmation,partnerLimit,percent,witnessAffirmation,witnessLimit} from './shared';
-export {lossShares,partnerAffirmation,partnerLimit,percent,witnessAffirmation,witnessLimit};
+import {partnerAffirmation,partnerLimit,sharesByMoney,witnessAffirmation,witnessLimit} from './shared';
+export {partnerAffirmation,partnerLimit,sharesByMoney,witnessAffirmation,witnessLimit};
 export type Status='AWAITING_SIGNATURES'|'CHANGES_REQUESTED'|'AWAITING_WITNESSES'|'ACTIVE'|'DECLINED'|'CANCELLED';
 export type Partner={id:string;userId:string|null;name:string;contact:string;tokenHash:string|null;joinedAt:string|null;creator:boolean};
 export type Witness={id:string;userId:string|null;name:string;contact:string;tokenHash:string|null;joinedAt:string|null};
 export type Terms={venture:string;currency:Currency;startDate:string;reviewDate:string|null;manager:string|null;exit:string;note:string};
-/** Money and profit share for one partner, fixed per version. */
-export type Stake={partnerId:string;capitalMinor:string;profitShare:number};
+/** The money one partner puts in, fixed per version. */
+export type Stake={partnerId:string;capitalMinor:string};
 export type Version={id:string;number:number;terms:Terms;stakes:Stake[];text:string;hash:string;reason:string;createdBy:string;createdAt:string};
 export type Signature={id:string;partnerId:string;versionId:string;versionHash:string;signature:string;affirmation:string;level:string;contact:string;createdAt:string};
 export type Attestation={id:string;witnessId:string;versionId:string;versionHash:string;signature:string;text:string;level:string;contact:string;createdAt:string};
@@ -37,13 +37,12 @@ export type Change={agreement:InvestmentAgreement;event:EventType;links?:{person
 
 
 const name=z.string().trim().min(2,'Enter their full name.').max(120,'Use 120 characters or fewer.');
-const share=z.number().int('Use whole percentages.').min(1,'Each profit share must be at least 1%.').max(99,'Each profit share must be 99% or less.');
 const termsInput=z.object({
   venture:z.string().trim().min(2,'Say what you’re investing in.').max(120,'Use 120 characters or fewer.'),
   currency:z.enum(currencies),startDate:calendarDateSchema,reviewDate:calendarDateSchema.nullable().default(null),
   manager:z.string().trim().max(120).nullable().default(null),exit:z.string().trim().max(1000).default(''),note:z.string().trim().max(2000).default(''),
 }).strict();
-const stakeInput=z.object({capitalMinor:minorSchema,profitShare:share}).strict();
+const stakeInput=z.object({capitalMinor:minorSchema}).strict();
 const signatureInput={signature:z.string().trim().min(2,'Sign with your name.').max(120),affirmed:z.literal(true,{message:'Confirm the promise before you sign.'})};
 export const createInput=z.object({
   terms:termsInput,me:stakeInput,
@@ -51,7 +50,7 @@ export const createInput=z.object({
   witnesses:z.array(z.object({name,contact:contactSchema}).strict()).max(witnessLimit,`Add up to ${witnessLimit} witnesses.`).default([]),
   ...signatureInput,
 }).strict();
-/** A new version keeps the same people; only the terms and each person's money and profit share change. */
+/** A new version keeps the same people; only the terms and each person's money change. */
 export const reviseInput=z.object({expectedVersionId:z.uuid(),terms:termsInput,stakes:z.array(stakeInput.extend({partnerId:z.uuid()})).min(2).max(partnerLimit),reason:z.string().trim().max(500).default(''),...signatureInput}).strict();
 export const signInput=z.object({expectedVersionId:z.uuid(),...signatureInput}).strict();
 export const noteInput=z.object({expectedVersionId:z.uuid(),note:z.string().trim().max(1000).default('')}).strict();
@@ -72,13 +71,10 @@ const long=(d:string)=>new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'nume
 
 /** The agreed wording everyone signs. Plain, neutral terms; reviewed by a scholar before launch. */
 export function agreementText(partners:Pick<Partner,'id'|'name'>[],terms:Terms,stakes:Stake[]){
-  const nameOf=(id:string)=>partners.find(p=>p.id===id)!.name,loss=lossShares(stakes);
+  const nameOf=(id:string)=>partners.find(p=>p.id===id)!.name;
   const parts=[
     `${list(partners.map(p=>p.name))} agree to invest together in ${terms.venture}, starting on ${long(terms.startDate)}.`,
     `${list(stakes.map(s=>`${nameOf(s.partnerId)} puts in ${money(s.capitalMinor,terms.currency)}`))}, a total of ${money(totalCapital(stakes),terms.currency)}.`,
-    `Any profit is shared as agreed: ${list(stakes.map(s=>`${nameOf(s.partnerId)} ${s.profitShare}%`))}.`,
-    `Any loss is shared by how much money each partner put in: ${list(stakes.map(s=>`${nameOf(s.partnerId)} ${percent(loss.get(s.partnerId)!)}`))}.`,
-    'No partner is promised a fixed return or a guaranteed amount.',
     terms.manager?`${terms.manager} looks after the investment day to day and keeps the others informed.`:'The partners look after the investment together.',
   ];
   if(terms.reviewDate)parts.push(`The partners will review the investment on ${long(terms.reviewDate)}.`);
@@ -88,15 +84,13 @@ export function agreementText(partners:Pick<Partner,'id'|'name'>[],terms:Terms,s
   return parts.join(' ');
 }
 
-function checkTerms(terms:Terms,stakes:Stake[],partners:Pick<Partner,'id'|'name'>[]){
-  const total=stakes.reduce((sum,s)=>sum+s.profitShare,0);
-  if(total!==100)fail('SHARES_TOTAL',`Profit shares must add up to 100%. They add up to ${total}% now.`,422);
+function checkTerms(terms:Terms,partners:Pick<Partner,'id'|'name'>[]){
   if(terms.reviewDate&&terms.reviewDate<=terms.startDate)fail('REVIEW_DATE','Choose a review date after the start date.',422);
   if(terms.manager&&!partners.some(p=>p.name===terms.manager))fail('MANAGER','Choose one of the partners to look after it, or say you’ll do it together.',422);
 }
 function makeVersion(a:Pick<InvestmentAgreement,'id'|'publicId'|'partners'|'versions'>,terms:Terms,stakes:Stake[],reason:string,actor:Actor,now:string):Version{
   const number=a.versions.length+1,text=agreementText(a.partners,terms,stakes);
-  const payload={schema:'treeti-investment-v1',agreementId:a.id,publicId:a.publicId,version:number,terms,stakes,partners:a.partners.map(p=>({id:p.id,name:p.name})),text};
+  const payload={schema:'treeti-investment-v2',agreementId:a.id,publicId:a.publicId,version:number,terms,stakes,partners:a.partners.map(p=>({id:p.id,name:p.name})),text};
   return {id:randomUUID(),number,terms,stakes,text,hash:digest(payload),reason,createdBy:actor.userId,createdAt:now};
 }
 function append(a:InvestmentAgreement,type:EventType,actorId:string,payload:Record<string,unknown>,now:string){
@@ -124,10 +118,10 @@ export function createAgreement(input:unknown,actor:Actor,publicId:string,create
   const creator:Partner={id:randomUUID(),userId:actor.userId,name:actor.name,contact:actor.contacts[0]??'',tokenHash:null,joinedAt:now,creator:true};
   const others:Partner[]=data.partners.map(p=>{const {personId,tokenHash}=invite(p.name,'PARTNER');return {id:personId,userId:null,name:p.name,contact:p.contact,tokenHash,joinedAt:null,creator:false};});
   const witnesses:Witness[]=data.witnesses.map(w=>{const {personId,tokenHash}=invite(w.name,'WITNESS');return {id:personId,userId:null,name:w.name,contact:w.contact,tokenHash,joinedAt:null};});
-  const partners=[creator,...others],stakes:Stake[]=[{partnerId:creator.id,...data.me},...others.map((p,i)=>({partnerId:p.id,capitalMinor:data.partners[i].capitalMinor,profitShare:data.partners[i].profitShare}))];
+  const partners=[creator,...others],stakes:Stake[]=[{partnerId:creator.id,...data.me},...others.map((p,i)=>({partnerId:p.id,capitalMinor:data.partners[i].capitalMinor}))];
   if(new Set(partners.map(p=>p.name.toLowerCase())).size!==partners.length)fail('DUPLICATE_NAME','Each partner needs a different name so the agreement is clear.',422);
   const terms={...data.terms,reviewDate:data.terms.reviewDate??null,manager:data.terms.manager||null};
-  checkTerms(terms,stakes,partners);
+  checkTerms(terms,partners);
   const a:InvestmentAgreement={id:randomUUID(),publicId,createdBy:actor.userId,createdAt:now,createKey,status:'AWAITING_SIGNATURES',currentVersionId:'',partners,witnesses,versions:[],signatures:[],attestations:[],changeRequests:[],events:[],finalizedAt:null,finalHash:null,closedBy:null,closedNote:'',revision:0};
   const v=makeVersion(a,terms,stakes,'First version',actor,now);a.versions.push(v);a.currentVersionId=v.id;
   append(a,'CREATED',creator.id,{versionHash:v.hash},now);
@@ -192,9 +186,9 @@ export function reviseAgreement(a:InvestmentAgreement,actor:Actor,input:unknown,
   if(data.signature.toLowerCase()!==actor.name.trim().toLowerCase())fail('SIGNATURE_MISMATCH','Sign with your name as it appears on your account.',422);
   const ids=new Set(data.stakes.map(s=>s.partnerId));
   if(ids.size!==a.partners.length||a.partners.some(p=>!ids.has(p.id)))fail('PARTNERS_FIXED','The same people stay in the agreement. To change who’s in it, cancel and write a new one.',422);
-  const stakes=a.partners.map(p=>{const s=data.stakes.find(x=>x.partnerId===p.id)!;return {partnerId:p.id,capitalMinor:s.capitalMinor,profitShare:s.profitShare};});
+  const stakes=a.partners.map(p=>{const s=data.stakes.find(x=>x.partnerId===p.id)!;return {partnerId:p.id,capitalMinor:s.capitalMinor};});
   const terms={...data.terms,reviewDate:data.terms.reviewDate??null,manager:data.terms.manager||null};
-  checkTerms(terms,stakes,a.partners);
+  checkTerms(terms,a.partners);
   const b=next(a),v=makeVersion(b,terms,stakes,data.reason||'Terms changed',actor,now);
   if(v.hash===latest(a).hash)fail('NO_CHANGE','Nothing changed. Edit the terms first.',422);
   b.versions.push(v);b.currentVersionId=v.id;b.status='AWAITING_SIGNATURES';
@@ -261,11 +255,11 @@ export function viewFor(a:InvestmentAgreement,actor:Actor):View{
   const {createKey:_k,...rest}=a;void _k;
   return {...rest,partners:a.partners.map(strip),witnesses:a.witnesses.map(strip),me:{personId:(p??w)!.id,role:p?'PARTNER':'WITNESS',creator:!!p?.creator}};
 }
-/** The shared investment each partner gets once it's final: their money in, and everyone else's profit share. */
+/** The shared investment each partner gets once it's final: their money in, and each person's share of the money put in. */
 export function investmentFor(a:InvestmentAgreement,partner:Partner,id:string,contributionId:string,now:string){
-  const v=latest(a),stake=v.stakes.find(s=>s.partnerId===partner.id)!,date=v.terms.startDate<=calendarDate(now)?v.terms.startDate:calendarDate(now);
+  const v=latest(a),stake=v.stakes.find(s=>s.partnerId===partner.id)!,shares=sharesByMoney(v.stakes.map(s=>BigInt(s.capitalMinor))),shareOf=(id:string)=>shares[v.stakes.findIndex(s=>s.partnerId===id)],date=v.terms.startDate<=calendarDate(now)?v.terms.startDate:calendarDate(now);
   return {id,ownerId:partner.userId!,name:v.terms.venture,currency:v.terms.currency,note:`From the signed investment agreement ${a.publicId}.`,
-    partners:v.stakes.filter(s=>s.partnerId!==partner.id).map(s=>({name:a.partners.find(p=>p.id===s.partnerId)!.name,share:s.profitShare})),myShare:stake.profitShare,
+    partners:v.stakes.filter(s=>s.partnerId!==partner.id).map(s=>({name:a.partners.find(p=>p.id===s.partnerId)!.name,share:shareOf(s.partnerId)})),myShare:shareOf(stake.partnerId),
     agreementId:a.id,agreementPublicId:a.publicId,createdAt:now,updatedAt:now,revision:0,archived:false,
     contributions:[{id:contributionId,amountMinor:stake.capitalMinor,date,note:'Put in under the agreement',createdAt:now}]};
 }

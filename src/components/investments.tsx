@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import {Archive,ArchiveRestore,CheckCircle2,ChevronRight,FileText,LockKeyhole,Pencil,Plus,Search,Sprout} from '@/components/icons';
+import {Archive,ArchiveRestore,CheckCircle2,ChevronRight,FileText,LockKeyhole,Pencil,Plus,Search,Sprout,Users} from '@/components/icons';
 import {Amount,Chips,Panel,fitChars,longAmount} from './kit';
 import {money} from '@/lib/money';
 import {investmentTotal,investmentTotals,isShared,type Investment,type InvestmentContribution,type InvestmentPartner} from '@/modules/investments/model';
@@ -13,10 +13,17 @@ import {ContributionBlanks,InvestmentBlanks,PartnersPanel} from './record-blanks
 import {firstName} from './person-colour';
 
 const noPartners:InvestmentPartner[]=[];
+/** The two kinds of investment, side by side, so people pick the one that fits. */
+function InvestmentKinds({demo,onPrivate}:{demo:boolean;onPrivate:()=>void}){
+  return <ul className="new-options investment-kinds">
+    <li><button type="button" className="new-option" onClick={onPrivate}><span className="new-option-icon" aria-hidden><LockKeyhole size={18}/></span><span><strong>A private record</strong><small>Just for you. Only you see it, and nobody signs, even if others are in it.</small></span><ChevronRight size={18} aria-hidden/></button></li>
+    <li><Link className="new-option" href={`${appBase(demo)}/investments/agreements/new`}><span className="new-option-icon" aria-hidden><Users size={18}/></span><span><strong>An agreement with partners</strong><small>You all agree who puts in how much. Everyone signs, and each of you gets the record.</small></span><ChevronRight size={18} aria-hidden/></Link></li>
+  </ul>;
+}
 export function InvestmentTracker({initial,demo,agreements=[],joint=true}:{initial:Investment[];demo:boolean;agreements?:JointSummary[];joint?:boolean}){
   const [records,setRecords]=useState(initial);
   const [editing,setEditing]=useState<Investment|null>(null),[contributing,setContributing]=useState<{id:string;contribution?:InvestmentContribution}|null>(null);
-  const [filter,setFilter]=useState<'Active'|'Archived'>('Active'),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[adding,setAdding]=useState(false);
+  const [filter,setFilter]=useState<'Active'|'Archived'>('Active'),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[adding,setAdding]=useState(false),[choosing,setChoosing]=useState(false);
   const request=useRef<{text:string;key:string}|null>(null);
   const totals=investmentTotals(records),visible=records.filter(record=>record.archived===(filter==='Archived')&&`${record.name} ${record.note} ${record.currency}`.toLowerCase().includes(search.trim().toLowerCase()));
   // "New" → "An investment" lands here with ?new=1: open the form once, then tidy the address.
@@ -57,12 +64,15 @@ export function InvestmentTracker({initial,demo,agreements=[],joint=true}:{initi
           <span className={`agreement-row-left${longAmount(money(investmentTotal(record),record.currency))?' long':''}`}><span className="agreement-row-amount"><Amount text={money(investmentTotal(record),record.currency)} currency={record.currency}/></span><span className="agreement-row-caption">{count===1?'once':`${count} times`}</span></span>
         </button></article></li>;};
   return <div className="ledger">
+    {joint&&<Panel open={choosing} onOpenChange={setChoosing} title="What kind of investment?" description="Pick the one that fits what you want to keep.">
+      <InvestmentKinds demo={demo} onPrivate={()=>{setChoosing(false);setNotice('');setAdding(true);}}/>
+    </Panel>}
     <InvestmentBlanks open={adding} onOpenChange={setAdding} demo={demo} onSaved={investment=>{setRecords(current=>[investment,...current]);setFilter('Active');setSearch('');setNotice('Investment saved.');}}/>
     <InvestmentBlanks open={!!editing} onOpenChange={o=>{if(!o)setEditing(null);}} demo={demo} investment={editing} onReload={()=>editing?latest(editing.id):Promise.resolve(undefined)} onSaved={investment=>{replace(investment);setNotice('Changes saved.');}}/>
     <ContributionBlanks open={!!contributing} onOpenChange={o=>{if(!o)setContributing(null);}} demo={demo} records={contributing?.contribution?records.filter(r=>r.id===contributing.id):active} startId={contributing?.id??null} contribution={contributing?.contribution} onSaved={(investment,edited)=>{replace(investment);setNotice(edited?'Changes saved.':'Contribution recorded.');}}/>
     <header className="ledger-head">
       <h1>My investments</h1>
-      <p className="ledger-private"><LockKeyhole size={14} aria-hidden/>Only you can see these</p>
+      <p className="ledger-private"><LockKeyhole size={14} aria-hidden/>{joint?'Only you see your private records':'Only you can see these'}</p>
       {totals.length>0&&<section className="ledger-total" aria-label="Active investment totals by currency">
         <p className="ledger-amount" style={fitChars(money(main.amountMinor,main.currency))}><Amount text={money(main.amountMinor,main.currency)} currency={main.currency}/></p>
         <p className="ledger-caption">put in {mainCount===1?'one investment':`across ${mainCount} investments`}{others.length>0&&<> · plus {others.map(t=>money(t.amountMinor,t.currency)).join(' and ')}</>}</p>
@@ -73,15 +83,14 @@ export function InvestmentTracker({initial,demo,agreements=[],joint=true}:{initi
     <ErrorMessage message={error}/>{error.includes('changed since')&&<Button variant="secondary" disabled={busy} onClick={()=>void reload()}>Load latest records</Button>}
     <JointList agreements={agreements} demo={demo}/>
     {records.length>0&&<div className="agreements-tools ledger-tools"><Chips label="Filter investments" value={filter as 'Active'|'Archived'} onChange={setFilter} options={[{id:'Active',label:'Active'},{id:'Archived',label:'Archived'}]}/><label className="agreements-search"><Search size={18} aria-hidden/><span className="sr-only">Search investments</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search a name or currency"/></label></div>}
-    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. Add a name, the amount and the date to start.</p><div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>{setNotice('');setAdding(true);}}>Add an investment</button>{joint&&<Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>}</div></section>
+    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. {joint?'Choose how you want to keep it.':'Add a name, the amount and the date to start.'}</p>{joint?<InvestmentKinds demo={demo} onPrivate={()=>{setNotice('');setAdding(true);}}/>:<div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>{setNotice('');setAdding(true);}}>Add an investment</button></div>}</section>
      :!visible.length?<section className="agreements-empty"><p>{search?'No investments match your search.':filter==='Archived'?'No archived investments.':'No active investments. Add one or restore an archived record.'}</p></section>
      :<>{(filter==='Archived'?[{id:'ledger-archived',title:'Archived',items:visible}]:[{id:'ledger-shared',title:'Shared',items:visible.filter(isShared)},{id:'ledger-mine',title:'Just mine',items:visible.filter(r=>!isShared(r))}]).filter(g=>g.items.length>0).map(g=><section key={g.id} className="agreements-group ledger-group" aria-labelledby={g.id}><h2 className="kit-overline agreements-group-title" id={g.id}>{g.title} · {g.items.length}</h2>
       <ul>{g.items.map(row)}</ul>
      </section>)}</>}
     {records.length>0&&<div className="ledger-dock">
       {active.length>0&&<button type="button" className="brief-cta" onClick={()=>{setNotice('');setContributing({id:active[0].id});}}>Add money</button>}
-      <button type="button" className="button sign-tertiary ledger-add" disabled={busy} onClick={()=>{setNotice('');setAdding(true);}}><Plus size={16} aria-hidden/>Add an investment</button>
-      {joint&&<Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>}
+      <button type="button" className="button sign-tertiary ledger-add" disabled={busy} aria-haspopup={joint?'dialog':undefined} onClick={()=>{setNotice('');if(joint)setChoosing(true);else setAdding(true);}}><Plus size={16} aria-hidden/>Add an investment</button>
     </div>}
     <p className="quiet-note debt-footnote">Totals include active records only. Each currency stays separate.</p>
 

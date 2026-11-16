@@ -8,11 +8,11 @@ Accepted, 16 November 2026.
 
 Partners can write an investment agreement together (`src/modules/investment-agreements/`, screens in `src/components/investment-agreement.tsx`, migration `202611150011`). The owner chose these rules on 15 November 2026:
 
-- 2 to 5 partners, including the writer. Profit is split by whole percentages the partners agree (totalling 100). Loss is always shared by how much money each partner put in. There is no field for a fixed or guaranteed return.
+- 2 to 5 partners, including the writer, each putting in an amount of money. The agreement records who is investing together and how much each puts in. On 16 November 2026 the owner removed profit splits and loss rules: those are left for the partners to settle between themselves.
 - Every partner signs the same version. A change request goes back to the writer, who makes a new version that everyone signs again. People can't be added or removed after sending.
 - Up to two optional witnesses. The writer can finish without waiting for them.
 - Invitations are private links the writer shares themselves (WhatsApp or copy), so no new email type is added (ADR 019).
-- When final, each partner gets a linked record in their own Investments.
+- When final, each partner gets a linked record in their own Investments, showing each person's share of the money put in.
 
 **Switch.** The agreement and promise wording is religious in nature and has not yet been approved by the owner's scholar. `investmentAgreementsEnabled()` (`src/modules/investment-agreements/enabled.ts`) keeps the feature off in production. It is on in local development, and anywhere else only when `AHD_INVESTMENT_AGREEMENTS=true` (the demo test link sets it). When off, the pages answer "unavailable", the `/api/joint` routes return 404, and the New menu options and investments link are hidden. Nothing reads the new table, so migration `202611150011` is **not** applied to the live database yet.
 

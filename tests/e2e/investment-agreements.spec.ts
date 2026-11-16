@@ -17,22 +17,18 @@ for(const width of [320,1366])test(`partners write, sign and witness an investme
  await page.setViewportSize({width,height:900});
  await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await as(page,yusuf);
  await page.goto('/demo/investments');
- await page.getByRole('link',{name:'Investing with someone? Write an agreement you all sign'}).click();
+ const add=page.getByRole('button',{name:'Add an investment',exact:true});if(await add.count())await add.click();await expect(page.getByRole('button',{name:/^A private record/})).toBeVisible();await page.getByRole('link',{name:/^An agreement with partners/}).click();
  await expect(page.getByRole('heading',{name:'Write it down'})).toBeVisible();
 
  await page.getByRole('button',{name:'Say what you’re investing in'}).click();
  let p=panel(page,'What are you investing in?');await p.getByLabel('Investment').fill('Sister’s shop in Kano');await submit(p,'Next: who');
  p=panel(page,'Who are you investing with?');await p.getByLabel('Partner’s full name').fill('Aisha Suleiman');await p.getByLabel('Partner’s email or phone number').fill('aisha@example.test');await submit(p,'Add and continue');
- p=panel(page,'How much does each person put in?');await p.getByLabel('Amount you put in (NGN)').fill('200000');await p.getByLabel('Amount Aisha Suleiman puts in (NGN)').fill('100000');await submit(p,'Next: profit');
- p=panel(page,'How is profit split?');await p.getByLabel('Your profit share, in percent').fill('50');await p.getByLabel('Aisha Suleiman’s profit share, in percent').fill('40');
- await expect(p).toContainText('10% left to share.');await submit(p,'Next: start date');await expect(p.getByRole('alert')).toContainText('They add up to 90% now');
- await p.getByRole('button',{name:'Split profit by money put in'}).click();await expect(p).toContainText('Adds up to 100%.');await expect(p).toContainText('Loss 66.7%');
- await p.getByLabel('Your profit share, in percent').fill('60');await p.getByLabel('Aisha Suleiman’s profit share, in percent').fill('40');await submit(p,'Next: start date');
+ p=panel(page,'How much does each person put in?');await p.getByLabel('Amount you put in (NGN)').fill('200000');await p.getByLabel('Amount Aisha Suleiman puts in (NGN)').fill('100000');await submit(p,'Next: start date');
  p=panel(page,'When does it start?');await submit(p,'Done');
  await expect(page.getByRole('heading',{name:'Read it back'})).toBeVisible();
  await page.getByRole('button',{name:'+ Add witnesses (optional)'}).click();
  p=panel(page,'Who will witness it?');await p.getByLabel('Witness’s full name').fill('Maryam Bello');await p.getByLabel('Witness’s email or phone number').fill('maryam@example.test');await submit(p,'Add witness');
- await expect(page.locator('.create-sentence')).toContainText('Profit is split 60% me · 40% Aisha.');await expect(page.locator('.create-sentence')).toContainText('Witnessed by Maryam Bello.');
+ await expect(page.locator('.create-sentence')).not.toContainText(/profit|loss/i);await expect(page.locator('.create-sentence')).toContainText('Witnessed by Maryam Bello.');
  await noOverflow(page);
  await page.getByRole('button',{name:'Review and sign'}).click();await promiseAndSign(page);
  await expect(page.getByRole('heading',{name:'Send it to everyone'})).toBeVisible();
@@ -45,7 +41,7 @@ for(const width of [320,1366])test(`partners write, sign and witness an investme
  await as(page,aisha);await page.goto(aishaLink!);
  await expect(page.getByRole('heading',{name:'Yusuf Ali asked you to sign an investment agreement'})).toBeVisible();await axe(page);
  await page.getByRole('button',{name:'Open the agreement'}).click();
- await expect(page.getByText('Puts in ₦100,000 · profit 40% · loss 33.3%')).toBeVisible();
+ await expect(page.getByText('Puts in ₦100,000',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Read and sign'}).click();await promiseAndSign(page);
  await expect(page.getByRole('status').filter({hasText:'Every partner has signed. Waiting for Maryam to witness it.'})).toBeVisible();
 
@@ -63,7 +59,7 @@ for(const width of [320,1366])test(`partners write, sign and witness an investme
 
  // Each partner now has the shared investment in their own records, linked to the agreement.
  await as(page,aisha);await page.goto('/demo/investments');
- const card=page.getByRole('article',{name:'Sister’s shop in Kano'});await expect(card).toContainText('With Yusuf · your share 40%');await expect(card).toContainText('₦100,000');
+ const card=page.getByRole('article',{name:'Sister’s shop in Kano'});await expect(card).toContainText('With Yusuf · your share 33%');await expect(card).toContainText('₦100,000');
  await card.getByRole('button').click();await expect(page.getByRole('dialog')).toContainText(/From the signed agreement INV-/);
  await page.keyboard.press('Escape');
  await expect(page.getByRole('heading',{name:/Investment agreements · 1/})).toBeVisible();await noOverflow(page);await axe(page);
@@ -74,7 +70,7 @@ test('a change request comes back to the writer, and everyone signs the new vers
  test.setTimeout(90000);
  await page.setViewportSize({width:390,height:900});
  await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await as(page,yusuf);
- const created=await page.request.post('/api/demo/joint',{headers:{Origin:origin,'Idempotency-Key':crypto.randomUUID()},data:{terms:{venture:'Rice farm',currency:'NGN',startDate:'2026-11-15'},me:{capitalMinor:'10000000',profitShare:50},partners:[{name:'Aisha Suleiman',contact:'aisha@example.test',capitalMinor:'10000000',profitShare:50}],signature:'Yusuf Ali',affirmed:true}});
+ const created=await page.request.post('/api/demo/joint',{headers:{Origin:origin,'Idempotency-Key':crypto.randomUUID()},data:{terms:{venture:'Rice farm',currency:'NGN',startDate:'2026-11-15'},me:{capitalMinor:'10000000'},partners:[{name:'Aisha Suleiman',contact:'aisha@example.test',capitalMinor:'10000000'}],signature:'Yusuf Ali',affirmed:true}});
  expect(created.status()).toBe(201);const {agreement,links}=await created.json();
  await as(page,aisha);await page.goto(links[0].url);await page.getByRole('button',{name:'Open the agreement'}).click();
  await page.getByRole('button',{name:'Ask for a change'}).click();

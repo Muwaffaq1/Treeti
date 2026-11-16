@@ -29,7 +29,7 @@ for(const width of [375,768,1366])test(`investment contributions, currencies, co
 
 test('a shared investment records who is in it, their shares and what is left for you',async({page})=>{
  await page.setViewportSize({width:390,height:900});await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.goto('/demo/investments');
- await page.getByRole('button',{name:'Add an investment',exact:true}).click();await page.getByRole('button',{name:'+ Shared with someone? Add them',exact:true}).click();
+ const add=page.getByRole('button',{name:'Add an investment',exact:true});if(await add.count())await add.first().click();await page.getByRole('button',{name:/^A private record/}).click();await page.getByRole('button',{name:'+ Shared with someone? Add them',exact:true}).click();
  const p=page.getByRole('dialog',{name:'Who’s in it with you?'});await fillPartners(p,[['Aisha Bello','70'],['Musa Ibrahim','40']]);await expect(p.getByText('Your share')).toBeVisible();
  await p.getByRole('button',{name:'Done',exact:true}).click();await expect(p.getByRole('alert')).toContainText('Leave at least 1% for you');await page.keyboard.press('Escape');await page.getByRole('button',{name:'Close',exact:true}).click();
  await addInvestment(page,{name:'Sister’s shop',amount:'250000',partners:[['Aisha Bello','40']]});
