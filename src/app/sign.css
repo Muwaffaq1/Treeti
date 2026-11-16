@@ -1,5 +1,5 @@
 /* Signing (Figma: Sign · 1–4, Ask for a change, Reject request, Desktop · Hold to sign 152:7922). */
-.sign-flow{--ls:var(--tracking);position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);overflow-y:auto;overscroll-behavior:contain}
+.sign-flow{--ls:var(--tracking);position:fixed;inset:0 0 var(--kb-inset,0px);z-index:70;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);overflow-y:auto;overscroll-behavior:contain}
 .sign-bar{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 0}
 .sign-kicker{margin:0;text-align:center;font:500 13px/18px var(--font-ui);letter-spacing:var(--tracking);color:var(--muted)}
 .sign-kicker-wide{display:none}

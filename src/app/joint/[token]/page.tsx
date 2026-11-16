@@ -11,7 +11,7 @@ export default async function JointInvitationPage({params}:{params:Promise<{toke
   if(!investmentAgreementsEnabled())notFound();
   const {token}=await params;
   let signedIn=false;try{await getRuntime(false);signedIn=true;}catch{}
-  if(signedIn)return <WorkspacePage demo={false} path={['joint',token]}/>;
+  if(signedIn)return <WorkspacePage shell demo={false} path={['joint',token]}/>;
   let summary=null;try{summary=await invitationSummary(investmentAgreementRepository(false),token);}catch{}
   return <main className="public-invitation"><JointInvitation token={token} summary={summary} authenticated={false} demo={false}/></main>;
 }

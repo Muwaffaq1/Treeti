@@ -60,7 +60,7 @@
 /* The create flow is the whole page: no app chrome around it, so nothing hidden can take focus. */
 .create-flow{position:static;min-height:100dvh}
 /* Debts and investments reuse the sentence flow as a full-screen layer over their page (owner, Nov 2026). */
-.create-flow.record-flow{position:fixed;inset:0;min-height:0}
+.create-flow.record-flow{position:fixed;inset:0 0 var(--kb-inset,0px);min-height:0}
 .app-shell:has(.create-flow) :is(.sidebar,.mobile-header,.mobile-nav,.top-bar,.install-nudge,.feedback-nudge){display:none!important}
 .app-shell:has(.create-flow) .workspace{margin:0!important;width:100%!important}
 .main-content:has(> .create-flow){max-width:none!important;padding:0!important}

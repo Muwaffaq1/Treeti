@@ -69,3 +69,7 @@
 
 /* A ready-made entry page is moving a signed-in person on; do not flash it first. */
 html[data-leaving] body{visibility:hidden}
+/* iOS Safari zooms the page into any field under 16px and doesn't zoom back out. On touch screens the fields that
+   are smaller by design go up to 16px (larger ones keep their size). Never fix this with maximum-scale: that
+   blocks pinch-zoom. */
+@media(pointer:coarse){:root :is(.field input:not([type=checkbox]):not([type=radio]),.field textarea,.field select,.agreements-search input,.top-search input,.version-select select){font-size:16px}}

@@ -3,10 +3,43 @@
 // Every screen of the revamp is built from these, so a change here updates phone and desktop together.
 import Link from 'next/link';
 import * as Dialog from '@radix-ui/react-dialog';
-import type {ReactNode} from 'react';
+import {useEffect,type ReactNode} from 'react';
 import {money} from '@/lib/money';
 import {initials} from './person-colour';
 import {ChevronRight,X} from './icons';
+
+/*
+  On-screen keyboard. iOS Safari shrinks only the visual viewport when the keyboard opens, so anything
+  position:fixed stays put and ends up under the keyboard, and 100dvh ignores it (no keyboard-inset env vars
+  in Safari). While a panel or full-screen layer is open we publish where the keyboard is as CSS variables:
+  --kb-inset (keyboard height over the layout viewport), --vv-height and --vv-top (the visible area).
+  Android uses interactiveWidget:'resizes-content' (app/layout.tsx), so its inset stays 0 here.
+*/
+let keyboardUsers=0,stopKeyboard:(()=>void)|null=null;
+function startKeyboardTracking(){
+  const vv=window.visualViewport;if(!vv)return ()=>{};
+  const root=document.documentElement.style;
+  // visualViewport fires at most once a frame while the keyboard moves, so update straight away.
+  const update=()=>{
+    const open=vv.height<window.innerHeight-1;
+    // iOS 26 can leave offsetTop non-zero after the keyboard closes, so only trust it while the keyboard is up.
+    const top=open?vv.offsetTop:0,inset=Math.max(0,Math.round(window.innerHeight-(top+vv.height)));
+    root.setProperty('--kb-inset',`${inset}px`);root.setProperty('--vv-height',`${Math.round(vv.height)}px`);root.setProperty('--vv-top',`${Math.round(top)}px`);
+    // Keep the field being typed in visible inside its scrolling panel once the space shrinks.
+    const field=document.activeElement;
+    if(open&&field instanceof HTMLElement&&field.matches('input,textarea,select,[contenteditable]'))field.scrollIntoView({block:'nearest'});
+  };
+  vv.addEventListener('resize',update);vv.addEventListener('scroll',update);update();
+  return ()=>{vv.removeEventListener('resize',update);vv.removeEventListener('scroll',update);for(const name of ['--kb-inset','--vv-height','--vv-top'])root.removeProperty(name);};
+}
+/** Track the on-screen keyboard while `active`. Shared: listeners stay on until the last open layer closes. */
+export function useKeyboardInset(active:boolean){
+  useEffect(()=>{
+    if(!active)return;
+    if(keyboardUsers++===0)stopKeyboard=startKeyboardTracking();
+    return ()=>{if(--keyboardUsers===0){stopKeyboard?.();stopKeyboard=null;}};
+  },[active]);
+}
 
 /** Character count for the fit-to-width totals: font-size = container width ÷ characters (see .ledger-amount). */
 export const fitChars=(text:string)=>({'--chars':Array.from(text).length} as React.CSSProperties);
@@ -112,6 +145,7 @@ export function Card({title,link,children}:{title?:string;link?:{label:string;hr
  * On wide screens a "sheet" becomes a centred dialog and a "drawer" becomes a 480px side panel.
  */
 export function Panel({open,onOpenChange,title,description,variant='sheet',hideTitle,children}:{open:boolean;onOpenChange:(open:boolean)=>void;title:string;description?:string;variant?:'sheet'|'drawer';hideTitle?:boolean;children:ReactNode}){
+  useKeyboardInset(open);
   return <Dialog.Root open={open} onOpenChange={onOpenChange}>
     <Dialog.Portal>
       <Dialog.Overlay className="kit-scrim"/>

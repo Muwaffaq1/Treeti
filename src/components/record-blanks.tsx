@@ -12,7 +12,7 @@ import {api,apiBase} from './client-api';
 import {formatDate} from './agreement-utils';
 import {formatMoneyChange} from './money-input';
 import {DebtPlanFields,buildDebtPlan,debtPlanDraft,type DebtPlanDraft} from './debt-plan-fields';
-import {Avatar,Blank,Panel,longAmount} from './kit';
+import {Avatar,Blank,Panel,longAmount,useKeyboardInset} from './kit';
 import {ErrorMessage} from './ui';
 import {X} from './icons';
 
@@ -31,6 +31,7 @@ function useKey(){const last=useRef<{body:string;key:string}|null>(null);return 
 /** The full-screen frame every record sentence shares. */
 export function Flow({open,onOpenChange,kicker,title,sub,children,panels}:{open:boolean;onOpenChange:(o:boolean)=>void;kicker:string;title:string;sub:string;children:ReactNode;panels:ReactNode}){
   const returnFocus=useReturnFocus();
+  useKeyboardInset(open);
   return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Content className="sign-flow create-flow record-flow" aria-describedby={undefined} {...returnFocus}>
     <header className="sign-bar"><Dialog.Close className="detail-icon-button" aria-label="Close"><X size={18} aria-hidden/></Dialog.Close><p className="sign-kicker">{kicker}</p><span/></header>
     <div className="sign-body"><div className="sign-heading"><Dialog.Title className="sign-title">{title}</Dialog.Title><p>{sub}</p></div>{children}</div>

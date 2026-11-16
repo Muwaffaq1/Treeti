@@ -11,7 +11,7 @@ import {maskContact} from '@/lib/contact';
 import {affirmation,formatDate,interestWording} from './agreement-utils';
 import {InterestWordingWarning} from './create-agreement';
 import {ArrowLeft,Check,X} from './icons';
-import {Chips,Panel} from './kit';
+import {Chips,Panel,useKeyboardInset} from './kit';
 import {DisclosureSummary,ErrorMessage} from './ui';
 import {firstName} from './person-colour';
 
@@ -26,6 +26,7 @@ export function SignFlow({open,onOpenChange,a,v,me,actor,home,run}:{open:boolean
   const [step,setStep]=useState<Step>('read'),[affirmed,setAffirmed]=useState(false),[signature,setSignature]=useState(actor.name),[editing,setEditing]=useState(false);
   const [style,setStyle]=useState<Style>('script'),[error,setError]=useState(''),[signed,setSigned]=useState<Aggregate|null>(null);
   const [ask,setAsk]=useState<'change'|'reject'|null>(null);
+  useKeyboardInset(open);
   useEffect(()=>{if(open){setStep('read');setAffirmed(false);setSignature(actor.name);setEditing(false);setError('');setSigned(null);}},[open,actor.name]);
   const lender=a.participants.find(x=>x.role==='LENDER'),borrower=a.participants.find(x=>x.role==='BORROWER');
   const other=me.role==='LENDER'?borrower:lender,otherFirst=firstName(other?.name||'the other party');

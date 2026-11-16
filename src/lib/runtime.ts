@@ -1,4 +1,5 @@
 import {profileName} from './profile-name';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { database } from './database';
 import { readSession } from './session';
@@ -8,7 +9,9 @@ import { PostgresRepository, type Repository } from '@/modules/agreements/reposi
 import { DomainError } from '@/modules/agreements/domain';
 import type { Actor, Context } from '@/modules/agreements/types';
 export type DemoSession={ workspace:string;userId:string;expiresAt:number };
-export async function getRuntime(demo:boolean):Promise<{actor:Actor;repo:Repository;demo:boolean;people?:Actor[];workspace?:string}> {
+/** Once per request: the workspace layout and its page both ask who is signed in. */
+export const getRuntime=cache(loadRuntime);
+async function loadRuntime(demo:boolean):Promise<{actor:Actor;repo:Repository;demo:boolean;people?:Actor[];workspace?:string}> {
   if(demo){
     if(!demoEnabled())throw new DomainError('DEMO_DISABLED','The demonstration is unavailable.',404);
     const session=readSession<DemoSession>((await cookies()).get('ahd_demo')?.value);
