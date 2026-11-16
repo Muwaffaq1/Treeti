@@ -36,8 +36,15 @@
 .create-plan:has(input:checked){border-color:var(--action);background:var(--accent-soft)}
 .create-plan:has(input:checked) .create-plan-dot{border:6px solid var(--action)}
 .create-plan:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
-.create-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.create-custom{display:grid;gap:10px}
+.create-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.create-pair>*{min-width:0}
+.create-custom{display:grid;gap:12px}
+/* One card per custom part. minmax(0,1fr) lets iOS date fields shrink instead of spilling into the amount. */
+.create-part{display:grid;gap:8px;padding:12px 14px 14px;border:1px solid var(--faint);border-radius:18px;background:var(--surface)}
+.create-part-title{margin:0;font:500 13px/18px var(--font-ui);letter-spacing:var(--tracking);color:var(--muted)}
+.create-part-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.create-part-fields>*{min-width:0}
+.create-part-fields input{width:100%;min-width:0;max-width:100%}
 .create-custom-actions{display:flex;flex-wrap:wrap;gap:12px 16px}
 .create-summary{margin:0;font:500 13px/18px var(--font-ui);color:var(--positive-strong)}
 .create-share{display:grid;gap:0;padding:4px 20px;list-style:none}

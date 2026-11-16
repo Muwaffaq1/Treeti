@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { digest, invitationToken, sha256 } from '@/lib/crypto';
 import {canResendInvitation} from './invitation-resend';
 import {calendarDate} from '@/lib/calendar';
+import {sameContact} from '@/lib/contact';
 import { money } from '@/lib/money';
 import {repaymentWording} from './repayment-plan';
 import { createSchema, commandSchema } from './schema';
@@ -266,7 +267,7 @@ export function claimInvitation(original: Aggregate, token: string, ctx: Context
 export function claimInvitationById(original: Aggregate, invitationId: string, ctx: Context): Aggregate {
   const a = structuredClone(original), i = a.invitations.find(i => i.id === invitationId);
   requireThat(i && i.expiresAt > ctx.now && ['PENDING', 'CLAIMED'].includes(i.status) && i.versionId === a.currentVersionId && !['CANCELLED', 'DECLINED'].includes(a.status), 'INVITATION_EXPIRED', 'This invitation is no longer active. Ask the inviter for a new link.', 410);
-  requireThat(ctx.actor.contacts.some(c => c.trim().toLowerCase() === i.destination.trim().toLowerCase()), 'INVITATION_IDENTITY_MISMATCH', 'Verify the email address or phone number this invitation was sent to.', 403);
+  requireThat(ctx.actor.contacts.some(c => sameContact(c, i.destination)), 'INVITATION_IDENTITY_MISMATCH', 'Verify the email address or phone number this invitation was sent to.', 403);
   const p = a.participants.find(p => p.id === i.participantId)!;
   requireThat(!p.userId || p.userId === ctx.actor.userId, 'INVITATION_ALREADY_CLAIMED', 'This invitation is already linked to a different identity.', 403);
   requireThat(!a.participants.some(x => x.userId === ctx.actor.userId && x.id !== p.id), 'SAME_PARTY', 'One person cannot take two roles in the same agreement.', 403);

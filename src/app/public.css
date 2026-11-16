@@ -85,3 +85,4 @@
   .landing-footer-v3{display:flex;justify-content:space-between;width:min(1160px,calc(100% - 64px));text-align:start}
 }
 .verification-page.in-app{min-height:0;background:none}.verification-page.in-app .public-main{padding-top:24px}
+.code-paste{justify-self:center;margin-top:10px}

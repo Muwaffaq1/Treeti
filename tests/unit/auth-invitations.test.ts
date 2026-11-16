@@ -1,5 +1,5 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import {act,approved,now,people} from '../helpers';
+import {act,approved,draft,now,people} from '../helpers';
 import {claimInvitation} from '@/modules/agreements/domain';
 import {readSession,signSession} from '@/lib/session';
 import {authReturnPath} from '@/lib/auth-return';
@@ -71,10 +71,16 @@ describe('witness invitation verification',()=>{
       const copy=structuredClone(agreement);mutate(copy);expect(()=>witnessInvitation(copy,token,now)).toThrow();
     }
   });
-  it('does not offer witness verification to a borrower invitation',async()=>{
+  it('sends a borrower the code at the invited address, so they never retype their email',async()=>{
+    const result=act(draft(0),people[0],'send');agreement=result.agreement;token=result.invitation!.token;
+    expect((await post('send',{invitationToken:token})).status).toBe(200);
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({email:people[1].contacts[0]}));
+    expect(readSession<Challenge>(mocks.jar.get('ahd_challenge'))).toMatchObject({contact:people[1].contacts[0],action:'review',agreementId:agreement.id});
+  });
+  it('does not open an invitation for a role that never gets one',async()=>{
     const result=act(approved(),people[0],'invite-witness',{name:people[3].name,contact:people[3].contacts[0]});
-    agreement=result.agreement;agreement.participants.find(p=>p.id===agreement.invitations.at(-1)!.participantId)!.role='BORROWER';token=result.invitation!.token;
-    expect((await post('send',{invitationToken:token,name:'Another person'})).status).toBe(409);expect(mocks.send).not.toHaveBeenCalled();
+    agreement=result.agreement;agreement.participants.find(p=>p.id===agreement.invitations.at(-1)!.participantId)!.role='LENDER';token=result.invitation!.token;
+    expect((await post('send',{invitationToken:token,name:'Another person'})).status).toBe(410);expect(mocks.send).not.toHaveBeenCalled();
   });
   it('rejects a version changed between send and verification before accepting the code',async()=>{
     mocks.jar.set('ahd_challenge',signSession(challenge()));agreement.currentVersionId='superseded';

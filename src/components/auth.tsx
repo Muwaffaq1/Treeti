@@ -28,7 +28,7 @@ export function Login({configured,demoAvailable=false}:{configured:boolean;demoA
   return <div className="public-page">
     <PublicHeader/>
     <main id="main" className="public-main">
-      <div className="public-heading"><h1>{sent?'Check your email':'Welcome to treeti'}</h1><p>{sent?`We sent a 6-digit code to ${masked}`:'Sign in with your email. No password needed.'}</p></div>
+      <div className="public-heading"><h1>{sent?'Check your email':'Welcome to treeti'}</h1><p>{sent?`We sent a code to ${masked}`:'Sign in with your email. No password needed.'}</p></div>
       {!configured?<div className="public-card"><p>{demoAvailable?'Sign-in isn’t connected yet. You can explore treeti with sample records.':'Sign-in setup is still in progress. Please check back later.'}</p>{demoAvailable&&<Link className="button button-primary sign-primary" href="/demo">Explore the demonstration</Link>}</div>
       :<form className="public-form" onSubmit={e=>{e.preventDefault();void submit();}}>
         {sent?<CodeBoxes inputRef={codeInput} value={code} onChange={setCode}/>
@@ -72,13 +72,13 @@ export function InvitationPage({token,demo,actorName,authenticated}:{token:strin
     }catch(e){if(live)setError((e as Error).message);}finally{if(live)setBusy(false);}}
     void open();return ()=>{live=false;};
   },[token,demo,authenticated,actorName,retry,router]);
-  async function sendWitnessCode(resend=false){
+  async function sendInvitationCode(resend=false){
     if(busy)return;setBusy(true);setError('');setNotice('');
     try{await api('/api/auth/send',{invitationToken:token});setCode('');setSent(true);if(resend)setNotice('A new code has been sent. Check your email and use the latest code.');codeInput.current?.focus();}
     catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
-  async function verifyWitness(){
-    if(busy)return;if(!sent){await sendWitnessCode();return;}setBusy(true);setError('');setNotice('');
+  async function verifyInvitation(){
+    if(busy)return;if(!sent){await sendInvitationCode();return;}setBusy(true);setError('');setNotice('');
     try{const r=await api<{agreementId:string}>('/api/auth/verify',{code});router.replace(`/agreements/${r.agreementId}`);router.refresh();}
     catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
@@ -86,7 +86,7 @@ export function InvitationPage({token,demo,actorName,authenticated}:{token:strin
   return <div className="public-page">
     <PublicHeader/>
     <main id="main" className="public-main">
-      <div className="public-heading"><span className="public-mark" aria-hidden><Mail size={22}/></span><h1>{witness?'You’re invited to be a witness':'You’re invited to review an agreement'}</h1><p>{witness?'Read the terms and decide whether to witness them. You’re not responsible for repayment.':'Sign in with the email it was sent to, then read it privately.'}</p></div>
+      <div className="public-heading"><span className="public-mark" aria-hidden><Mail size={22}/></span><h1>{witness?'You’re invited to be a witness':'You’re invited to review an agreement'}</h1><p>{witness?'Read the terms and decide whether to witness them. You’re not responsible for repayment.':'We’ll send a code to the email it was sent to, then you can read it privately.'}</p></div>
       {!witness&&<p className="public-callout">Opening it doesn’t mean you accept anything. You can ask for a change or say no.</p>}
       <div className="public-form">
         {busy&&!info&&<p className="quiet-note public-note">Opening your invitation…</p>}
@@ -94,8 +94,8 @@ export function InvitationPage({token,demo,actorName,authenticated}:{token:strin
         <ErrorMessage message={error}/>{notice&&<p className="quiet-note public-note" role="status">{notice}</p>}
         {error&&(!info||authenticated)&&<div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>setRetry(n=>n+1)}>Try again</button>{authenticated&&!demo&&<button type="button" className="kit-link detail-link-button" onClick={async()=>{await api('/api/auth/sign-out',{});router.replace(`/login?next=${encodeURIComponent(`/invite/${token}`)}`);router.refresh();}}>Use a different email</button>}</div>}
         {info&&info.verificationAvailable===false?<p className="public-note">Phone verification is not available yet. Ask the inviter for an email invitation.</p>
-        :info&&!authenticated&&(witness&&!demo?<form className="public-form" onSubmit={e=>{e.preventDefault();void verifyWitness();}}>
-            {sent&&<><CodeBoxes inputRef={codeInput} value={code} onChange={setCode}/><div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void sendWitnessCode(true)}>Send a new code</button></div></>}
+        :info&&!authenticated&&(!demo?<form className="public-form" onSubmit={e=>{e.preventDefault();void verifyInvitation();}}>
+            {sent&&<><CodeBoxes inputRef={codeInput} value={code} onChange={setCode}/><div className="public-links"><button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>void sendInvitationCode(true)}>Send a new code</button></div></>}
             <div className="sign-actions public-actions"><button type="submit" className="button button-primary sign-primary" disabled={busy} aria-busy={busy}>{sent?'Verify and read the terms':'Send my sign-in code'}</button><p className="sign-note">Verify your email once. No password or profile. Your response is only recorded when you agree.</p></div>
           </form>
           :<div className="sign-actions public-actions"><Link className="button button-primary sign-primary" href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}>Sign in to read</Link></div>)}
@@ -105,13 +105,28 @@ export function InvitationPage({token,demo,actorName,authenticated}:{token:strin
   </div>;
 }
 
-/** Six boxes drawn around one real input, so paste and one-time-code autofill keep working. */
+/**
+ * Boxes drawn around one real input, so typing, paste and one-time-code autofill all work.
+ * "Paste code" reads the clipboard directly: on iPhone, long-pressing an invisible field often shows no Paste.
+ */
 function CodeBoxes({value,onChange,inputRef}:{value:string;onChange:(v:string)=>void;inputRef:React.RefObject<HTMLInputElement|null>}){
   const digits=value.replace(/\D/g,'').slice(0,8),count=Math.max(6,digits.length);
-  return <label className="code-boxes"><span className="sr-only">Verification code</span>
-    <input ref={inputRef} value={digits} onChange={e=>onChange(e.target.value.replace(/\D/g,'').slice(0,8))} autoComplete="one-time-code" inputMode="numeric" required pattern="[0-9]{6,8}" maxLength={8} autoFocus/>
-    <span className="code-boxes-row" aria-hidden>{Array.from({length:count},(_,i)=><span key={i} className={`code-box${i===digits.length?' current':''}${i<digits.length?' filled':''}`}>{digits[i]??''}</span>)}</span>
-  </label>;
+  const [canPaste,setCanPaste]=useState(false),[pasteNote,setPasteNote]=useState('');
+  useEffect(()=>{setCanPaste(typeof navigator!=='undefined'&&!!navigator.clipboard?.readText);},[]);
+  const take=(text:string)=>{const code=(text.match(/\d{6,8}/)?.[0]??text.replace(/\D/g,'')).slice(0,8);if(code)onChange(code);return code;};
+  async function paste(){
+    setPasteNote('');
+    try{const code=take(await navigator.clipboard.readText());if(!code)setPasteNote('No code found. Copy the code from the email, then try again.');else inputRef.current?.focus();}
+    catch{setPasteNote('Paste wasn’t allowed. Type the code instead.');}
+  }
+  return <>
+    <label className="code-boxes"><span className="sr-only">Verification code</span>
+      <input ref={inputRef} value={digits} onChange={e=>onChange(e.target.value.replace(/\D/g,'').slice(0,8))} onPaste={e=>{if(take(e.clipboardData.getData('text')))e.preventDefault();}} autoComplete="one-time-code" inputMode="numeric" required pattern="[0-9]{6,8}" maxLength={8} autoFocus/>
+      <span className="code-boxes-row" aria-hidden>{Array.from({length:count},(_,i)=><span key={i} className={`code-box${i===digits.length?' current':''}${i<digits.length?' filled':''}`}>{digits[i]??''}</span>)}</span>
+    </label>
+    {canPaste&&<button type="button" className="kit-link detail-link-button code-paste" onClick={()=>void paste()}>Paste code</button>}
+    {pasteNote&&<p className="quiet-note public-note" role="status">{pasteNote}</p>}
+  </>;
 }
 /** The public pages' top bar: wordmark, and Sign in where it helps. */
 export function PublicHeader({signIn=false,links=false}:{signIn?:boolean;links?:boolean}){

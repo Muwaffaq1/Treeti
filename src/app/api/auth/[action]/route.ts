@@ -10,7 +10,7 @@ import { contactSchema } from '@/modules/agreements/schema';
 import { DomainError } from '@/modules/agreements/domain';
 import {database} from '@/lib/database';
 import {PostgresRepository} from '@/modules/agreements/repository';
-import {witnessInvitation} from '@/lib/invitation-access';
+import {codeInvitation} from '@/lib/invitation-access';
 import {authReturnPath} from '@/lib/auth-return';
 import {requireEmailDelivery} from '@/lib/contact-delivery';
 import type {Actor} from '@/modules/agreements/types';
@@ -34,8 +34,8 @@ export async function POST(req:Request,{params}:{params:Promise<{action:string}>
       const input=z.object({contact:contactSchema.optional(),name:z.string().trim().min(2).max(120).optional(),agreementId:z.string().uuid().optional(),versionId:z.string().uuid().optional(),action:z.string().optional(),invitationToken:z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional(),next:z.string().max(300).optional()}).parse(body);
       let challenge:Challenge;
       if(input.invitationToken){
-        const repo=new PostgresRepository(database()),{agreement,invitation,participant}=witnessInvitation(await repo.findInvitation(input.invitationToken),input.invitationToken);
-        challenge={contact:invitation.destination,name:input.name||participant.name,userId:participant.userId,agreementId:agreement.id,versionId:invitation.versionId,action:'attest',expiresAt:Date.now()+600000,invitationToken:input.invitationToken,returnTo:`/invite/${input.invitationToken}`};
+        const repo=new PostgresRepository(database()),{agreement,invitation,participant,action:invitationAction}=codeInvitation(await repo.findInvitation(input.invitationToken),input.invitationToken);
+        challenge={contact:invitation.destination,name:input.name||participant.name,userId:participant.userId,agreementId:agreement.id,versionId:invitation.versionId,action:invitationAction,expiresAt:Date.now()+600000,invitationToken:input.invitationToken,returnTo:`/invite/${input.invitationToken}`};
       }else if(input.agreementId){
         throw new DomainError('INVALID_ACTION','Your signed-in session already verifies routine agreement actions.',422);
       }else{
@@ -59,7 +59,7 @@ export async function POST(req:Request,{params}:{params:Promise<{action:string}>
       if(!c||c.expiresAt<Date.now())throw new DomainError('OTP_EXPIRED','This code has expired. Select Resend code to get a new one.',410);
       requireEmailDelivery(c.contact);
       const invitationRepo=c.invitationToken?new PostgresRepository(database()):null;
-      if(invitationRepo&&c.invitationToken){const {invitation}=witnessInvitation(await invitationRepo.findInvitation(c.invitationToken),c.invitationToken);if(invitation.versionId!==c.versionId)throw new DomainError('AGREEMENT_VERSION_STALE','Ask for a new invitation to the current terms.',409);}
+      if(invitationRepo&&c.invitationToken){const {invitation}=codeInvitation(await invitationRepo.findInvitation(c.invitationToken),c.invitationToken);if(invitation.versionId!==c.versionId)throw new DomainError('AGREEMENT_VERSION_STALE','Ask for a new invitation to the current terms.',409);}
       await rateLimit(`otp-verify:${c.contact}`,10);
       const {data,error}=await supabase.auth.verifyOtp(c.contact.includes('@')?{email:c.contact,token:code,type:'email'}:{phone:c.contact,token:code,type:'sms'});
       if(error||!data.user)throw new DomainError('OTP_INVALID','This code could not be verified. Check it or request a new code.',400);
@@ -70,7 +70,6 @@ export async function POST(req:Request,{params}:{params:Promise<{action:string}>
       if(invitationRepo&&c.invitationToken){
         const actor:Actor={userId:data.user.id,name:profileName(data.user.user_metadata)||c.name,contacts,demo:false};
         const claimed=await invitationRepo.claim(c.invitationToken,actor);
-        witnessInvitation(claimed,c.invitationToken);
         if(claimed.currentVersionId!==c.versionId)throw new DomainError('AGREEMENT_VERSION_STALE','Ask for a new invitation to the current terms.',409);
         claimedId=claimed.id;
       }

@@ -140,9 +140,12 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
           <TextField label="Parts" error={errors.paymentCount?.message}><input {...register('paymentCount')} type="number" min="2" max="60" step="1" inputMode="numeric"/></TextField>
           <TextField label="First part" error={errors.firstPaymentDate?.message}><input {...register('firstPaymentDate')} type="date" min={values.agreementDate}/></TextField>
         </div>}
-        {values.repaymentPlan==='CUSTOM'&&<div className="create-custom">{custom.fields.map((field,index)=>{const amount=register(`customPayments.${index}.amount`);return <div className="create-pair" key={field.id}>
-          <TextField label={`Payment ${index+1} date`} error={errors.customPayments?.[index]?.dueDate?.message}><input {...register(`customPayments.${index}.dueDate`)} type="date" min={values.agreementDate}/></TextField>
-          <TextField label={`Payment ${index+1} amount (${values.currency})`} error={errors.customPayments?.[index]?.amount?.message}><input {...amount} onChange={e=>{formatMoneyChange(e);void amount.onChange(e);}} inputMode="decimal"/></TextField>
+        {values.repaymentPlan==='CUSTOM'&&<div className="create-custom">{custom.fields.map((field,index)=>{const amount=register(`customPayments.${index}.amount`);return <div className="create-part" key={field.id} role="group" aria-labelledby={`part-${index}`}>
+          <p className="create-part-title" id={`part-${index}`}>Payment {index+1}</p>
+          <div className="create-part-fields">
+          <TextField label={`Payment ${index+1} date`} visible="Date" error={errors.customPayments?.[index]?.dueDate?.message}><input {...register(`customPayments.${index}.dueDate`)} type="date" min={values.agreementDate}/></TextField>
+          <TextField label={`Payment ${index+1} amount (${values.currency})`} visible={`Amount (${values.currency})`} error={errors.customPayments?.[index]?.amount?.message}><input {...amount} onChange={e=>{formatMoneyChange(e);void amount.onChange(e);}} inputMode="decimal"/></TextField>
+          </div>
         </div>;})}
           <div className="create-custom-actions">
             <button type="button" className="kit-link detail-link-button" disabled={custom.fields.length>=60} onClick={()=>custom.append({dueDate:'',amount:''})}>+ Add a part</button>

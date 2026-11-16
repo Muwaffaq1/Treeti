@@ -16,3 +16,14 @@ export function witnessInvitation(a:Aggregate|null,token:string,now=new Date().t
   if(participant.role!=='WITNESS'||agreement.status!=='AWAITING_WITNESSES'||!usesDigitalWitnesses(latest(agreement))||agreement.attestations.some(w=>w.participantId===participant.id&&w.versionId===invitation.versionId))throw new DomainError('WITNESS_RESPONSE_UNAVAILABLE','This invitation does not need a new witness response.',409);
   return result;
 }
+
+/**
+ * An invitation that can be opened with a code sent straight to the invited address: a borrower
+ * reviewing the terms, or a witness who still needs to respond. Nobody retypes their email.
+ */
+export function codeInvitation(a:Aggregate|null,token:string,now=new Date().toISOString()) {
+  const result=activeInvitation(a,token,now);
+  if(result.participant.role==='WITNESS')return {...witnessInvitation(a,token,now),action:'attest'};
+  if(result.participant.role!=='BORROWER')throw new DomainError('INVITATION_EXPIRED','This invitation is no longer active.',410);
+  return {...result,action:'review'};
+}
