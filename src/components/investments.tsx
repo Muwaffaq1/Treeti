@@ -1,43 +1,30 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Archive,ArchiveRestore,Banknote,CheckCircle2,Layers3,LockKeyhole,NotebookPen,Pencil,Plus,Search,Sprout} from '@/components/icons';
-import {Amount,Chips,Panel} from './kit';
-import {currencies} from '@/lib/currencies';
-import {calendarDate} from '@/lib/calendar';
-import {groupMoneyInput,money,moneyInput,parseMoney} from '@/lib/money';
-import {investmentTotal,investmentTotals,type Investment,type InvestmentContribution} from '@/modules/investments/model';
-import {api,apiBase} from './client-api';
-import {formatMoneyChange} from './money-input';
+import Link from 'next/link';
+import {Archive,ArchiveRestore,CheckCircle2,ChevronRight,FileText,LockKeyhole,Pencil,Plus,Search,Sprout} from '@/components/icons';
+import {Amount,Chips,Panel,fitChars,longAmount} from './kit';
+import {money} from '@/lib/money';
+import {investmentTotal,investmentTotals,isShared,type Investment,type InvestmentContribution,type InvestmentPartner} from '@/modules/investments/model';
+import {api,apiBase,appBase} from './client-api';
+import {JointList,type JointSummary} from './investment-agreement';
 import {formatDate} from './agreement-utils';
-import {Button,ErrorMessage,Field,Modal} from './ui';
+import {Button,ErrorMessage} from './ui';
+import {ContributionBlanks,InvestmentBlanks,PartnersPanel} from './record-blanks';
+import {firstName} from './person-colour';
 
-type Editor={kind:'create'}|{kind:'edit'|'contribute';record:Investment}|{kind:'edit-contribution';record:Investment;contribution:InvestmentContribution};
-export function InvestmentTracker({initial,demo}:{initial:Investment[];demo:boolean}){
-  const [records,setRecords]=useState(initial),[editor,setEditor]=useState<Editor|null>(null);
-  const [name,setName]=useState(''),[currency,setCurrency]=useState('NGN'),[amount,setAmount]=useState(''),[date,setDate]=useState(calendarDate()),[note,setNote]=useState('');
-  const [filter,setFilter]=useState<'Active'|'Archived'>('Active'),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+const noPartners:InvestmentPartner[]=[];
+export function InvestmentTracker({initial,demo,agreements=[]}:{initial:Investment[];demo:boolean;agreements?:JointSummary[]}){
+  const [records,setRecords]=useState(initial);
+  const [editing,setEditing]=useState<Investment|null>(null),[contributing,setContributing]=useState<{id:string;contribution?:InvestmentContribution}|null>(null);
+  const [filter,setFilter]=useState<'Active'|'Archived'>('Active'),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[adding,setAdding]=useState(false);
   const request=useRef<{text:string;key:string}|null>(null);
   const totals=investmentTotals(records),visible=records.filter(record=>record.archived===(filter==='Archived')&&`${record.name} ${record.note} ${record.currency}`.toLowerCase().includes(search.trim().toLowerCase()));
   // "New" → "An investment" lands here with ?new=1: open the form once, then tidy the address.
-  useEffect(()=>{if(new URLSearchParams(window.location.search).get('new')!=='1')return;window.history.replaceState(null,'',window.location.pathname);open({kind:'create'});
+  useEffect(()=>{if(new URLSearchParams(window.location.search).get('new')!=='1')return;window.history.replaceState(null,'',window.location.pathname);setNotice('');setAdding(true);
    
   },[]);
   function keyFor(url:string,body:unknown){const text=JSON.stringify({url,body});if(request.current?.text!==text)request.current={text,key:crypto.randomUUID()};return request.current!.key;}
-  function open(next:Editor){
-    const record=next.kind==='create'?null:next.record,c=next.kind==='edit-contribution'?next.contribution:null;
-    setName(record?.name??'');setCurrency(record?.currency??'NGN');setNote(next.kind==='edit'?next.record.note:c?.note??'');
-    setAmount(c?groupMoneyInput(moneyInput(c.amountMinor)):'');setDate(c?.date??calendarDate());setError('');request.current=null;setEditor(next);
-  }
   function replace(record:Investment){setRecords(current=>current.some(r=>r.id===record.id)?current.map(r=>r.id===record.id?record:r):[record,...current]);}
-  async function save(){
-    if(!editor||busy)return;setBusy(true);setError('');
-    try{
-      const url=`${apiBase(demo)}/investments${editor.kind==='create'?'':`/${editor.record.id}`}`;
-      const body=editor.kind==='create'?{name,currency,amountMinor:parseMoney(amount),date,note}:editor.kind==='edit'?{action:'edit',name,currency,note,expectedRevision:editor.record.revision}:{action:editor.kind,amountMinor:parseMoney(amount),date,note,expectedRevision:editor.record.revision,...(editor.kind==='edit-contribution'?{contributionId:editor.contribution.id}:{})};
-      const {investment}=await api<{investment:Investment}>(url,body,keyFor(url,body));replace(investment);setEditor(null);setNotice(editor.kind==='create'?'Investment saved.':editor.kind==='contribute'?'Contribution recorded.':'Changes saved.');
-      if(editor.kind==='create'){setFilter('Active');setSearch('');}request.current=null;
-    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
-  }
   async function archive(record:Investment){
     if(busy)return;setBusy(true);setError('');
     try{
@@ -45,63 +32,72 @@ export function InvestmentTracker({initial,demo}:{initial:Investment[];demo:bool
       const {investment}=await api<{investment:Investment}>(url,body,keyFor(url,body));replace(investment);setNotice(record.archived?'Investment restored to Active.':'Investment moved to Archived. Its contributions are preserved.');request.current=null;
     }catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
+  const [sharingFor,setSharingFor]=useState<Investment|null>(null),[sharingError,setSharingError]=useState('');
+  async function saveSharing(record:Investment,partners:InvestmentPartner[],myShare?:number){
+    if(busy)return;setBusy(true);setSharingError('');
+    try{
+      const url=`${apiBase(demo)}/investments/${record.id}`,body={action:'edit',name:record.name,currency:record.currency,note:record.note,partners,...(myShare===undefined?{}:{myShare}),expectedRevision:record.revision};
+      const {investment}=await api<{investment:Investment}>(url,body,keyFor(url,body));replace(investment);setSharingFor(null);setDetailFor(investment.id);
+      setNotice(partners.length?`Shares saved for ${investment.name}.`:`${investment.name} is now just yours.`);request.current=null;
+    }catch(e){setSharingError((e as Error).message);}finally{setBusy(false);}
+  }
   async function reload(){
     if(busy)return;setBusy(true);
-    try{const data=await api<{investments:Investment[]}>(`${apiBase(demo)}/investments`);setRecords(data.investments);setEditor(null);setError('');setNotice('Latest records loaded. Open the entry again to edit it.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+    try{const data=await api<{investments:Investment[]}>(`${apiBase(demo)}/investments`);setRecords(data.investments);setError('');setNotice('Latest records loaded. Open the entry again to edit it.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
-  const editingMetadata=editor?.kind==='edit',hasMultiple=editor&&editor.kind!=='create'&&editor.record.contributions.length>1;
+  async function latest(id:string){const data=await api<{investments:Investment[]}>(`${apiBase(demo)}/investments`);setRecords(data.investments);return data.investments.find(r=>r.id===id);}
   const [detailFor,setDetailFor]=useState<string|null>(null),detail=records.find(r=>r.id===detailFor);
   const active=records.filter(r=>!r.archived),main=totals.find(t=>t.currency==='NGN')??totals[0],others=totals.filter(t=>t!==main);
   const mainCount=main?active.filter(r=>r.currency===main.currency).length:0;
+  const row=(record:Investment)=>{const latest=[...record.contributions].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt))[0],count=record.contributions.length;
+        return <li key={record.id}><article className="ledger-row" aria-label={record.name}><button type="button" className="agreement-row ledger-row-button" aria-haspopup="dialog" onClick={()=>setDetailFor(record.id)}>
+          <span className="agreement-row-avatar"><span className="ledger-tile" aria-hidden><Sprout size={18}/></span></span>
+          <span className="agreement-row-person"><span className="agreement-row-name">{record.name}</span></span>
+          <span className="agreement-row-progress"><span className="agreement-row-meta">{isShared(record)?`With ${record.partners!.map(p=>firstName(p.name)).join(', ')} · your share ${record.myShare}%`:`Last added ${money(latest.amountMinor,record.currency)} · ${formatDate(latest.date).replace(/ \d{4}$/,'')}`}</span></span>
+          <span className={`agreement-row-left${longAmount(money(investmentTotal(record),record.currency))?' long':''}`}><span className="agreement-row-amount"><Amount text={money(investmentTotal(record),record.currency)} currency={record.currency}/></span><span className="agreement-row-caption">{count===1?'once':`${count} times`}</span></span>
+        </button></article></li>;};
   return <div className="ledger">
+    <InvestmentBlanks open={adding} onOpenChange={setAdding} demo={demo} onSaved={investment=>{setRecords(current=>[investment,...current]);setFilter('Active');setSearch('');setNotice('Investment saved.');}}/>
+    <InvestmentBlanks open={!!editing} onOpenChange={o=>{if(!o)setEditing(null);}} demo={demo} investment={editing} onReload={()=>editing?latest(editing.id):Promise.resolve(undefined)} onSaved={investment=>{replace(investment);setNotice('Changes saved.');}}/>
+    <ContributionBlanks open={!!contributing} onOpenChange={o=>{if(!o)setContributing(null);}} demo={demo} records={contributing?.contribution?records.filter(r=>r.id===contributing.id):active} startId={contributing?.id??null} contribution={contributing?.contribution} onSaved={(investment,edited)=>{replace(investment);setNotice(edited?'Changes saved.':'Contribution recorded.');}}/>
     <header className="ledger-head">
       <h1>My investments</h1>
       <p className="ledger-private"><LockKeyhole size={14} aria-hidden/>Only you can see these</p>
       {totals.length>0&&<section className="ledger-total" aria-label="Active investment totals by currency">
-        <p className="ledger-amount"><Amount text={money(main.amountMinor,main.currency)} currency={main.currency}/></p>
+        <p className="ledger-amount" style={fitChars(money(main.amountMinor,main.currency))}><Amount text={money(main.amountMinor,main.currency)} currency={main.currency}/></p>
         <p className="ledger-caption">put in {mainCount===1?'one investment':`across ${mainCount} investments`}{others.length>0&&<> · plus {others.map(t=>money(t.amountMinor,t.currency)).join(' and ')}</>}</p>
       </section>}
       {totals.length>0&&<p className="ledger-next">What you’ve put in, not what it’s worth today.</p>}
     </header>
     <div role="status">{notice&&<div className="success-notice"><CheckCircle2 size={18} aria-hidden/>{notice}<button onClick={()=>setNotice('')}>Dismiss</button></div>}</div>
-    {!editor&&<><ErrorMessage message={error}/>{error.includes('changed since')&&<Button variant="secondary" disabled={busy} onClick={()=>void reload()}>Load latest records</Button>}</>}
+    <ErrorMessage message={error}/>{error.includes('changed since')&&<Button variant="secondary" disabled={busy} onClick={()=>void reload()}>Load latest records</Button>}
+    <JointList agreements={agreements} demo={demo}/>
     {records.length>0&&<div className="agreements-tools ledger-tools"><Chips label="Filter investments" value={filter as 'Active'|'Archived'} onChange={setFilter} options={[{id:'Active',label:'Active'},{id:'Archived',label:'Archived'}]}/><label className="agreements-search"><Search size={18} aria-hidden/><span className="sr-only">Search investments</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search a name or currency"/></label></div>}
-    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. Add a name, the amount and the date to start.</p><div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>open({kind:'create'})}>Add an investment</button></div></section>
+    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. Add a name, the amount and the date to start.</p><div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>{setNotice('');setAdding(true);}}>Add an investment</button><Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link></div></section>
      :!visible.length?<section className="agreements-empty"><p>{search?'No investments match your search.':filter==='Archived'?'No archived investments.':'No active investments. Add one or restore an archived record.'}</p></section>
-     :<section className="agreements-group ledger-group" aria-labelledby="ledger-mine"><h2 className="kit-overline agreements-group-title" id="ledger-mine">{filter==='Archived'?'Archived':'Just mine'} · {visible.length}</h2>
-      <ul>{visible.map(record=>{const latest=[...record.contributions].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt))[0],count=record.contributions.length;
-        return <li key={record.id}><article className="ledger-row" aria-label={record.name}><button type="button" className="agreement-row ledger-row-button" aria-haspopup="dialog" onClick={()=>setDetailFor(record.id)}>
-          <span className="agreement-row-avatar"><span className="ledger-tile" aria-hidden><Sprout size={18}/></span></span>
-          <span className="agreement-row-person"><span className="agreement-row-name">{record.name}</span></span>
-          <span className="agreement-row-progress"><span className="agreement-row-meta">Last added {money(latest.amountMinor,record.currency)} · {formatDate(latest.date).replace(/ \d{4}$/,'')}</span></span>
-          <span className="agreement-row-left"><span className="agreement-row-amount"><Amount text={money(investmentTotal(record),record.currency)} currency={record.currency}/></span><span className="agreement-row-caption">{count===1?'once':`${count} times`}</span></span>
-        </button></article></li>;})}</ul>
-     </section>}
+     :<>{(filter==='Archived'?[{id:'ledger-archived',title:'Archived',items:visible}]:[{id:'ledger-shared',title:'Shared',items:visible.filter(isShared)},{id:'ledger-mine',title:'Just mine',items:visible.filter(r=>!isShared(r))}]).filter(g=>g.items.length>0).map(g=><section key={g.id} className="agreements-group ledger-group" aria-labelledby={g.id}><h2 className="kit-overline agreements-group-title" id={g.id}>{g.title} · {g.items.length}</h2>
+      <ul>{g.items.map(row)}</ul>
+     </section>)}</>}
     {records.length>0&&<div className="ledger-dock">
-      {active.length>0&&<button type="button" className="brief-cta" onClick={()=>open({kind:'contribute',record:active[0]})}>Add money</button>}
-      <button type="button" className="button sign-tertiary ledger-add" disabled={busy} onClick={()=>open({kind:'create'})}><Plus size={16} aria-hidden/>Add an investment</button>
+      {active.length>0&&<button type="button" className="brief-cta" onClick={()=>{setNotice('');setContributing({id:active[0].id});}}>Add money</button>}
+      <button type="button" className="button sign-tertiary ledger-add" disabled={busy} onClick={()=>{setNotice('');setAdding(true);}}><Plus size={16} aria-hidden/>Add an investment</button>
+      <Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>
     </div>}
     <p className="quiet-note debt-footnote">Totals include active records only. Each currency stays separate.</p>
 
     <Panel open={!!detail} onOpenChange={o=>{if(!o)setDetailFor(null);}} title={detail?.name??'Investment'} description={detail?`${detail.currency}${detail.archived?' · Archived':''} · ${money(investmentTotal(detail),detail.currency)} put in`:undefined}>
       {detail&&<div className="ledger-detail">
         {detail.note&&<p className="debt-note">{detail.note}</p>}
-        <div className="ledger-contributions"><h3 className="kit-overline">Each time you added money</h3>{[...detail.contributions].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)).map(c=><div className="investment-contribution" key={c.id}><div><span>{formatDate(c.date)}</span><strong>{money(c.amountMinor,detail.currency)}</strong>{c.note&&<p>{c.note}</p>}{c.updatedAt&&<small>Edited {formatDate(c.updatedAt)}</small>}</div>{!detail.archived&&<Button variant="ghost" disabled={busy} aria-label={`Edit contribution of ${money(c.amountMinor,detail.currency)} on ${formatDate(c.date)} to ${detail.name}`} onClick={()=>{setDetailFor(null);open({kind:'edit-contribution',record:detail,contribution:c});}}><Pencil size={16} aria-hidden/>Edit</Button>}</div>)}</div>
+        {detail.agreementId&&<Link className="ledger-agreement-link" href={`${appBase(demo)}/investments/agreements/${detail.agreementId}`}><FileText size={16} aria-hidden/><span>From the signed agreement {detail.agreementPublicId}</span><ChevronRight size={16} aria-hidden/></Link>}
+        {isShared(detail)?<div className="ledger-shares"><h3 className="kit-overline">Who it’s shared with</h3><ul><li><span>You</span><strong>{detail.myShare}%</strong></li>{detail.partners!.map((p,i)=><li key={i}><span>{p.name}</span><strong>{p.share}%</strong></li>)}</ul>{!detail.archived&&!detail.agreementId&&<button type="button" className="kit-link detail-link-button" disabled={busy} onClick={()=>{setSharingError('');setSharingFor(detail);setDetailFor(null);}}>Change who’s in it</button>}</div>
+         :!detail.archived&&<button type="button" className="kit-link detail-link-button ledger-share-add" disabled={busy} onClick={()=>{setSharingError('');setSharingFor(detail);setDetailFor(null);}}>+ Shared with someone? Add them</button>}
+        <div className="ledger-contributions"><h3 className="kit-overline">Each time you added money</h3>{[...detail.contributions].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)).map(c=><div className="investment-contribution" key={c.id}><div><span>{formatDate(c.date)}</span><strong>{money(c.amountMinor,detail.currency)}</strong>{c.note&&<p>{c.note}</p>}{c.updatedAt&&<small>Edited {formatDate(c.updatedAt)}</small>}</div>{!detail.archived&&<Button variant="ghost" disabled={busy} aria-label={`Edit contribution of ${money(c.amountMinor,detail.currency)} on ${formatDate(c.date)} to ${detail.name}`} onClick={()=>{setDetailFor(null);setNotice('');setContributing({id:detail.id,contribution:c});}}><Pencil size={16} aria-hidden/>Edit</Button>}</div>)}</div>
         <div className="ledger-detail-actions">
-          {!detail.archived&&<button type="button" className="button button-primary sign-primary" disabled={busy} onClick={()=>{setDetailFor(null);open({kind:'contribute',record:detail});}}>Record contribution</button>}
-          <div className="ledger-detail-row"><button type="button" className="button sign-secondary" disabled={busy} aria-label={`Edit investment ${detail.name}`} onClick={()=>{setDetailFor(null);open({kind:'edit',record:detail});}}><Pencil size={16} aria-hidden/>Edit</button><button type="button" className="button sign-secondary" disabled={busy} aria-label={`${detail.archived?'Restore':'Archive'} investment ${detail.name}`} onClick={()=>{setDetailFor(null);void archive(detail);}}>{detail.archived?<ArchiveRestore size={16} aria-hidden/>:<Archive size={16} aria-hidden/>}{detail.archived?'Restore':'Archive'}</button></div>
+          {!detail.archived&&<button type="button" className="button button-primary sign-primary" disabled={busy} onClick={()=>{setDetailFor(null);setNotice('');setContributing({id:detail.id});}}>Record contribution</button>}
+          <div className="ledger-detail-row"><button type="button" className="button sign-secondary" disabled={busy} aria-label={`Edit investment ${detail.name}`} onClick={()=>{setDetailFor(null);setNotice('');setEditing(detail);}}><Pencil size={16} aria-hidden/>Edit</button><button type="button" className="button sign-secondary" disabled={busy} aria-label={`${detail.archived?'Restore':'Archive'} investment ${detail.name}`} onClick={()=>{setDetailFor(null);void archive(detail);}}>{detail.archived?<ArchiveRestore size={16} aria-hidden/>:<Archive size={16} aria-hidden/>}{detail.archived?'Restore':'Archive'}</button></div>
         </div>
       </div>}
     </Panel>
-    <Modal open={!!editor} onOpenChange={value=>{if(!busy&&!value){setEditor(null);setError('');}}} title={editor?.kind==='create'?'Add an investment':editingMetadata?'Edit investment':editor?.kind==='contribute'?'Record a contribution':'Edit contribution'} description={editor?.kind==='create'?'Record money you’ve already invested outside treeti.':editingMetadata?'Correct the name, currency or note for this personal record.':editor&&'record' in editor?`Record your contribution to ${editor.record.name} in ${editor.record.currency}.`:undefined}>
-      {editor&&<form className="dialog-form" onSubmit={e=>{e.preventDefault();void save();}}>
-        {(editor.kind==='create'||editingMetadata)&&<Field label="Investment name or place" icon={Layers3}><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. My business or a property" required minLength={2} maxLength={120}/></Field>}
-        {(editor.kind==='create'||editingMetadata)&&<Field label="Currency" hint={hasMultiple?'Currency is fixed because additional contributions have been recorded.':undefined}><select value={currency} disabled={!!hasMultiple} onChange={e=>setCurrency(e.target.value)}>{currencies.map(c=><option key={c}>{c}</option>)}</select></Field>}
-        {!editingMetadata&&<><Field label={`Amount invested (${currency})`} icon={Banknote} hint="Up to two decimal places."><input value={amount} onChange={e=>{formatMoneyChange(e);setAmount(e.target.value);}} required inputMode="decimal" placeholder="e.g. 50,000.00" maxLength={20}/></Field><Field label="Investment date"><input type="date" required max={calendarDate()} value={date} onChange={e=>setDate(e.target.value)}/></Field></>}
-        <Field label="Note (optional)" icon={NotebookPen}><textarea value={note} onChange={e=>setNote(e.target.value)} rows={3} maxLength={2000} placeholder="A little context for your record"/></Field>
-        <ErrorMessage message={error}/>{error.includes('changed since')&&<Button type="button" variant="secondary" disabled={busy} onClick={()=>void reload()}>Load latest records</Button>}
-        <div className="dialog-actions"><Button type="button" variant="ghost" disabled={busy} onClick={()=>{setEditor(null);setError('');}}>Cancel</Button><Button type="submit" busy={busy}>{editor.kind==='create'?'Save investment':editor.kind==='contribute'?'Save contribution':'Save changes'}</Button></div>
-      </form>}
-    </Modal>
+    <PartnersPanel open={!!sharingFor} onOpenChange={o=>{if(!o&&!busy){setSharingFor(null);setSharingError('');}}} partners={sharingFor?.partners??noPartners} busy={busy} error={sharingError} onDone={(partners,mine)=>{if(sharingFor)void saveSharing(sharingFor,partners,mine);}}/>
   </div>;
 }

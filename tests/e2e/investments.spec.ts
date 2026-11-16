@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {addContribution,addInvestment,fillPartners} from './records';
 import AxeBuilder from '@axe-core/playwright';
 import {randomUUID} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
@@ -8,19 +9,12 @@ for(const width of [375,768,1366])test(`investment contributions, currencies, co
  await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.goto('/demo');
  await page.locator(width<800?'.mobile-nav':'.sidebar nav').getByRole('link',{name:'Investments',exact:true}).click();
  await expect(page).toHaveURL(/\/demo\/investments$/);
- await page.getByRole('button',{name:'Add an investment',exact:true}).click();let dialog=page.getByRole('dialog');
- await dialog.getByLabel('Investment name or place').fill('My business');await dialog.getByLabel('Currency',{exact:true}).selectOption('GBP');
- await dialog.getByLabel('Amount invested (GBP)').fill('1300.01');await expect(dialog.getByLabel('Amount invested (GBP)')).toHaveValue('1,300.01');
- await dialog.getByLabel('Investment date').fill('2026-10-01');await dialog.getByLabel('Note (optional)').fill('Capital contributed outside treeti');
- await dialog.getByRole('button',{name:'Save investment',exact:true}).click();await expect(dialog).toBeHidden();
+ await addInvestment(page,{name:'My business',currency:'GBP',amount:'1300.01',date:'2026-10-01',note:'Capital contributed outside treeti'});
  const card=page.getByRole('article',{name:'My business',exact:true});await expect(card).toContainText('GBP 1,300.01');
- await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Record contribution',exact:true}).click();dialog=page.getByRole('dialog');
- await expect(dialog.getByLabel('Currency',{exact:true})).toHaveCount(0);await dialog.getByLabel('Amount invested (GBP)').fill('250.25');await dialog.getByLabel('Investment date').fill('2026-10-05');
- await dialog.getByRole('button',{name:'Save contribution'}).click();await expect(dialog).toBeHidden();await expect(card).toContainText('GBP 1,550.26');
- await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Edit investment My business',exact:true}).click();dialog=page.getByRole('dialog');await expect(dialog.getByLabel('Currency',{exact:true})).toBeDisabled();await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
- await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:/Edit contribution of GBP 1,300.01/}).click();dialog=page.getByRole('dialog');
- await dialog.getByLabel('Amount invested (GBP)').fill('1200.01');await dialog.getByRole('button',{name:'Save changes',exact:true}).click();await expect(card).toContainText('GBP 1,450.26');
- await page.getByRole('button',{name:'Add an investment',exact:true}).click();dialog=page.getByRole('dialog');await dialog.getByLabel('Investment name or place').fill('Family property');await dialog.getByLabel('Amount invested (NGN)').fill('10000');await dialog.getByLabel('Investment date').fill('2026-10-01');await dialog.getByRole('button',{name:'Save investment',exact:true}).click();await expect(dialog).toBeHidden();
+ await addContribution(page,'My business','250.25',{currency:'GBP',date:'2026-10-05'});await expect(card).toContainText('GBP 1,550.26');
+ await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Edit investment My business',exact:true}).click();await page.getByRole('button',{name:/^Currency: /}).click();await expect(page.getByRole('dialog',{name:'Which currency?'}).getByLabel('Currency',{exact:true})).toBeDisabled();await page.keyboard.press('Escape');await page.getByRole('button',{name:'Close',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+ await addContribution(page,'My business','1200.01',{currency:'GBP',edit:/Edit contribution of GBP 1,300.01/});await expect(card).toContainText('GBP 1,450.26');
+ await addInvestment(page,{name:'Family property',amount:'10000',date:'2026-10-01'});
  await expect(page.getByRole('region',{name:'Active investment totals by currency'})).toContainText('GBP 1,450.26');await expect(page.getByRole('region',{name:'Active investment totals by currency'})).toContainText('₦10,000');
  await page.getByLabel('Search investments').fill('GBP');await expect(page.getByRole('article')).toHaveCount(1);await page.getByLabel('Search investments').fill('');
  await card.getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Archive investment My business',exact:true}).click();await expect(card).toHaveCount(0);await expect(page.getByRole('region',{name:'Active investment totals by currency'})).not.toContainText('GBP');
@@ -31,4 +25,19 @@ for(const width of [375,768,1366])test(`investment contributions, currencies, co
  await mkdir('output/qa',{recursive:true});await page.screenshot({path:`output/qa/investments-${width}.png`,fullPage:true});
  const owned=await (await page.request.get('/api/demo/investments')).json();await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{userId:'22222222-2222-4222-8222-222222222222'}});await page.reload();await expect(page.getByRole('article')).toHaveCount(0);
  const response=await page.request.post(`/api/demo/investments/${owned.investments[0].id}`,{headers:{Origin:origin,'Idempotency-Key':randomUUID()},data:{action:'archive',archived:true,expectedRevision:owned.investments[0].revision}});expect(response.status()).toBe(404);
+});
+
+test('a shared investment records who is in it, their shares and what is left for you',async({page})=>{
+ await page.setViewportSize({width:390,height:900});await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.goto('/demo/investments');
+ await page.getByRole('button',{name:'Add an investment',exact:true}).click();await page.getByRole('button',{name:'+ Shared with someone? Add them',exact:true}).click();
+ const p=page.getByRole('dialog',{name:'Who’s in it with you?'});await fillPartners(p,[['Aisha Bello','70'],['Musa Ibrahim','40']]);await expect(p.getByText('Your share')).toBeVisible();
+ await p.getByRole('button',{name:'Done',exact:true}).click();await expect(p.getByRole('alert')).toContainText('Leave at least 1% for you');await page.keyboard.press('Escape');await page.getByRole('button',{name:'Close',exact:true}).click();
+ await addInvestment(page,{name:'Sister’s shop',amount:'250000',partners:[['Aisha Bello','40']]});
+ await expect(page.getByRole('heading',{name:'Shared · 1'})).toBeVisible();const card=page.getByRole('article',{name:'Sister’s shop'});await expect(card).toContainText('With Aisha · your share 60%');
+ await card.getByRole('button').click();let dialog=page.getByRole('dialog');await expect(dialog).toContainText('Aisha Bello');await expect(dialog).toContainText('60%');
+ await dialog.getByRole('button',{name:'Change who’s in it',exact:true}).click();dialog=page.getByRole('dialog',{name:'Who’s in it with you?'});await fillPartners(dialog,[['Aisha Bello','40'],['Musa Ibrahim','20']]);await dialog.getByRole('button',{name:'Done',exact:true}).click();
+ await expect(page.getByText('Shares saved for Sister’s shop.')).toBeVisible();await page.reload();await expect(page.getByRole('article',{name:'Sister’s shop'})).toContainText('With Aisha, Musa · your share 40%');
+ await page.getByRole('article',{name:'Sister’s shop'}).getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Change who’s in it',exact:true}).click();await page.getByRole('dialog',{name:'Who’s in it with you?'}).getByRole('button',{name:'It’s just mine',exact:true}).click();
+ await expect(page.getByText('Sister’s shop is now just yours.')).toBeVisible();await expect(page.getByRole('dialog')).not.toContainText('Who it’s shared with');await page.keyboard.press('Escape');
+ await expect(page.getByRole('heading',{name:'Just mine · 1'})).toBeVisible();
 });

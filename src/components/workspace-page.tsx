@@ -23,16 +23,28 @@ import {lists as trustedLists,openContact} from '@/modules/trusted/api';
 import {access} from '@/modules/trusted/model';
 import {maskContact} from '@/lib/contact';
 import {SharedRecordsView,TrustedContacts,TrustedInvitation} from './trusted-contacts';
+import {investmentAgreementRepository} from '@/modules/investment-agreements/repository';
+import {invitationSummary,summaries as jointSummaries} from '@/modules/investment-agreements/api';
+import {JointCreate,JointDetail,JointInvitation} from './investment-agreement';
 export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}){
   let runtime;try{runtime=await getRuntime(demo);}catch(e){if(e instanceof DomainError&&e.code==='DEMO_DISABLED')notFound();if(e instanceof DomainError&&[401,503].includes(e.status)){if(demo)return <DemoStart/>;redirect(`/login?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);}throw e;}
   const {actor,repo,people,workspace}=runtime;
   if(actor.needsName&&!demo)redirect(`/welcome?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);
   let content:React.ReactNode;
-  if(!path.length||path[0]==='app'){const trusted=trustedRepository(demo,workspace),now=await trusted.now(),requests=(await trusted.list(actor)).owned.filter(c=>access(c,now)==='WAITING').map(c=>({id:c.id,name:c.name,opensAt:c.opensAt!}));content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} accessRequests={requests}/>;}
+  if(!path.length||path[0]==='app'){const trusted=trustedRepository(demo,workspace),now=await trusted.now(),requests=(await trusted.list(actor)).owned.filter(c=>access(c,now)==='WAITING').map(c=>({id:c.id,name:c.name,opensAt:c.opensAt!}));const joint=jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor).filter(j=>j.turn).map(j=>{const v=j.versions.find(x=>x.id===j.currentVersionId)!,writer=j.partners.find(p=>p.creator)!.name;return {id:j.id,venture:v.terms.venture,turn:j.turn!,person:j.turn==='revise'?(j.partners.find(p=>p.id===j.changeRequests.at(-1)?.partnerId)?.name??writer):writer};});content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} accessRequests={requests} jointRequests={joint}/>;}
   else if(path[0]==='agreements'&&!path[1])content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} listing/>;
   else if(path[0]==='agreements'&&path[1]==='new')content=<CreateAgreement actor={actor} demo={demo}/>;
   else if(path[0]==='debts')content=<DebtTracker key={actor.userId} initial={await debtRepository(demo,workspace).listDebts(actor)} demo={demo} emailAvailable={false}/>;
-  else if(path[0]==='investments'&&path.length===1)content=<InvestmentTracker key={actor.userId} initial={await investmentRepository(demo,workspace).listInvestments(actor)} demo={demo}/>;
+  else if(path[0]==='investments'&&path.length===1)content=<InvestmentTracker key={actor.userId} initial={await investmentRepository(demo,workspace).listInvestments(actor)} agreements={jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor)} demo={demo}/>;
+  else if(path[0]==='investments'&&path[1]==='agreements'&&path[2]==='new'&&path.length===3)content=<JointCreate actor={actor} demo={demo}/>;
+  else if(path[0]==='investments'&&path[1]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[2]||'')&&path.length<=4){
+    const found=await investmentAgreementRepository(demo,workspace).get(path[2]),view=found&&jointSummaries([found],actor).find(()=>true);
+    if(!found||![...found.partners,...found.witnesses].some(p=>p.userId===actor.userId)||!view)notFound();
+    if(path[3]==='edit'){if(!view.me.creator||!['AWAITING_SIGNATURES','CHANGES_REQUESTED'].includes(view.status))notFound();content=<JointCreate actor={actor} demo={demo} existing={view}/>;}
+    else if(path.length===3)content=<JointDetail key={`${view.id}:${view.revision}`} initial={view} actor={actor} demo={demo}/>;
+    else notFound();
+  }
+  else if(path[0]==='joint'&&/^[A-Za-z0-9_-]{43}$/.test(path[1]||'')&&path.length===2)content=<JointInvitation token={path[1]} summary={await invitationSummary(investmentAgreementRepository(demo,workspace),path[1])} authenticated demo={demo}/>;
   else if(path[0]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[1]||'')){const a=await repo.get(path[1]);if(!a||!member(a,actor))notFound();const safe=projectAgreement(a,actor);if(path[2]==='edit'){if(member(a,actor)?.role!=='LENDER'||a.finalizedAt)notFound();content=<CreateAgreement actor={actor} demo={demo} existing={safe}/>;}else {const all=(await repo.list(actor)).map(x=>projectAgreement(x,actor));content=<div className="agreement-split"><div className="agreement-split-list"><Dashboard invitations={await repo.pendingInvitations(actor)} agreements={all} actor={actor} demo={demo} listing/></div><div className="agreement-drawer"><AgreementDetail key={safe.id} initial={safe} actor={actor} demo={demo}/></div></div>;}}
   else if(path[0]==='activity')content=<Activity agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} demo={demo} userId={actor.userId}/>;
   else if(path[0]==='notifications'&&path.length===1)content=<Notifications notices={demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)} userId={actor.userId} demo={demo}/>;

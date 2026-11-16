@@ -10,7 +10,7 @@ import {installmentProgress} from '@/modules/agreements/repayment-plan';
 import {calendarDate} from '@/lib/calendar';
 import {money} from '@/lib/money';
 import {Search,FileText} from './icons';
-import {Avatar,Chips,Tag,Panel,RingAvatar,Amount,TotalsPanel} from './kit';
+import {Avatar,Chips,Tag,Panel,RingAvatar,Amount,TotalsPanel,longAmount} from './kit';
 import {Breakdown,breakdown,type Side} from './brief';
 import {currentVersion,needsAttention,participantFor} from './agreement-utils';
 import {nextWhen,shortDate} from './dates';
@@ -115,7 +115,7 @@ function AgreementRow({row:r,href}:{row:Row;href:string}){
       {r.tag&&(r.tag.tone==='action'||!r.progress)&&<span className={r.tag.tone==='action'?'agreement-row-tag':'agreement-row-tag agreement-row-tag-wide'}><Tag tone={r.tag.tone}>{r.tag.text}</Tag></span>}
     </span>
     <span className="agreement-row-next">{r.progress?r.nextShort:r.describe}</span>
-    <span className="agreement-row-left"><span className="agreement-row-amount"><Amount text={r.amount} currency={currentVersion(r.a).terms.currency}/></span><span className="agreement-row-caption">{r.caption}</span></span>
+    <span className={`agreement-row-left${longAmount(r.amount)?' long':''}`}><span className="agreement-row-amount"><Amount text={r.amount} currency={currentVersion(r.a).terms.currency}/></span><span className="agreement-row-caption">{r.caption}</span></span>
   </Link>;
 }
 

@@ -16,7 +16,7 @@ export async function ensureArtifact(a:Aggregate,kind:'pdf'|'settlement'|'receip
   const db=database(),artifactKind=kind==='pdf'?'AGREEMENT':kind==='settlement'?'SETTLEMENT':'RECEIPT';
   // Layout revisions append a new presentation; they never overwrite an earlier
   // saved document or alter the finalized terms and participant evidence.
-  const presentationVersion=kind==='pdf'?'2':null;
+  const presentationVersion=kind==='pdf'?'3':null;
   const [existing]=await db.query<{storage_path:string;sha256:string}>('select storage_path,sha256 from artifacts where agreement_id=$1 and kind=$2 and repayment_id is not distinct from $3 and ($4::text is null or data->>\'presentationVersion\'=$4) order by created_at,id', [a.id,artifactKind,paymentId??null,presentationVersion]);
   const storage=supabaseAdmin().storage.from('ahd-evidence');
   if(existing){const {data,error}=await storage.download(existing.storage_path);if(error||!data)throw new Error('Artifact download failed');const bytes=Buffer.from(await data.arrayBuffer());if(sha256(bytes)!==existing.sha256)throw new DomainError('INTEGRITY_FAILED','The saved document could not be verified. Contact treeti before relying on it.',503);return bytes;}

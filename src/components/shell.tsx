@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, FileText, Home, LockKeyhole, LogOut, ArrowUpRight, ArrowLeft, ChevronRight, Clock3, WalletCards, Layers3, ShieldCheck, Plus, Search, Sprout } from '@/components/icons';
+import { BookOpen, FileText, Home, LockKeyhole, LogOut, ArrowUpRight, ArrowLeft, ChevronRight, Clock3, WalletCards, Layers3, ShieldCheck, Plus, Search, Sprout, Users } from '@/components/icons';
 import { Panel } from './kit';
 import { maskContact } from '@/lib/contact';
 import type { Actor } from '@/modules/agreements/types';
@@ -49,7 +49,7 @@ function MobileNav({links,pathname}:{links:{href:string;label:string;short?:stri
 /** "New" asks what you're writing down (Figma: New · What are you writing down? 138:5652). */
 function NewChooser({base,className,iconSize}:{base:string;className:string;iconSize:number}){
   const [open,setOpen]=useState(false);
-  const options=[{href:`${base}/agreements/new`,title:'An agreement',detail:'Lending to someone. You both sign.',Icon:FileText},{href:`${base}/debts?new=1`,title:'A debt',detail:'Money you owe. Only you see it.',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'An investment',detail:'Money you’ve put in. Only you see it.',Icon:Sprout}];
+  const options=[{href:`${base}/agreements/new`,title:'An agreement',detail:'Lending to someone. You both sign.',Icon:FileText},{href:`${base}/debts?new=1`,title:'A debt',detail:'Money you owe. Only you see it.',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'An investment',detail:'Money you’ve put in. Only you see it.',Icon:Sprout},{href:`${base}/investments/agreements/new`,title:'An investment agreement',detail:'Investing with someone. You all sign.',Icon:Users}];
   return <><button type="button" className={className} aria-haspopup="dialog" onClick={()=>setOpen(true)}><Plus size={iconSize} aria-hidden/>New</button>
     <Panel open={open} onOpenChange={setOpen} title="What are you writing down?" description="Pick one. You can always add more later.">
       <ul className="new-options">{options.map(({href,title,detail,Icon})=><li key={href}><Link className="new-option" href={href} onClick={()=>setOpen(false)}><span className="new-option-icon" aria-hidden><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} aria-hidden/></Link></li>)}</ul>

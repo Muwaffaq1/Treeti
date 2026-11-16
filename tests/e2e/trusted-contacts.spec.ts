@@ -18,10 +18,11 @@ for(const width of [390,1366])test(`a trusted contact is invited, asks, is share
  await expect(page.getByRole('heading',{level:1,name:'Trusted contacts'})).toBeVisible();await axe();
  await page.getByRole('button',{name:'Add a trusted contact'}).first().click();
  let dialog=page.getByRole('dialog');
- await dialog.getByRole('button',{name:'Add trusted contact'}).click();await expect(dialog.getByLabel('Full name')).toBeFocused();
- await dialog.getByLabel('Full name').fill('Yusuf Ali');await dialog.getByLabel('Email address').fill('ahmad@example.test');await dialog.getByRole('button',{name:'Add trusted contact'}).click();
+ let sheet=page.getByRole('dialog',{name:'Who do you trust?'});await expect(sheet.getByLabel('Full name')).toBeFocused();await sheet.getByRole('button',{name:'Next: their email'}).click();await expect(sheet.getByRole('alert')).toHaveText('Add their full name.');
+ await sheet.getByLabel('Full name').fill('Yusuf Ali');await sheet.getByRole('button',{name:'Next: their email'}).click();sheet=page.getByRole('dialog',{name:'Their email address'});await sheet.getByLabel('Email address').fill('ahmad@example.test');await sheet.getByRole('button',{name:'Done',exact:true}).click();await expect(sheet).toHaveCount(0);
+ dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Add trusted contact'}).click();
  await expect(dialog.locator('.error-message')).toHaveText('Enter someone else’s email address. You can’t be your own trusted contact.');
- await dialog.getByLabel('Email address').fill('Yusuf@Example.test');await dialog.getByRole('button',{name:'Add trusted contact'}).click();
+ await page.getByRole('button',{name:/^Email: /}).click();sheet=page.getByRole('dialog',{name:'Their email address'});await sheet.getByLabel('Email address').fill('Yusuf@Example.test');await sheet.getByRole('button',{name:'Done',exact:true}).click();await expect(sheet).toHaveCount(0);await dialog.getByRole('button',{name:'Add trusted contact'}).click();
  await expect(dialog.getByRole('heading',{name:'Send the link to Yusuf Ali'})).toBeVisible();
  const link=await dialog.getByRole('link',{name:'Open invitation'}).getAttribute('href');expect(link).toMatch(/^\/demo\/trusted\/[A-Za-z0-9_-]{43}$/);
  await dialog.getByRole('button',{name:'Done'}).click();

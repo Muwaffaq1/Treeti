@@ -5,7 +5,7 @@ import {useState,useSyncExternalStore} from 'react';
 import {ArrowLeft,History} from '@/components/icons';
 import type {Actor,Aggregate} from '@/modules/agreements/types';
 import {appBase} from './client-api';
-import {Brief} from './brief';
+import {Brief,type JointRequest} from './brief';
 import {AgreementsList} from './agreements-list';
 import {activityFormatters,eventByline,eventText,statusLabels} from './agreement-utils';
 import {Chips} from './kit';
@@ -13,8 +13,8 @@ import {activityAppearance} from './activity-look';
 import {firstName} from './person-colour';
 
 export function StatusBadge({status}:{status:string}){return <span className={`status-badge status-${status.toLowerCase()}`}><span aria-hidden className="status-dot"/>{statusLabels[status]??status}</span>;}
-export function Dashboard({agreements,invitations=[],actor,demo,listing=false,accessRequests=[]}:{agreements:Aggregate[];invitations?:PendingBorrowerInvitation[];actor:Actor;demo:boolean;listing?:boolean;accessRequests?:{id:string;name:string;opensAt:string}[]}){
-  if(!listing)return <Brief agreements={agreements} invitations={invitations} actor={actor} demo={demo} accessRequests={accessRequests}/>;
+export function Dashboard({agreements,invitations=[],actor,demo,listing=false,accessRequests=[],jointRequests=[]}:{jointRequests?:JointRequest[];agreements:Aggregate[];invitations?:PendingBorrowerInvitation[];actor:Actor;demo:boolean;listing?:boolean;accessRequests?:{id:string;name:string;opensAt:string}[]}){
+  if(!listing)return <Brief agreements={agreements} invitations={invitations} actor={actor} demo={demo} accessRequests={accessRequests} jointRequests={jointRequests}/>;
   return <AgreementsList agreements={agreements} invitations={invitations} actor={actor} demo={demo}/>;
 }
 const subscribeTimeZone=()=>()=>{};

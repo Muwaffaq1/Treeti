@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowRight,CheckCircle2,Eye,HeartHandshake,Mail,UserRound,UsersRound} from '@/components/icons';
+import {ArrowLeft,ArrowRight,CheckCircle2,Eye,HeartHandshake,UsersRound} from '@/components/icons';
 import type {ContactView,OwnerView} from '@/modules/trusted/model';
 import {trustedContactLimit,waitingDays} from '@/modules/trusted/limits';
 import type {SharedAgreement,SharedRecords} from '@/modules/trusted/summary';
@@ -10,8 +10,9 @@ import {money} from '@/lib/money';
 import {api,apiBase,appBase} from './client-api';
 import {formatDate} from './agreement-utils';
 import {InviteLink} from './create-agreement';
-import {Button,ErrorMessage,Field,Modal} from './ui';
-import {Amount,Avatar,Panel,RingAvatar,Tag} from './kit';
+import {Button,ErrorMessage,Modal} from './ui';
+import {Amount,Avatar,Blank,Panel,RingAvatar,Tag,fitChars,longAmount} from './kit';
+import {Flow,W} from './record-blanks';
 import {firstName} from './person-colour';
 
 type Lists={owned:OwnerView[];trustedBy:ContactView[]};
@@ -35,19 +36,19 @@ const doneText:Record<Confirm['kind'],(c:Confirm)=>string>={
 
 export function TrustedContacts({initial,demo}:{initial:Lists;demo:boolean}){
   const [lists,setLists]=useState(initial),[adding,setAdding]=useState(false),[name,setName]=useState(''),[email,setEmail]=useState('');
-  const [invitation,setInvitation]=useState<Response['invitation']>(),[confirm,setConfirm]=useState<Confirm|null>(null);
+  const [invitation,setInvitation]=useState<Response['invitation']>(),[confirm,setConfirm]=useState<Confirm|null>(null),[sheet,setSheet]=useState<'who'|'email'|null>(null),[panelError,setPanelError]=useState('');
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('');
   const keys=useRef(new Map<string,string>());
   const key=(text:string)=>{if(!keys.current.has(text))keys.current.set(text,crypto.randomUUID());return keys.current.get(text)!;};
   const base=`${apiBase(demo)}/trusted`,full=lists.owned.length>=trustedContactLimit;
-  function openAdd(){setName('');setEmail('');setInvitation(undefined);setError('');setAdding(true);}
+  function openAdd(){setName('');setEmail('');setInvitation(undefined);setError('');setSheet('who');setAdding(true);}
   async function add(){if(busy)return;setBusy(true);setError('');try{
     const body={name,email},result=await api<Response>(base,body,key(JSON.stringify(body)));
     setLists(result);setInvitation(result.invitation);
   }catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   async function renew(view:OwnerView){if(busy)return;setBusy(true);setError('');try{
     const result=await api<Response>(`${base}/${view.id}/renew`,{},crypto.randomUUID());
-    setLists(result);setInvitation(result.invitation);setAdding(true);
+    setLists(result);setInvitation(result.invitation);setSheet(null);setAdding(true);
   }catch(e){setSuccess('');setError((e as Error).message);}finally{setBusy(false);}}
   async function act(){if(!confirm||busy)return;setBusy(true);setError('');try{
     const result=await api<Response>(`${base}/${confirm.id}/${actionPath[confirm.kind]}`,{},crypto.randomUUID());
@@ -116,15 +117,30 @@ export function TrustedContacts({initial,demo}:{initial:Lists;demo:boolean}){
         </div>
       </div>}
     </Panel>
-    <Modal open={adding} onOpenChange={value=>{if(!busy){setAdding(value);setError('');}}} title={invitation?`Send the link to ${invitation.name}`:'Add a trusted contact'} description={invitation?undefined:'Choose someone you trust to handle your affairs, such as a spouse or an adult child.'}>
-      {invitation?<><InviteLink url={invitation.url} note={`treeti doesn’t email invitations. Send this private link to ${invitation.name} yourself. They sign in with their email address to accept.`} shareMessage={shareMessage}/><Button onClick={()=>setAdding(false)}>Done</Button></>
-      :<form className="dialog-form" onSubmit={e=>{e.preventDefault();void add();}}>
-        <Field label="Full name" icon={UserRound}><input value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={120} autoComplete="off" placeholder="e.g. Maryam Bello"/></Field>
-        <Field label="Email address" icon={Mail} hint="They’ll sign in with this email to accept."><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required maxLength={254} autoComplete="off" placeholder={demo?'maryam@example.test':'name@example.com'}/></Field>
-        {demo&&<p className="quiet-note">Demo contacts: maryam@example.test and yusuf@example.test.</p>}
-        <ErrorMessage message={error}/><div className="dialog-actions"><Button type="button" variant="ghost" onClick={()=>setAdding(false)} disabled={busy}>Cancel</Button><Button type="submit" busy={busy}>Add trusted contact</Button></div>
-      </form>}
-    </Modal>
+    <Flow open={adding} onOpenChange={value=>{if(!busy){setAdding(value);setError('');}}} kicker="Trusted contact" title={invitation?`Send the link to ${invitation.name}`:'Add a trusted contact'} sub={invitation?'treeti doesn’t email invitations, so the link comes from you.':'Someone you trust to handle your affairs, such as a spouse or an adult child.'} panels={<>
+      <Panel open={sheet==='who'} onOpenChange={o=>setSheet(o?'who':null)} title="Who do you trust?" description="Use the name they’re known by.">
+        <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(name.trim().length<2){setPanelError('Add their full name.');return;}setPanelError('');setSheet(email.trim()?null:'email');}}>
+          <label className="create-field"><span className="create-field-label">Full name</span><input value={name} onChange={e=>setName(e.target.value)} maxLength={120} autoComplete="off" placeholder="Maryam Bello"/></label>
+          <ErrorMessage message={panelError}/>
+          <button type="submit" className="button button-primary sign-primary">{email.trim()?'Done':'Next: their email'}</button>
+        </form>
+      </Panel>
+      <Panel open={sheet==='email'} onOpenChange={o=>setSheet(o?'email':null)} title="Their email address" description="They’ll sign in with this email to accept.">
+        <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(!/^\S+@\S+\.\S+$/.test(email.trim())){setPanelError('Enter an email address, like name@example.com.');return;}setPanelError('');setSheet(null);}}>
+          <label className="create-field"><span className="create-field-label">Email address</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} maxLength={254} autoComplete="off" placeholder={demo?'maryam@example.test':'name@example.com'}/></label>
+          {demo&&<p className="record-explain">Demo contacts: maryam@example.test and yusuf@example.test.</p>}
+          <ErrorMessage message={panelError}/>
+          <button type="submit" className="button button-primary sign-primary">Done</button>
+        </form>
+      </Panel>
+    </>}>
+      {invitation?<div className="record-invites"><InviteLink url={invitation.url} note={`Send this private link to ${invitation.name} yourself. They sign in with their email address to accept.`} shareMessage={shareMessage}/><Button onClick={()=>setAdding(false)}>Done</Button></div>:<>
+        <p className="create-sentence"><W>If I can’t,</W> <Blank state={sheet==='who'||!name.trim()?'current':'filled'} label={name.trim()?`Trusted contact: ${name}. Change`:'Choose who you trust'} onClick={()=>{setPanelError('');setSheet('who');}}>{name.trim()||'who'}</Blank> <W>can ask to see my records.</W> <W>They’ll sign in as</W> <span className="create-nowrap"><Blank state={sheet==='email'?'current':email.trim()?'filled':'empty'} label={email.trim()?`Email: ${email}. Change`:'Choose their email address'} onClick={()=>{setPanelError('');setSheet('email');}}>{email.trim()||'their email'}</Blank><W>.</W></span></p>
+        <p className="record-explain">If they ask, we’ll email you. If you don’t refuse within {waitingDays} days, they can see your debts and loan agreements. Read only.</p>
+        <ErrorMessage message={error}/>
+        <div className="sign-actions"><button type="button" className="button button-primary sign-primary" disabled={busy||name.trim().length<2||!email.trim()} aria-busy={busy} onClick={()=>void add()}>Add trusted contact</button></div>
+      </>}
+    </Flow>
     <Modal open={!!confirm} onOpenChange={value=>{if(!busy&&!value){setConfirm(null);setError('');}}} title={copy?.title??''}>
       {copy&&<div className="dialog-form"><p>{copy.body}</p><ErrorMessage message={error}/><div className="dialog-actions"><Button type="button" variant="ghost" onClick={()=>setConfirm(null)} disabled={busy}>Cancel</Button><Button variant={copy.danger?'danger':'primary'} busy={busy} onClick={()=>void act()}>{copy.action}</Button></div></div>}
     </Modal>
@@ -145,7 +161,7 @@ export function SharedRecordsView({id,records,demo}:{id:string;records:SharedRec
     <header className="detail-bar notices-bar"><Link className="detail-icon-button" href={`${appBase(demo)}/trusted-contacts`} aria-label="Trusted contacts"><ArrowLeft size={18} aria-hidden/></Link><h1 className="notices-title">{first}’s records</h1><span/></header>
     <p className="trusted-banner"><Eye size={16} aria-hidden/>Read only. {first} can stop sharing at any time.</p>
     {empty?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><UsersRound size={26}/></span><h2>Nothing recorded</h2><p>{owner} hasn’t recorded any debts or loan agreements in treeti.</p></section>
-    :<header className="ledger-head"><p className="ledger-caption">{oweItems.length?`${first} owes`:`Owed to ${first}`}</p><p className="ledger-amount">{oweItems.length?sum(oweItems):sum(owed)}</p><p className="ledger-caption">{oweItems.length?`across ${people===1?'1 person':`${people} people`}${owed.length?` · and is owed ${sum(owed)}`:''}`:''}</p></header>}
+    :<header className="ledger-head"><p className="ledger-caption">{oweItems.length?`${first} owes`:`Owed to ${first}`}</p><p className="ledger-amount" style={fitChars(oweItems.length?sum(oweItems):sum(owed))}>{oweItems.length?sum(oweItems):sum(owed)}</p><p className="ledger-caption">{oweItems.length?`across ${people===1?'1 person':`${people} people`}${owed.length?` · and is owed ${sum(owed)}`:''}`:''}</p></header>}
     {oweItems.length>0&&<section aria-labelledby="owes" className="agreements-group ledger-group"><h2 id="owes" className="kit-overline agreements-group-title">{first} owes</h2><ul>
       {owes.map(a=><li key={a.id}><SharedRow name={a.otherName} remaining={a.remainingMinor} original={a.principalMinor} currency={a.currency} meta={<>Shared agreement · due {formatDate(a.dueDate).replace(/ \d{4}$/,'')} · <a className="kit-link" href={pdf(a)}>PDF</a></>}/></li>)}
       {records.debts.map(d=><li key={d.id}><SharedRow name={d.person} remaining={d.remainingMinor} original={d.amountMinor} currency={d.currency} meta={<>Private debt{d.witnesses.length>0&&<> · Witnessed by {d.witnesses.join(', ')}</>}</>}/></li>)}
@@ -162,7 +178,7 @@ function SharedRow({name,remaining,original,currency,meta}:{name:string;remainin
     <span className="agreement-row-avatar"><RingAvatar name={name} fraction={fraction}/></span>
     <span className="agreement-row-person"><span className="agreement-row-name">{name}</span></span>
     <span className="agreement-row-progress"><span className="agreement-row-meta">{meta}</span></span>
-    <span className="agreement-row-left"><span className="agreement-row-amount"><Amount text={money(paid?original:remaining,currency)} currency={currency}/></span><span className="agreement-row-caption">{paid?'paid back':'left'}</span></span>
+    <span className={`agreement-row-left${longAmount(money(paid?original:remaining,currency))?' long':''}`}><span className="agreement-row-amount"><Amount text={money(paid?original:remaining,currency)} currency={currency}/></span><span className="agreement-row-caption">{paid?'paid back':'left'}</span></span>
   </div></article>;
 }
 /** Shown at /trusted/<token>: the invited person accepts after signing in with the invited email. */

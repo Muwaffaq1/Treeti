@@ -64,10 +64,13 @@
   .agreement-drawer .detail-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:28px 28px 24px;display:flex;flex-direction:column}
   .agreement-drawer .detail-hero-line{font-size:18px}
   .agreement-drawer .detail .kit-card{background:var(--surface-soft);border-color:transparent}
-  .agreement-drawer .detail-actions{order:99;position:sticky;bottom:-24px;margin:auto -28px -24px;padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--faint);background:var(--surface)}
-  .agreement-drawer .detail-actions>:only-child{grid-column:1 / -1}
-  .agreement-drawer .detail-actions .button{height:52px;min-height:52px}
-  .agreement-drawer .detail-actions .quiet-note{grid-column:1 / -1}
+  /* Buttons keep one-line labels and wrap as whole buttons: two share a row when they fit, and with
+     three the main action takes the first row so the other two sit side by side under it. */
+  .agreement-drawer .detail-actions{order:99;position:sticky;z-index:2;bottom:-24px;margin:auto -28px -24px;padding:16px 20px;display:flex;flex-wrap:wrap;border-top:1px solid var(--faint);background:var(--surface)}
+  .agreement-drawer .detail-actions>*{flex:1 1 max-content;min-width:0}
+  .agreement-drawer .detail-actions>:first-child:nth-last-child(n+3){flex-basis:100%}
+  .agreement-drawer .detail-actions .button{width:auto;height:52px;min-height:52px;padding-inline:20px;white-space:nowrap}
+  .agreement-drawer .detail-actions .quiet-note{flex-basis:100%}
 }
 @media(min-width:1440px){.agreement-drawer{width:480px}}
 @media(prefers-reduced-motion:no-preference) and (min-width:1101px){.agreement-drawer{animation:detail-in 240ms cubic-bezier(.32,.72,0,1)}}
@@ -76,3 +79,6 @@
 .detail-settled{align-items:flex-start;text-align:start}
 .detail-settled h2{margin:0;font:500 15px/21px var(--font-ui);color:var(--positive-strong)}
 .detail-settled p{margin:0;font:400 13px/18px var(--font-ui);color:var(--muted)}
+/* Stress-test fixes (Nov 2026): long schedules at 200% zoom. */
+.kit-card-head{flex-wrap:wrap}
+.detail-part{grid-template-columns:18px minmax(0,1fr) auto}

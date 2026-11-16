@@ -92,3 +92,43 @@
    Uppercase overlines and initials keep their own spacing. */
 body{letter-spacing:var(--tracking)}
 button,input,select,textarea,.button{letter-spacing:var(--tracking)}
+/* A number never breaks mid-amount; several currencies wrap only between amounts. */
+.kit-totals-amount{overflow-wrap:normal;font-size:min(24px,6.2vw)}
+.kit-totals-amount>span,.kit-totals-amount:not(.multi){white-space:nowrap}
+.kit-totals-amount.multi{font-size:min(17px,4.6vw)}
+.kit-row{align-items:flex-start}
+.kit-row-end{align-self:flex-start}
+
+/* Stress-test fixes (Nov 2026): real data is longer than demo data.
+   Sentence blanks wrap inside themselves; an email breaks anywhere rather than run off the screen. */
+.kit-blank{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:inherit}
+/* Totals: the two halves sit side by side until an amount needs the room, then stack (intrinsic wrap,
+   no breakpoint). The 1px gap over the border colour draws the divider in either direction. */
+.kit-totals{display:flex;flex-wrap:wrap;gap:1px;background:var(--faint)}
+.kit-totals-half{flex:1 1 calc(50% - 1px);min-width:min-content;background:var(--surface)}
+.kit-totals-half+.kit-totals-half{border-inline-start:0}
+@media(hover:hover) and (pointer:fine){.kit-totals-half:hover{background:var(--surface-soft)}}
+.kit-switch{flex-wrap:wrap}
+.kit-switch-half{flex:1 1 calc(50% - 2px);min-width:min-content}
+/* List rows: the name keeps at least 9rem; a long amount drops under it instead of squeezing it.
+   Names wrap to two lines, then end in "…" (the full name is on the detail screen). */
+.kit-row{flex-wrap:wrap}
+.kit-row-main{flex:1 1 9rem}
+.kit-row-end{margin-inline-start:auto}
+.kit-row-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:break-word}
+/* Filter chips: fade the edge that has more chips past it (scroll-driven; no fade where unsupported or not scrollable). */
+@property --chips-start{syntax:'<length>';inherits:false;initial-value:0px}
+@property --chips-end{syntax:'<length>';inherits:false;initial-value:0px}
+@supports (animation-timeline:scroll()){
+  .kit-chips{-webkit-mask-image:linear-gradient(to right,transparent,#000 var(--chips-start),#000 calc(100% - var(--chips-end)),transparent);mask-image:linear-gradient(to right,transparent,#000 var(--chips-start),#000 calc(100% - var(--chips-end)),transparent);animation:kit-chips-fade linear both;animation-timeline:scroll(self inline)}
+  @keyframes kit-chips-fade{0%{--chips-start:0px;--chips-end:32px}8%{--chips-start:32px}92%{--chips-end:32px}100%{--chips-start:32px;--chips-end:0px}}
+}
+
+/* Avatars line up with the top of the name beside them, never its middle, wherever the text can wrap
+   (owner, Nov 2026). Avatars inside a one-line sentence (brief, detail hero) keep sitting on the line,
+   and the ring's own avatar stays centred inside the ring. Buttons and menu items keep their avatar
+   centred (owner, Nov 2026); list rows that happen to be links or buttons still count as names. */
+:is(.kit-avatar,.kit-ring,.agreement-row-avatar,.avatar,.account-avatar,.profile-switch-avatar,.utility-menu-profile>.avatar):not(.kit-ring>.kit-avatar,.brief-person>.kit-avatar,.detail-who>.kit-avatar,.moment-pair .kit-avatar,.moment-person .kit-avatar,:is(button,.button,[role=button],[role=menuitem],[role=menuitemradio]):not(.agreement-row,.ledger-option) *){align-self:flex-start}
+.brief-panel-title{align-items:flex-start}
+.brief-panel-title>.kit-avatar{margin-top:-2px}
+:is(.ledger-option,.create-share li,.agreement-invite){align-items:start}

@@ -12,9 +12,10 @@ import {createDebt,editDebt,recordDebtPayment,type PersonalDebt} from '@/modules
 import {makeReminder} from '@/modules/debts/reminders';
 import {createInvestment,changeInvestment,type Investment} from '@/modules/investments/model';
 import type {TrustedContact,TrustedEventType} from '@/modules/trusted/model';
+import type {InvestmentAgreement} from '@/modules/investment-agreements/model';
 export {demoPeople} from './demo-people';
 type TrustedEvent={id:string;trustedContactId:string;actorId:string;type:TrustedEventType;createdAt:string};
-type State = { agreements: Aggregate[]; trustedContacts?:TrustedContact[]; trustedEvents?:TrustedEvent[]; responses: Record<string, { hash: string; result: { agreement: Aggregate } }>; used: string[]; counter: number; personalDebts?:PersonalDebt[]; debtEdits?:{debtId:string;before:PersonalDebt;after:PersonalDebt}[]; debtResponses?:Record<string,{hash:string;debt:PersonalDebt}>; investments?:Investment[]; investmentResponses?:Record<string,{hash:string;investment:Investment}>; investmentRevisions?:Investment[] };
+type State = { agreements: Aggregate[]; investmentAgreements?:InvestmentAgreement[]; trustedContacts?:TrustedContact[]; trustedEvents?:TrustedEvent[]; responses: Record<string, { hash: string; result: { agreement: Aggregate } }>; used: string[]; counter: number; personalDebts?:PersonalDebt[]; debtEdits?:{debtId:string;before:PersonalDebt;after:PersonalDebt}[]; debtResponses?:Record<string,{hash:string;debt:PersonalDebt}>; investments?:Investment[]; investmentResponses?:Record<string,{hash:string;investment:Investment}>; investmentRevisions?:Investment[] };
 const guards = globalThis as typeof globalThis & { ahdDemoQueues?: Map<string, Promise<unknown>> };
 const queues = guards.ahdDemoQueues ??= new Map();
 export const demoEnabled = () => process.env.AHD_ENABLE_DEMO === 'true' || process.env.NODE_ENV === 'development';
@@ -96,6 +97,8 @@ export class DemoRepository implements Repository {
   async all() { return this.transaction(state=>state.agreements); }
   /** Trusted contacts live in the same workspace file, so profile switches can play both sides. */
   async trustedTransaction<T>(work:(contacts:TrustedContact[],events:TrustedEvent[])=>T){return this.transaction(state=>{state.trustedContacts??=[];state.trustedEvents??=[];return work(state.trustedContacts,state.trustedEvents);});}
+  /** Investment agreements share the workspace file with investments, so finishing one can add each partner's record. */
+  async investmentAgreementTransaction<T>(work:(agreements:InvestmentAgreement[],investments:Investment[])=>T){return this.transaction(state=>{state.investmentAgreements??=[];state.investments??=[];return work(state.investmentAgreements,state.investments);});}
   async listInvestments(actor:Actor){return this.transaction(state=>(state.investments??[]).filter(record=>record.ownerId===actor.userId));}
   private async investmentWrite(id:string|null,input:unknown,actor:Actor,key:string){return this.transaction(state=>{
     state.investments??=[];state.investmentResponses??={};

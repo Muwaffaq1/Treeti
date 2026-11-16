@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {currencies} from '@/lib/currencies';
-import {createInvestment,changeInvestment,investmentTotal,investmentTotals} from '@/modules/investments/model';
+import {createInvestment,changeInvestment,investmentTotal,investmentTotals,isShared} from '@/modules/investments/model';
 const now='2026-10-11T12:00:00Z',owner='owner',first='11111111-1111-4111-8111-111111111111',second='22222222-2222-4222-8222-222222222222';
 const input={name:'My business',currency:'GBP',amountMinor:'130001',date:'2026-10-01',note:'Initial capital'};
 describe('private investment records',()=>{
@@ -34,5 +34,18 @@ describe('private investment records',()=>{
     const restored=changeInvestment(archived,{action:'archive',archived:false,expectedRevision:1},owner,second,now);
     expect(changeInvestment(restored,{...change,expectedRevision:2},owner,second,now).contributions).toHaveLength(2);
     expect(()=>changeInvestment(record,{action:'edit-contribution',contributionId:second,amountMinor:'1',date:'2026-10-01',expectedRevision:0},owner,second,now)).toThrow('unavailable');
+  });
+  it('records who shares an investment, requires shares to total 100% and keeps sharing through older edits',()=>{
+    const shared=createInvestment({...input,partners:[{name:'Aisha Bello',share:40}],myShare:60},owner,first,first,now);
+    expect(isShared(shared)).toBe(true);expect(shared.myShare).toBe(60);expect(investmentTotal(shared)).toBe('130001');
+    expect(isShared(createInvestment(input,owner,first,first,now))).toBe(false);expect(createInvestment({...input,partners:[]},owner,first,first,now)).not.toHaveProperty('partners');
+    expect(()=>createInvestment({...input,partners:[{name:'Aisha Bello',share:40}],myShare:50},owner,first,first,now)).toThrow('add up to 100%');
+    expect(()=>createInvestment({...input,partners:[{name:'Aisha Bello',share:40}]},owner,first,first,now)).toThrow('add up to 100%');
+    expect(()=>createInvestment({...input,partners:[{name:'Aisha Bello',share:40.5}],myShare:59.5},owner,first,first,now)).toThrow();
+    expect(()=>createInvestment({...input,partners:Array.from({length:6},(_,i)=>({name:`Person ${i}`,share:10})),myShare:40},owner,first,first,now)).toThrow('up to 5');
+    const renamed=changeInvestment(shared,{action:'edit',name:'Sister’s shop',currency:'GBP',note:'',expectedRevision:0},owner,second,now);
+    expect(renamed.partners).toEqual(shared.partners);expect(renamed.myShare).toBe(60);
+    const solo=changeInvestment(renamed,{action:'edit',name:'Sister’s shop',currency:'GBP',note:'',partners:[],expectedRevision:1},owner,second,now);
+    expect(isShared(solo)).toBe(false);expect(solo).not.toHaveProperty('myShare');
   });
 });

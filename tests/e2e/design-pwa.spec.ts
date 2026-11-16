@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {addDebt} from './records';
 import {fillAmount} from './create';
 import AxeBuilder from '@axe-core/playwright';
 import {mkdir} from 'node:fs/promises';
@@ -6,11 +7,9 @@ import {randomUUID} from 'node:crypto';
 const origin='http://127.0.0.1:3000';
 for(const width of [375,390,430,1366,1920])test(`reminders and padded form icons at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await page.request.post('/api/demo/session',{headers:{Origin:origin},data:{fresh:true}});await page.goto('/demo/debts');
- await page.getByRole('button',{name:'Add a debt',exact:true}).click();let dialog=page.getByRole('dialog');
- const inset=await dialog.locator('.has-leading-icon').first().evaluate(el=>{const rect=el.getBoundingClientRect(),icon=el.querySelector('svg')!.getBoundingClientRect(),input=el.querySelector('input')!;return {icon:icon.left-rect.left,text:parseFloat(getComputedStyle(input).paddingLeft)};});expect(inset.icon).toBeGreaterThanOrEqual(15);expect(inset.text).toBeGreaterThanOrEqual(48);
- await dialog.getByLabel('Who do you owe?',{exact:true}).fill('Maryam Bello');await dialog.getByLabel('Original amount',{exact:true}).fill('5000');await dialog.getByLabel('Debt date',{exact:true}).fill('2026-10-01');await dialog.getByRole('button',{name:'Save private debt'}).click();await expect(dialog).toBeHidden();
+ await addDebt(page,{person:'Maryam Bello',amount:'5000',date:'2026-10-01'});let dialog=page.getByRole('dialog');
  await page.getByRole('article').filter({hasText:'Maryam Bello'}).getByRole('button').click();await page.getByRole('dialog').getByRole('button',{name:'Add reminder for Maryam Bello'}).click();dialog=page.getByRole('dialog');
- await page.clock.install();const when=new Date(Date.now()+5*60000),value=await page.evaluate(iso=>{const date=new Date(iso);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;},when.toISOString());await dialog.getByLabel('Remind me on',{exact:true}).fill(value);
+ await page.clock.install();const when=new Date(Date.now()+5*60000),value=await page.evaluate(iso=>{const date=new Date(iso);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;},when.toISOString());await page.getByRole('button',{name:/^On .+\. Change$/}).click();let sheet=page.getByRole('dialog',{name:'Which day?'});await sheet.getByLabel('Reminder date').fill(value.slice(0,10));await sheet.getByRole('button',{name:'Done',exact:true}).click();await expect(sheet).toHaveCount(0);await page.getByRole('button',{name:/^At .+\. Change$/}).click();sheet=page.getByRole('dialog',{name:'What time?'});await sheet.getByLabel('Reminder time').fill(value.slice(11));await sheet.getByRole('button',{name:'Done',exact:true}).click();await expect(sheet).toHaveCount(0);
  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(axe.violations).toEqual([]);
  await mkdir('output/qa',{recursive:true});await page.screenshot({path:`output/qa/reminder-form-${width}.png`,animations:'disabled'});
  await dialog.getByRole('button',{name:'Save reminder',exact:true}).click();await expect(dialog).toBeHidden();await page.reload();const card=page.getByRole('article').filter({hasText:'Maryam Bello'});await expect(card.locator('.ledger-reminder')).toBeVisible();await card.getByRole('button').click();const detail=page.getByRole('dialog');await expect(detail).toContainText('Your next reminder');

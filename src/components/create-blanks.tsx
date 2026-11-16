@@ -111,7 +111,7 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
 
     <Panel open={sheet==='amount'} onOpenChange={o=>setSheet(o?'amount':null)} title="How much are you lending?" description="Only what you’ll ask back. treeti never adds interest.">
       <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();void step(['currency','amount'],'amount',done.who?null:'who');}}>
-        <label className="create-currency"><span className="sr-only">Currency</span><select {...register('currency')} aria-label="Currency">{currencies.map(c=><option key={c} value={c}>{c==='NGN'?'₦ Naira':`${c} · ${currencyNames[c]}`}</option>)}</select></label>
+        <label className="create-currency"><span className="sr-only">Currency</span><span className="create-currency-face" aria-hidden>{values.currency==='NGN'?'₦ Naira':`${values.currency} · ${currencyNames[values.currency as keyof typeof currencyNames]}`}</span><select {...register('currency')} aria-label="Currency">{currencies.map(c=><option key={c} value={c}>{c==='NGN'?'₦ Naira':`${c} · ${currencyNames[c]}`}</option>)}</select></label>
         <AmountField register={register} setValue={setValue} currency={values.currency} error={errors.amount?.message}/>
         <button type="submit" className="button button-primary sign-primary">{done.who?'Done':'Next: who'}</button>
       </form>

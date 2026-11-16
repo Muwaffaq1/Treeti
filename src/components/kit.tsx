@@ -8,6 +8,11 @@ import {money} from '@/lib/money';
 import {initials} from './person-colour';
 import {ChevronRight,X} from './icons';
 
+/** Character count for the fit-to-width totals: font-size = container width ÷ characters (see .ledger-amount). */
+export const fitChars=(text:string)=>({'--chars':Array.from(text).length} as React.CSSProperties);
+/** An amount too long to sit beside a name in a list row; the row then puts it underneath. */
+export const longAmount=(text:string)=>Array.from(text).length>10;
+
 /** Initials in a dark-purple circle with a purple ring (Figma: Avatar). Decorative: the name is always shown beside it. */
 export function Avatar({name,size=32}:{name:string;size?:24|28|32|36|40|48|56|64}){
   return <span className="kit-avatar" style={{'--size':`${size}px`} as React.CSSProperties} aria-hidden>{initials(name)}</span>;
@@ -33,7 +38,7 @@ export function TotalsPanel({owed,owe,onOpen}:{owed:{parts:[string,string][];peo
   const half=(side:'owed'|'owe',label:string,v:{parts:[string,string][];people:number},none:string)=>{const empty=!v.parts.length,multi=v.parts.length>1;
     return <button type="button" className={`kit-totals-half${empty?' empty':''}`} aria-haspopup="dialog" onClick={()=>onOpen(side)}>
       <span className="kit-totals-label">{label}</span>
-      <span className={`kit-totals-amount${multi?' multi':''}`}>{empty?<Amount text={money('0','NGN')} currency="NGN"/>:v.parts.map(([c,m],i)=><span key={c}>{i>0&&' + '}<Amount text={money(m,c)} currency={c}/></span>)}</span>
+      <span className={`kit-totals-amount${multi?' multi':''}`}>{empty?<Amount text={money('0','NGN')} currency="NGN"/>:v.parts.map(([c,m],i)=><span key={c}>{i>0&&' '}<span><Amount text={money(m,c)} currency={c}/>{i<v.parts.length-1&&' +'}</span></span>)}</span>
       <span className="kit-totals-sub">{empty?none:<>{v.people===1?'1 person':`${v.people} people`}<ChevronRight size={12} aria-hidden/></>}</span>
     </button>;};
   return <div className="kit-totals" role="group" aria-label="Your totals">{half('owed','Owed to you',owed,'Nothing owed')}{half('owe','You owe',owe,'All clear')}</div>;

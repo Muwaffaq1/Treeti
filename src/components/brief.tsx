@@ -12,7 +12,7 @@ import {installmentProgress} from '@/modules/agreements/repayment-plan';
 import {calendarDate} from '@/lib/calendar';
 import {money} from '@/lib/money';
 import {ErrorMessage} from './ui';
-import {ChevronRight,FileText,Sprout,WalletCards} from './icons';
+import {ChevronRight,FileText,Sprout,Users,WalletCards} from './icons';
 import {DAY,daysBetween,shortDate,when,nextWhen} from './dates';
 import {Panel as KitPanel,ValueSwitch,PersonRow,RingAvatar,Amount,TotalsPanel,Avatar as KitAvatar} from './kit';
 import {api,apiBase,appBase} from './client-api';
@@ -111,17 +111,20 @@ function sinceLines(agreements:Aggregate[],actor:Actor,today:string,base:string)
 function countText(n:number){if(n===0)return 'Nothing needs you today';if(n===1)return 'One thing needs you today';return `${n} things need you today`;}
 const sectionId=(title:string)=>`brief-${title.replace(/\s/g,'-').toLowerCase()}`;
 
-export function Brief({agreements,invitations,actor,demo,accessRequests}:{agreements:Aggregate[];invitations:PendingBorrowerInvitation[];actor:Actor;demo:boolean;accessRequests:{id:string;name:string;opensAt:string}[]}){
+/** An investment agreement waiting on this person: sign it, witness it, or answer a change request. */
+export type JointRequest={id:string;person:string;venture:string;turn:'sign'|'witness'|'revise'};
+export function Brief({agreements,invitations,actor,demo,accessRequests,jointRequests=[]}:{agreements:Aggregate[];invitations:PendingBorrowerInvitation[];actor:Actor;demo:boolean;accessRequests:{id:string;name:string;opensAt:string}[];jointRequests?:JointRequest[]}){
   const base=appBase(demo),today=calendarDate(),[open,setOpen]=useState<Panel|null>(null);
   const needs:Line[]=[
     ...invitations.map(i=>({key:i.id,sentence:<><N name={i.lenderName}/><P>invited you to review an agreement</P></>,panel:{kicker:`Invitation · ${i.publicId}`,since:i.createdAt,person:i.lenderName,title:`${i.lenderName} invited you to review an agreement`,details:[],primary:{label:'Review agreement',invitationId:i.id},note:'Opening it does not mean you accept the terms.'},cta:`Review ${firstName(i.lenderName)}’s invitation`} satisfies Line)),
     ...accessRequests.map(r=>({key:r.id,href:`${base}/trusted-contacts`,sentence:<><N name={r.name}/><P>asked to see your debts.</P><P>They can from</P><E>{shortDate(r.opensAt.slice(0,10))}</E><P>unless you refuse</P></>,cta:`Review ${firstName(r.name)}’s request`} satisfies Line)),
+    ...jointRequests.map(r=>({key:r.id,href:`${base}/investments/agreements/${r.id}`,sentence:r.turn==='revise'?<><N name={r.person}/><P>asked for a change to your investment in</P><E>{r.venture}.</E></>:<><N name={r.person}/><P>asked you to {r.turn==='sign'?'sign':'witness'} an investment in</P><E>{r.venture}.</E></>,cta:r.turn==='revise'?'Review the change':r.turn==='sign'?'Read and sign':'Read and witness'} satisfies Line)),
     ...agreements.filter(a=>needsAttention(a,actor.userId)).map(a=>needsLine(a,actor,base)),
   ];
   const needed=new Set(needs.map(n=>n.key));
   const coming=agreements.filter(a=>a.status==='ACTIVE'&&!needed.has(a.id)).map(a=>comingLine(a,actor,today,base)).filter(x=>x!==null).sort((x,y)=>x.due.localeCompare(y.due));
   const since=sinceLines(agreements,actor,today,base);
-  const empty=!agreements.some(a=>a.status!=='CANCELLED')&&!invitations.length;
+  const empty=!agreements.some(a=>a.status!=='CANCELLED')&&!invitations.length&&!jointRequests.length&&!accessRequests.length;
   const sections:[string,Line[]][]=[['Needs you',needs],['Coming up',coming.slice(0,3)],['Since yesterday',since]];
   const totals=breakdown(agreements,actor,today,base),[sheet,setSheet]=useState(false),[side,setSide]=useState<Side>('owed');
   const top=needs[0],openLine=(line:Line)=>{if(line.panel)setOpen(line.panel);};
@@ -132,7 +135,7 @@ export function Brief({agreements,invitations,actor,demo,accessRequests}:{agreem
     {totals.any&&<div className="brief-totals-wrap"><TotalsPanel owed={{parts:totals.owed.totals,people:peopleIn(totals.owed.rows)}} owe={{parts:totals.owe.totals,people:peopleIn(totals.owe.rows)}} onOpen={showSide}/></div>}
     <div className="brief-sections">
       {empty?<div className="brief-start"><p className="brief-welcome">Lending to someone you trust? Put it in writing, agree it together, and keep track of every payment.</p>
-        <ul className="new-options">{[{href:`${base}/agreements/new`,title:'Write an agreement',detail:'You lend, you both sign',Icon:FileText},{href:`${base}/debts?new=1`,title:'Record a debt',detail:'Money you owe, just for you',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'Record an investment',detail:'Money you’ve put in, just for you',Icon:Sprout}].map(({href,title,detail,Icon})=><li key={href}><Link className="new-option" href={href}><span className="new-option-icon" aria-hidden><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} aria-hidden/></Link></li>)}</ul>
+        <ul className="new-options">{[{href:`${base}/agreements/new`,title:'Write an agreement',detail:'You lend, you both sign',Icon:FileText},{href:`${base}/debts?new=1`,title:'Record a debt',detail:'Money you owe, just for you',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'Record an investment',detail:'Money you’ve put in, just for you',Icon:Sprout},{href:`${base}/investments/agreements/new`,title:'Write an investment agreement',detail:'You invest together, you all sign',Icon:Users}].map(({href,title,detail,Icon})=><li key={href}><Link className="new-option" href={href}><span className="new-option-icon" aria-hidden><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} aria-hidden/></Link></li>)}</ul>
         <Link className="brief-link" href={`${base}/guide`}>See how treeti works</Link></div>:
       sections.filter(([,lines])=>lines.length).map(([title,lines])=><section className={`brief-section${title==='Needs you'?' brief-needs':''}`} key={title} aria-labelledby={sectionId(title)}>
         <h2 id={sectionId(title)}>{title.toUpperCase()}</h2>

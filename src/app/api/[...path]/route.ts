@@ -24,6 +24,7 @@ import {notices,recordedNotices} from '@/modules/notifications/feed';
 import {pushKeys,pushToUser,removeSubscription,saveSubscription} from '@/modules/notifications/push';
 import {ownerUserIds,saveDemoFeedback,saveFeedback} from '@/modules/feedback/feedback';
 import {trustedGet,trustedPost} from '@/modules/trusted/api';
+import {jointGet,jointPost} from '@/modules/investment-agreements/api';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -59,6 +60,7 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
     if(path[0]==='push'&&path.length===1)return json({publicKey:demo?null:pushKeys()?.publicKey??null});
     if(path[0]==='notifications'&&path.length===1)return json({notices:demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)});
     if(path[0]==='trusted')return await trustedGet(path,actor,demo,workspace);
+    if(path[0]==='joint')return await jointGet(path,actor,demo,workspace);
     if(path[0]==='debts'&&!path[1])return json({debts:await debtRepository(demo,workspace).listDebts(actor)});
     if(path[0]==='investments'&&path.length===1)return json({investments:await investmentRepository(demo,workspace).listInvestments(actor)});
     if(path[0]==='debts'&&path[2]==='reminder'&&path[3]==='calendar'){
@@ -73,9 +75,9 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
     if(path[0]==='agreements'&&path[1]){
       const a=await repo.get(z.string().uuid().parse(path[1]));if(!a||!member(a,actor))throw new DomainError('NOT_FOUND','This agreement is unavailable.',404);
       if(path[2]==='pdf'||path[2]==='receipt'||path[2]==='settlement'){
-        await rateLimit(`pdf:${actor.userId}`,40,demo);return documentResponse(a,actor,path[2],new URL(req.url).searchParams.get('payment'));
+        await rateLimit(`pdf:${actor.userId}`,40,demo);return await documentResponse(a,actor,path[2],new URL(req.url).searchParams.get('payment'));
       }
-      if(path[2]==='proof'&&path[3])return proofResponse(a,actor,path[3]);
+      if(path[2]==='proof'&&path[3])return await proofResponse(a,actor,path[3]);
       if(path[2]==='manifest'){
         if(!a.manifest)throw new DomainError('NOT_FINALIZED','The evidence record is available after finalization.');
         if(member(a,actor)?.role==='WITNESS')throw new DomainError('PARTICIPANT_NOT_AUTHORIZED','The agreement PDF is available to witnesses; the full evidence bundle is private to the parties.',403);
@@ -125,6 +127,7 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       return json({ok:true});
     }
     if(path[0]==='trusted')return await trustedPost(req,path,actor,demo,runtimeWorkspace);
+    if(path[0]==='joint')return await jointPost(req,path,actor,demo,runtimeWorkspace);
     if(path[0]==='investments'){
       const investments=investmentRepository(demo,runtimeWorkspace);
       if(path.length===1)return json({investment:await investments.createInvestment(await readBody(req),actor,idempotencyKey(req))},201);
@@ -148,7 +151,7 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
     if(path[0]==='agreements'&&!path[1]){if(actor.needsName)throw new DomainError('NAME_REQUIRED','Add your name before creating an agreement.',422);const input=createSchema.parse(await readBody(req));if(!demo)requireEmailDelivery(input.borrowerContact);const key=idempotencyKey(req),result=await repo.create(input,actor,key);if(!demo)queueAgreementDelivery(result.agreement.id,actor.userId,key);return json({agreement:projectAgreement(result.agreement,actor)},201);}
     if(path[0]==='agreements'&&path[1]){
       const id=z.string().uuid().parse(path[1]);
-      if(path[2]==='proof')return proofUpload(req,(await repo.get(id)) as Aggregate,actor);
+      if(path[2]==='proof')return await proofUpload(req,(await repo.get(id)) as Aggregate,actor);
       const input=commandSchema.parse(await readBody(req));
       if(input.action!==path[2])throw new DomainError('INVALID_ACTION','Reload the page and try again.',400);
       if(!demo){
