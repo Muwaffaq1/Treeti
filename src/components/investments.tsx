@@ -13,7 +13,7 @@ import {ContributionBlanks,InvestmentBlanks,PartnersPanel} from './record-blanks
 import {firstName} from './person-colour';
 
 const noPartners:InvestmentPartner[]=[];
-export function InvestmentTracker({initial,demo,agreements=[]}:{initial:Investment[];demo:boolean;agreements?:JointSummary[]}){
+export function InvestmentTracker({initial,demo,agreements=[],joint=true}:{initial:Investment[];demo:boolean;agreements?:JointSummary[];joint?:boolean}){
   const [records,setRecords]=useState(initial);
   const [editing,setEditing]=useState<Investment|null>(null),[contributing,setContributing]=useState<{id:string;contribution?:InvestmentContribution}|null>(null);
   const [filter,setFilter]=useState<'Active'|'Archived'>('Active'),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[adding,setAdding]=useState(false);
@@ -73,7 +73,7 @@ export function InvestmentTracker({initial,demo,agreements=[]}:{initial:Investme
     <ErrorMessage message={error}/>{error.includes('changed since')&&<Button variant="secondary" disabled={busy} onClick={()=>void reload()}>Load latest records</Button>}
     <JointList agreements={agreements} demo={demo}/>
     {records.length>0&&<div className="agreements-tools ledger-tools"><Chips label="Filter investments" value={filter as 'Active'|'Archived'} onChange={setFilter} options={[{id:'Active',label:'Active'},{id:'Archived',label:'Archived'}]}/><label className="agreements-search"><Search size={18} aria-hidden/><span className="sr-only">Search investments</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search a name or currency"/></label></div>}
-    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. Add a name, the amount and the date to start.</p><div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>{setNotice('');setAdding(true);}}>Add an investment</button><Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link></div></section>
+    {!records.length?<section className="agreements-empty"><span className="agreements-empty-icon" aria-hidden><Sprout size={28}/></span><h2>Keep track of what you’ve put in</h2><p>A business, a co-op, gold or something else. Add a name, the amount and the date to start.</p><div className="agreements-empty-actions"><button type="button" className="button button-primary" onClick={()=>{setNotice('');setAdding(true);}}>Add an investment</button>{joint&&<Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>}</div></section>
      :!visible.length?<section className="agreements-empty"><p>{search?'No investments match your search.':filter==='Archived'?'No archived investments.':'No active investments. Add one or restore an archived record.'}</p></section>
      :<>{(filter==='Archived'?[{id:'ledger-archived',title:'Archived',items:visible}]:[{id:'ledger-shared',title:'Shared',items:visible.filter(isShared)},{id:'ledger-mine',title:'Just mine',items:visible.filter(r=>!isShared(r))}]).filter(g=>g.items.length>0).map(g=><section key={g.id} className="agreements-group ledger-group" aria-labelledby={g.id}><h2 className="kit-overline agreements-group-title" id={g.id}>{g.title} · {g.items.length}</h2>
       <ul>{g.items.map(row)}</ul>
@@ -81,7 +81,7 @@ export function InvestmentTracker({initial,demo,agreements=[]}:{initial:Investme
     {records.length>0&&<div className="ledger-dock">
       {active.length>0&&<button type="button" className="brief-cta" onClick={()=>{setNotice('');setContributing({id:active[0].id});}}>Add money</button>}
       <button type="button" className="button sign-tertiary ledger-add" disabled={busy} onClick={()=>{setNotice('');setAdding(true);}}><Plus size={16} aria-hidden/>Add an investment</button>
-      <Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>
+      {joint&&<Link className="kit-link detail-link-button" href={`${appBase(demo)}/investments/agreements/new`}>Investing with someone? Write an agreement you all sign</Link>}
     </div>}
     <p className="quiet-note debt-footnote">Totals include active records only. Each currency stays separate.</p>
 

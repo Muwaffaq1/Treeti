@@ -25,6 +25,7 @@ import {pushKeys,pushToUser,removeSubscription,saveSubscription} from '@/modules
 import {ownerUserIds,saveDemoFeedback,saveFeedback} from '@/modules/feedback/feedback';
 import {trustedGet,trustedPost} from '@/modules/trusted/api';
 import {jointGet,jointPost} from '@/modules/investment-agreements/api';
+import {investmentAgreementsEnabled} from '@/modules/investment-agreements/enabled';
 
 async function resolve(params:Promise<{path:string[]}>){const {path}=await params;const demo=path[0]==='demo';return {demo,path:demo?path.slice(1):path};}
 async function invitationRepo(demo:boolean){
@@ -60,6 +61,7 @@ export async function GET(req:Request,{params}:{params:Promise<{path:string[]}>}
     if(path[0]==='push'&&path.length===1)return json({publicKey:demo?null:pushKeys()?.publicKey??null});
     if(path[0]==='notifications'&&path.length===1)return json({notices:demo?notices((await repo.list(actor)).map(a=>projectAgreement(a,actor)),await repo.pendingInvitations(actor),actor):await recordedNotices(database(),actor.userId)});
     if(path[0]==='trusted')return await trustedGet(path,actor,demo,workspace);
+    if(path[0]==='joint'){if(!investmentAgreementsEnabled())throw new DomainError('NOT_FOUND','This page is unavailable.',404);}
     if(path[0]==='joint')return await jointGet(path,actor,demo,workspace);
     if(path[0]==='debts'&&!path[1])return json({debts:await debtRepository(demo,workspace).listDebts(actor)});
     if(path[0]==='investments'&&path.length===1)return json({investments:await investmentRepository(demo,workspace).listInvestments(actor)});
@@ -127,6 +129,7 @@ export async function POST(req:Request,{params}:{params:Promise<{path:string[]}>
       return json({ok:true});
     }
     if(path[0]==='trusted')return await trustedPost(req,path,actor,demo,runtimeWorkspace);
+    if(path[0]==='joint'){if(!investmentAgreementsEnabled())throw new DomainError('NOT_FOUND','This action is unavailable.',404);}
     if(path[0]==='joint')return await jointPost(req,path,actor,demo,runtimeWorkspace);
     if(path[0]==='investments'){
       const investments=investmentRepository(demo,runtimeWorkspace);

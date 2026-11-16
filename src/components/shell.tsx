@@ -16,7 +16,7 @@ import {AppearanceSettings} from './appearance';
 import {ProfileSwitcher} from './profile-switcher';
 import {UtilityMenu} from './utility-menu';
 export function Brand(){return <span className="wordmark">treeti<span>.</span></span>;}
-export function Shell({actor,demo,people=demoPeople,children}:{actor:Actor;demo:boolean;people?:Actor[];children:React.ReactNode}){
+export function Shell({actor,demo,people=demoPeople,joint=true,children}:{actor:Actor;demo:boolean;people?:Actor[];joint?:boolean;children:React.ReactNode}){
   const pathname=usePathname(),base=appBase(demo),home=demo?'/demo':'/app';
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
   const links:{href:string;label:string;short?:string;Icon:typeof Home;section:string}[]=[{href:home,label:'Overview',Icon:Home,section:'overview'},{href:`${base}/agreements`,label:'Agreements',Icon:FileText,section:'agreements'},{href:`${base}/debts`,label:'My debts',Icon:WalletCards,section:'debts'},{href:`${base}/investments`,label:'Investments',Icon:Layers3,section:'investments'}];
@@ -24,7 +24,7 @@ export function Shell({actor,demo,people=demoPeople,children}:{actor:Actor;demo:
   const selected=(href:string,section:string)=>pathname===href||(section==='agreements'&&pathname.startsWith(`${base}/agreements/`)&&pathname!==`${base}/agreements/new`);
   return <div className="app-shell"><a href="#main" className="skip-link">Skip to content</a>
     <aside className="sidebar"><Link className="brand-link" href={home} aria-label="treeti overview"><Brand/></Link>
-      <NewChooser base={base} className="button-primary sidebar-new" iconSize={18}/>
+      <NewChooser joint={joint} base={base} className="button-primary sidebar-new" iconSize={18}/>
       <nav aria-label="Main navigation">{links.map(({href,label,short,Icon,section})=><Link key={href} href={href} className={`nav-link section-${section} ${selected(href,section)?'selected':''}`} aria-current={selected(href,section)?'page':undefined}><Icon size={20}/>{short??label}</Link>)}</nav>
       <div className="sidebar-divider" role="separator"/>
       <div className="sidebar-bottom"><NotificationBell userId={actor.userId} demo={demo} rail/><Link className={`nav-link ${pathname===`${base}/activity`?'selected':''}`} href={`${base}/activity`}><Clock3 size={20}/>Activity</Link><Link className={`nav-link section-trusted ${pathname.startsWith(`${base}/trusted-contacts`)?'selected':''}`} href={`${base}/trusted-contacts`}><ShieldCheck size={20}/>Trusted contacts</Link></div>
@@ -32,7 +32,7 @@ export function Shell({actor,demo,people=demoPeople,children}:{actor:Actor;demo:
     </aside>
     <div className="workspace">{demo&&<div className="demo-bar"><span><span className="demo-dot"/>Demonstration<span className="demo-detail">· sample records, simulated verification</span></span><ProfileSwitcher actor={actor} people={people} disabled={busy} onChange={switchPerson}/></div>}
       <header className="top-bar"><p className="top-bar-title">{pageTitle(pathname,base,home)}</p><TopSearch base={base}/></header>
-      <header className="mobile-header"><Link href={home} aria-label="treeti overview"><Brand/></Link><div className="mobile-header-actions"><NewChooser base={base} className="mobile-new" iconSize={16}/><NotificationBell userId={actor.userId} demo={demo}/><UtilityMenu actor={actor} base={base} demo={demo}/></div></header>
+      <header className="mobile-header"><Link href={home} aria-label="treeti overview"><Brand/></Link><div className="mobile-header-actions"><NewChooser joint={joint} base={base} className="mobile-new" iconSize={16}/><NotificationBell userId={actor.userId} demo={demo}/><UtilityMenu actor={actor} base={base} demo={demo}/></div></header>
       <ErrorMessage message={error}/><main id="main" className="main-content">{children}</main></div>
     <InstallNudge/><FeedbackNudge demo={demo}/><MobileNav links={links} pathname={pathname}/></div>;
 }
@@ -47,9 +47,9 @@ function MobileNav({links,pathname}:{links:{href:string;label:string;short?:stri
   return <nav className="mobile-nav" aria-label="Mobile navigation">{links.map(({href,label,short,Icon,section})=><Link href={href} key={href} className={`section-${section}`} aria-current={pathname===href?'page':undefined} onPointerDown={()=>play(section)} onKeyDown={e=>{if(e.key==='Enter')play(section);}}><Icon size={20} trigger="none" hover={tapped===section}/><span>{short??label}</span></Link>)}</nav>;
 }
 /** "New" asks what you're writing down (Figma: New · What are you writing down? 138:5652). */
-function NewChooser({base,className,iconSize}:{base:string;className:string;iconSize:number}){
+function NewChooser({base,className,iconSize,joint=true}:{base:string;className:string;iconSize:number;joint?:boolean}){
   const [open,setOpen]=useState(false);
-  const options=[{href:`${base}/agreements/new`,title:'An agreement',detail:'Lending to someone. You both sign.',Icon:FileText},{href:`${base}/debts?new=1`,title:'A debt',detail:'Money you owe. Only you see it.',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'An investment',detail:'Money you’ve put in. Only you see it.',Icon:Sprout},{href:`${base}/investments/agreements/new`,title:'An investment agreement',detail:'Investing with someone. You all sign.',Icon:Users}];
+  const options=[{href:`${base}/agreements/new`,title:'An agreement',detail:'Lending to someone. You both sign.',Icon:FileText},{href:`${base}/debts?new=1`,title:'A debt',detail:'Money you owe. Only you see it.',Icon:WalletCards},{href:`${base}/investments?new=1`,title:'An investment',detail:'Money you’ve put in. Only you see it.',Icon:Sprout},{href:`${base}/investments/agreements/new`,title:'An investment agreement',detail:'Investing with someone. You all sign.',Icon:Users}].filter(o=>joint||!o.href.includes('/investments/agreements'));
   return <><button type="button" className={className} aria-haspopup="dialog" onClick={()=>setOpen(true)}><Plus size={iconSize} aria-hidden/>New</button>
     <Panel open={open} onOpenChange={setOpen} title="What are you writing down?" description="Pick one. You can always add more later.">
       <ul className="new-options">{options.map(({href,title,detail,Icon})=><li key={href}><Link className="new-option" href={href} onClick={()=>setOpen(false)}><span className="new-option-icon" aria-hidden><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} aria-hidden/></Link></li>)}</ul>

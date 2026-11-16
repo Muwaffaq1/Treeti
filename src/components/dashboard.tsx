@@ -13,8 +13,8 @@ import {activityAppearance} from './activity-look';
 import {firstName} from './person-colour';
 
 export function StatusBadge({status}:{status:string}){return <span className={`status-badge status-${status.toLowerCase()}`}><span aria-hidden className="status-dot"/>{statusLabels[status]??status}</span>;}
-export function Dashboard({agreements,invitations=[],actor,demo,listing=false,accessRequests=[],jointRequests=[]}:{jointRequests?:JointRequest[];agreements:Aggregate[];invitations?:PendingBorrowerInvitation[];actor:Actor;demo:boolean;listing?:boolean;accessRequests?:{id:string;name:string;opensAt:string}[]}){
-  if(!listing)return <Brief agreements={agreements} invitations={invitations} actor={actor} demo={demo} accessRequests={accessRequests} jointRequests={jointRequests}/>;
+export function Dashboard({agreements,invitations=[],actor,demo,listing=false,accessRequests=[],jointRequests=[],joint=true}:{joint?:boolean;jointRequests?:JointRequest[];agreements:Aggregate[];invitations?:PendingBorrowerInvitation[];actor:Actor;demo:boolean;listing?:boolean;accessRequests?:{id:string;name:string;opensAt:string}[]}){
+  if(!listing)return <Brief agreements={agreements} invitations={invitations} actor={actor} demo={demo} accessRequests={accessRequests} jointRequests={jointRequests} joint={joint}/>;
   return <AgreementsList agreements={agreements} invitations={invitations} actor={actor} demo={demo}/>;
 }
 const subscribeTimeZone=()=>()=>{};

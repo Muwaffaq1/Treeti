@@ -26,16 +26,19 @@ import {SharedRecordsView,TrustedContacts,TrustedInvitation} from './trusted-con
 import {investmentAgreementRepository} from '@/modules/investment-agreements/repository';
 import {invitationSummary,summaries as jointSummaries} from '@/modules/investment-agreements/api';
 import {JointCreate,JointDetail,JointInvitation} from './investment-agreement';
+import {investmentAgreementsEnabled} from '@/modules/investment-agreements/enabled';
 export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}){
   let runtime;try{runtime=await getRuntime(demo);}catch(e){if(e instanceof DomainError&&e.code==='DEMO_DISABLED')notFound();if(e instanceof DomainError&&[401,503].includes(e.status)){if(demo)return <DemoStart/>;redirect(`/login?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);}throw e;}
   const {actor,repo,people,workspace}=runtime;
   if(actor.needsName&&!demo)redirect(`/welcome?next=${encodeURIComponent(path.length?`/${path.join('/')}`:'/app')}`);
   let content:React.ReactNode;
-  if(!path.length||path[0]==='app'){const trusted=trustedRepository(demo,workspace),now=await trusted.now(),requests=(await trusted.list(actor)).owned.filter(c=>access(c,now)==='WAITING').map(c=>({id:c.id,name:c.name,opensAt:c.opensAt!}));const joint=jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor).filter(j=>j.turn).map(j=>{const v=j.versions.find(x=>x.id===j.currentVersionId)!,writer=j.partners.find(p=>p.creator)!.name;return {id:j.id,venture:v.terms.venture,turn:j.turn!,person:j.turn==='revise'?(j.partners.find(p=>p.id===j.changeRequests.at(-1)?.partnerId)?.name??writer):writer};});content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} accessRequests={requests} jointRequests={joint}/>;}
+  const joint=investmentAgreementsEnabled();
+  if(!joint&&(path[0]==='joint'||(path[0]==='investments'&&path[1]==='agreements')))notFound();
+  if(!path.length||path[0]==='app'){const trusted=trustedRepository(demo,workspace),now=await trusted.now(),requests=(await trusted.list(actor)).owned.filter(c=>access(c,now)==='WAITING').map(c=>({id:c.id,name:c.name,opensAt:c.opensAt!}));const jointRequests=!joint?[]:jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor).filter(j=>j.turn).map(j=>{const v=j.versions.find(x=>x.id===j.currentVersionId)!,writer=j.partners.find(p=>p.creator)!.name;return {id:j.id,venture:v.terms.venture,turn:j.turn!,person:j.turn==='revise'?(j.partners.find(p=>p.id===j.changeRequests.at(-1)?.partnerId)?.name??writer):writer};});content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} accessRequests={requests} jointRequests={jointRequests} joint={joint}/>;}
   else if(path[0]==='agreements'&&!path[1])content=<Dashboard invitations={await repo.pendingInvitations(actor)} agreements={(await repo.list(actor)).map(a=>projectAgreement(a,actor))} actor={actor} demo={demo} listing/>;
   else if(path[0]==='agreements'&&path[1]==='new')content=<CreateAgreement actor={actor} demo={demo}/>;
   else if(path[0]==='debts')content=<DebtTracker key={actor.userId} initial={await debtRepository(demo,workspace).listDebts(actor)} demo={demo} emailAvailable={false}/>;
-  else if(path[0]==='investments'&&path.length===1)content=<InvestmentTracker key={actor.userId} initial={await investmentRepository(demo,workspace).listInvestments(actor)} agreements={jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor)} demo={demo}/>;
+  else if(path[0]==='investments'&&path.length===1)content=<InvestmentTracker key={actor.userId} initial={await investmentRepository(demo,workspace).listInvestments(actor)} agreements={joint?jointSummaries(await investmentAgreementRepository(demo,workspace).list(actor),actor):[]} joint={joint} demo={demo}/>;
   else if(path[0]==='investments'&&path[1]==='agreements'&&path[2]==='new'&&path.length===3)content=<JointCreate actor={actor} demo={demo}/>;
   else if(path[0]==='investments'&&path[1]==='agreements'&&/^[a-f0-9-]{36}$/.test(path[2]||'')&&path.length<=4){
     const found=await investmentAgreementRepository(demo,workspace).get(path[2]),view=found&&jointSummaries([found],actor).find(()=>true);
@@ -57,5 +60,5 @@ export async function WorkspacePage({demo,path=[]}:{demo:boolean;path?:string[]}
   else if(path[0]==='invite'&&path[1])content=<InvitationPage token={path[1]} demo={demo} authenticated actorName={actor.name}/>;
   else if(path[0]==='verify'&&path[1])content=<Verification publicId={path[1]} demo={demo} inApp/>;
   else notFound();
-  return <Shell actor={actor} demo={demo} people={people}>{content}</Shell>;
+  return <Shell actor={actor} demo={demo} people={people} joint={joint}>{content}</Shell>;
 }
