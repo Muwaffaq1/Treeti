@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useEffect,useState,useSyncExternalStore} from 'react';
 import {ArrowLeft,Bell,BellRing,Settings} from '@/components/icons';
 import {activityAppearance} from './activity-look';

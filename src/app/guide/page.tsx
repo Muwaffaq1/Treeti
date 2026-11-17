@@ -1,5 +1,5 @@
 import {Guide} from '@/components/shell';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import type {Metadata} from 'next';
 import {listed} from '@/lib/listed';
 export const metadata:Metadata={title:'How treeti works',description:'How to record an agreement, add a witness, track repayments, and keep private notes of debts and investments.',...listed('/guide')};

@@ -6,7 +6,9 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import { DomainError, member, verifyEvents } from '@/modules/agreements/domain';
 import type { Actor, Aggregate } from '@/modules/agreements/types';
 import {qualifyingWitnesses, satisfiesWitnessPolicy, usesDigitalWitnesses} from '@/modules/agreements/witness-policy';
-import { renderAgreement } from './pdf';
+// The PDF engine and its fonts cost ~150ms of CPU to load. Load them only when a PDF is made, so
+// ordinary API requests on a fresh Worker stay inside Cloudflare's free-plan CPU limit.
+const pdf=()=>import('./pdf');
 export function verifyIntegrity(a:Aggregate){
   if(!a.manifest)return false;
   const {hash,...manifest}=a.manifest,root=a.events.find(e=>e.hash===manifest.auditRoot);
@@ -20,7 +22,7 @@ export async function ensureArtifact(a:Aggregate,kind:'pdf'|'settlement'|'receip
   const [existing]=await db.query<{storage_path:string;sha256:string}>('select storage_path,sha256 from artifacts where agreement_id=$1 and kind=$2 and repayment_id is not distinct from $3 and ($4::text is null or data->>\'presentationVersion\'=$4) order by created_at,id', [a.id,artifactKind,paymentId??null,presentationVersion]);
   const storage=supabaseAdmin().storage.from('ahd-evidence');
   if(existing){const {data,error}=await storage.download(existing.storage_path);if(error||!data)throw new Error('Artifact download failed');const bytes=Buffer.from(await data.arrayBuffer());if(sha256(bytes)!==existing.sha256)throw new DomainError('INTEGRITY_FAILED','The saved document could not be verified. Contact treeti before relying on it.',503);return bytes;}
-  const bytes=await renderAgreement(a,kind,paymentId,false),path=`${a.id}/${a.manifest!.version.id}/${artifactKind.toLowerCase()}${presentationVersion?`-presentation-v${presentationVersion}`:''}${paymentId?`-${paymentId}`:''}.pdf`;
+  const bytes=await (await pdf()).renderAgreement(a,kind,paymentId,false),path=`${a.id}/${a.manifest!.version.id}/${artifactKind.toLowerCase()}${presentationVersion?`-presentation-v${presentationVersion}`:''}${paymentId?`-${paymentId}`:''}.pdf`;
   const {error}=await storage.upload(path,bytes,{contentType:'application/pdf',upsert:false});
   if(error){
     // Concurrent deterministic generation: read the winner, never overwrite evidence.
@@ -35,6 +37,6 @@ export async function documentResponse(a:Aggregate,actor:Actor,kind:'pdf'|'settl
   if(kind==='settlement'&&a.status!=='SETTLED')throw new DomainError('SETTLEMENT_NOT_COMPLETE','Both parties must acknowledge settlement before this record is available.');
   if(kind==='receipt'&&!a.repayments.some(r=>r.id===paymentId&&r.status==='CONFIRMED'))throw new DomainError('PAYMENT_NOT_CONFIRMED','The receipt is available after the other party confirms this payment.');
   if(!verifyIntegrity(a))throw new DomainError('INTEGRITY_FAILED','This record could not be verified. Contact treeti before relying on it.',503);
-  const bytes=actor.demo?await renderAgreement(a,kind,paymentId,true):await ensureArtifact(a,kind,paymentId);
+  const bytes=actor.demo?await (await pdf()).renderAgreement(a,kind,paymentId,true):await ensureArtifact(a,kind,paymentId);
   return new NextResponse(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="${a.publicId}-${kind}.pdf"`,'Cache-Control':'private, no-store','X-Ahd-Document-Hash':sha256(bytes)}});
 }

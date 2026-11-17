@@ -1,6 +1,6 @@
 'use client';
 import {track} from '@/lib/analytics';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {canResendInvitation} from '@/modules/agreements/invitation-resend';
 import {reminderMessage,waitingOn} from '@/modules/agreements/waiting-on';
 import {calendarDate} from '@/lib/calendar';

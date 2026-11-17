@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import type {PendingBorrowerInvitation} from '@/modules/agreements/pending-invitations';
 import {useState,useSyncExternalStore} from 'react';
 import {ArrowLeft,History} from '@/components/icons';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {PublicHeader} from '@/components/auth';
 
 export const OPERATOR='Muwaffaq Yusuf';

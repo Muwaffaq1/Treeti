@@ -7,7 +7,6 @@ import type {Actor} from '@/modules/agreements/types';
 import {sha256} from '@/lib/crypto';
 import {actions,isMember,latest,viewFor,yourTurn,type ActionName,type Change,type InvestmentAgreement} from './model';
 import {investmentAgreementRepository,type InvestmentAgreementRepository} from './repository';
-import {investmentAgreementResponse} from './document';
 
 const tokenSchema=z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 export const jointInvitationUrl=(token:string,demo:boolean)=>`${demo?'/demo':''}/joint/${token}`;
@@ -30,7 +29,7 @@ export async function jointGet(path:string[],actor:Actor,demo:boolean,workspace?
   const id=z.uuid().parse(path[1]),a=await repo.get(id);
   if(!a||!isMember(a,actor))throw new DomainError('NOT_FOUND','This agreement is unavailable.',404);
   if(path.length===2)return json({agreement:{...viewFor(a,actor),turn:yourTurn(a,actor)}});
-  if(path[2]==='pdf'&&path.length===3){await rateLimit(`pdf:${actor.userId}`,40,demo);return investmentAgreementResponse(a,actor,demo);}
+  if(path[2]==='pdf'&&path.length===3){await rateLimit(`pdf:${actor.userId}`,40,demo);return (await import('./document')).investmentAgreementResponse(a,actor,demo);}
   throw new DomainError('NOT_FOUND','This page is unavailable.',404);
 }
 

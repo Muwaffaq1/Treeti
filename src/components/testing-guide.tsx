@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/app-link';
 
 export function TestingGuide({demo}:{demo:boolean}){
   if(!demo)return null;

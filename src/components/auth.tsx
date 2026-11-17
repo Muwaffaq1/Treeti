@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import {Mail} from '@/components/icons';

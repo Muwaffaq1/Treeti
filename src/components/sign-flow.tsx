@@ -2,7 +2,7 @@
 // Signing (Figma: v3 · Screens · Sign · 1 Read it, 2 Promise, 3 Hold to sign, 4 Signed, Ask for a change,
 // Reject request; Desktop · Hold to sign 152:7922). One full-screen step at a time; nothing is saved until
 // the hold completes.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import * as Dialog from '@radix-ui/react-dialog';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import type {Actor,Aggregate,Participant,Version} from '@/modules/agreements/types';

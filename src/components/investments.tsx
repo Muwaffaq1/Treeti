@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {Archive,ArchiveRestore,CheckCircle2,ChevronRight,FileText,LockKeyhole,Pencil,Plus,Search,Sprout,Users} from '@/components/icons';
 import {Amount,Chips,Panel,fitChars,longAmount} from './kit';
 import {money} from '@/lib/money';

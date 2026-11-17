@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import {listed} from '@/lib/listed';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {Check} from '@/components/icons';
 import {LegalLinks} from '@/components/legal';
 import {PublicHeader} from '@/components/auth';

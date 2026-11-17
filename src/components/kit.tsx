@@ -1,7 +1,7 @@
 'use client';
 // treeti UI kit: the shared pieces from the Figma design system (v3 · Atoms/Molecules/Organisms).
 // Every screen of the revamp is built from these, so a change here updates phone and desktop together.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import * as Dialog from '@radix-ui/react-dialog';
 import {useEffect,type ReactNode} from 'react';
 import {money} from '@/lib/money';

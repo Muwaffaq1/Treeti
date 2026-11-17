@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useRef} from 'react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import {UserRound,Sun,Moon,Download,CircleHelp,ArrowUpRight,Clock3,MessageSquareText,ShieldCheck} from '@/components/icons';

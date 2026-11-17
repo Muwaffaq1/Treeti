@@ -2,7 +2,7 @@
 // Investment agreements (owner, Nov 2026): partners write one sentence together, each signs the same version,
 // and once everyone has signed each partner gets the shared investment in their own records.
 // Built from the loan agreement screens: blanks, one promise, hold to sign, then a private link for each person.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useRouter} from 'next/navigation';
 import {Fragment,useState,type ReactNode} from 'react';
 import {calendarDate} from '@/lib/calendar';

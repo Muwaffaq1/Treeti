@@ -2,7 +2,7 @@
 // The home "brief" (Figma: v3 · Screens · Brief v2 · Home 120:3793, Totals breakdown 120:4005, Desktop · Home 151:6780).
 // A few short sentences about what needs you, what's coming up and what changed since yesterday.
 // Each sentence opens a slide-up panel or a page with the one thing to do next.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useRouter} from 'next/navigation';
 import {useState,type ReactNode} from 'react';
 import * as Sheet from '@radix-ui/react-dialog';

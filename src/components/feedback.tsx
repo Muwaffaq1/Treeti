@@ -1,6 +1,6 @@
 'use client';
 import {track} from '@/lib/analytics';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useState,useSyncExternalStore} from 'react';
 import {MessageSquareText,Star} from '@/components/icons';

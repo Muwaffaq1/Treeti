@@ -1,7 +1,7 @@
 'use client';
 // New agreement (Figma: v3 · Screens · Create · 1 Blanks … 6 Read it back, Sign · 2–3, Create · Send it to everyone;
 // Desktop · Write an agreement 152:7858). The terms read as one sentence; each blank opens a panel.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useState,type ReactNode} from 'react';
 import {useForm,useWatch,useFieldArray} from 'react-hook-form';
@@ -30,17 +30,24 @@ const short=(date:string)=>formatDate(date).replace(/ \d{4}$/,'');
 /** Witnesses written down here are kept on this device until they can be invited (after both people sign). */
 export const witnessDraftKey=(agreementId:string)=>`treeti:witness-drafts:${agreementId}`;
 
-export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
+/** The current terms of an agreement, as form values, so a new version starts from what was agreed. */
+function valuesFrom(existing:Aggregate):Values{
+  const old=currentVersion(existing),b=existing.participants.find(p=>p.role==='BORROWER');
+  return {currency:old.terms.currency,amount:groupMoneyInput(moneyInput(old.terms.principalMinor)),borrowerName:b?.name||'',borrowerContact:b?.contact||(old.payload.borrower as {contact?:string}|undefined)?.contact||'',agreementDate:old.terms.agreementDate||calendarDate(),dueDate:old.terms.dueDate||'',purpose:old.terms.purpose||'',additionalTerms:old.terms.additionalTerms||'',repaymentPlan:old.terms.installments?.frequency??'SINGLE',paymentCount:String(old.terms.installments?.payments.length??6),firstPaymentDate:old.terms.installments?.payments[0]?.dueDate??'',customPayments:old.terms.installments?.payments.map(p=>({dueDate:p.dueDate,amount:groupMoneyInput(moneyInput(p.amountMinor))}))??[{dueDate:'',amount:''},{dueDate:'',amount:''}],requiredWitnesses:String(old.terms.requiredWitnesses??0),reason:''} as Values;
+}
+/** Writes a new agreement, or (with `existing`) proposes a new version of one, as a fill-in-the-blank sentence. */
+export function CreateBlanks({actor,demo,existing}:{actor:Actor;demo:boolean;existing?:Aggregate}){
   const router=useRouter(),home=demo?'/demo':'/app',base=appBase(demo);
   const [sheet,setSheet]=useState<Sheet>(null),[stage,setStage]=useState<Stage>('write');
-  const [done,setDone]=useState({amount:false,who:false,what:false,how:false}),[skipPurpose,setSkipPurpose]=useState(false);
+  const [done,setDone]=useState({amount:!!existing,who:!!existing,what:!!existing,how:!!existing}),[skipPurpose,setSkipPurpose]=useState(false);
   const [witnesses,setWitnesses]=useState<Witness[]>([]),[editing,setEditing]=useState<number|null>(null),[witnessDraft,setWitnessDraft]=useState<Witness>({name:'',contact:''}),[witnessError,setWitnessError]=useState('');
   const [affirmed,setAffirmed]=useState(false),[style,setStyle]=useState<Style>('script'),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  const [draft,setDraft]=useState<Aggregate|null>(null),[sent,setSent]=useState<{a:Aggregate;invitation?:InvitationLinkData}|null>(null);
+  const [draft,setDraft]=useState<Aggregate|null>(null),[revised,setRevised]=useState<Aggregate|null>(null),[sent,setSent]=useState<{a:Aggregate;invitation?:InvitationLinkData}|null>(null);
   const [requestKey]=useState(()=>crypto.randomUUID()),[sendKey]=useState(()=>crypto.randomUUID());
-  const {register,trigger,control,setValue,getValues,formState:{errors}}=useForm<Values>({resolver:zodResolver(formSchema(demo)),defaultValues:{currency:'NGN',amount:'',borrowerName:'',borrowerContact:'',agreementDate:calendarDate(),dueDate:'',purpose:'',additionalTerms:'',repaymentPlan:'SINGLE',paymentCount:'6',firstPaymentDate:'',customPayments:[{dueDate:'',amount:''},{dueDate:'',amount:''}],requiredWitnesses:'0',reason:''}});
+  const {register,trigger,control,setValue,getValues,formState:{errors}}=useForm<Values>({resolver:zodResolver(formSchema(demo||!!existing)),defaultValues:existing?valuesFrom(existing):{currency:'NGN',amount:'',borrowerName:'',borrowerContact:'',agreementDate:calendarDate(),dueDate:'',purpose:'',additionalTerms:'',repaymentPlan:'SINGLE',paymentCount:'6',firstPaymentDate:'',customPayments:[{dueDate:'',amount:''},{dueDate:'',amount:''}],requiredWitnesses:'0',reason:''}});
   const values=useWatch({control}) as Values,custom=useFieldArray({control,name:'customPayments'});
-  useEffect(()=>{setValue('requiredWitnesses',String(witnesses.length));},[witnesses.length,setValue]);
+  // A new version keeps its requested witnesses; they're managed on the agreement page.
+  useEffect(()=>{if(!existing)setValue('requiredWitnesses',String(witnesses.length));},[existing,witnesses.length,setValue]);
   const ready=done.amount&&done.who&&done.how;
   // With no panel open, the next empty blank is highlighted so it's clear where to start.
   const nextBlank:Sheet=!done.amount?'amount':!done.who?'who':!done.what&&!skipPurpose?'what':!done.how?'how':null,focus=sheet??nextBlank;
@@ -53,12 +60,16 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
     setBusy(true);setError('');
     try{
       const data=getValues(),terms=formTerms(data);let a=draft;
-      if(a&&JSON.stringify(currentVersion(a).terms)!==JSON.stringify(terms))throw new Error('Your draft was saved before sending was interrupted. Open it from Agreements to update the terms before sending.');
-      if(!a){a=(await api<{agreement:Aggregate}>(`${apiBase(demo)}/agreements`,{borrowerName:data.borrowerName,borrowerContact:data.borrowerContact,terms},requestKey)).agreement;setDraft(a);try{if(witnesses.length)localStorage.setItem(witnessDraftKey(a.id),JSON.stringify(witnesses));}catch{}}
-      if(!send){router.push(`${base}/agreements/${a.id}`);return;}
+      if(!existing&&a&&JSON.stringify(currentVersion(a).terms)!==JSON.stringify(terms))throw new Error('Your draft was saved before sending was interrupted. Open it from Agreements to update the terms before sending.');
+      if(existing){
+        // One new version per visit, even if signing is retried after an interruption.
+        a=revised??(await api<{agreement:Aggregate}>(`${apiBase(demo)}/agreements/${existing.id}/version`,{action:'version',expectedVersionId:existing.currentVersionId,terms,reason:data.reason.trim()||'Updated the terms'},requestKey)).agreement;setRevised(a);
+      }
+      else if(!a){a=(await api<{agreement:Aggregate}>(`${apiBase(demo)}/agreements`,{borrowerName:data.borrowerName,borrowerContact:data.borrowerContact,terms},requestKey)).agreement;setDraft(a);try{if(witnesses.length)localStorage.setItem(witnessDraftKey(a.id),JSON.stringify(witnesses));}catch{}}
+      if(!send){router.push(`${base}/agreements/${a.id}`);router.refresh();return;}
       const r=await api<{agreement:Aggregate;invitation?:InvitationLinkData}>(`${apiBase(demo)}/agreements/${a.id}/agree-and-send`,{action:'agree-and-send',expectedVersionId:a.currentVersionId,affirmed:true,signature:actor.name},sendKey);
       if(r.invitation){try{if(demo)sessionStorage.setItem(`ahd:invites:${r.agreement.id}:${r.agreement.currentVersionId}`,JSON.stringify([r.invitation]));}catch{}}
-      track('agreement_sent',{structure:data.repaymentPlan,witnesses:witnesses.length,currency:data.currency,new_version:false});
+      track('agreement_sent',{structure:data.repaymentPlan,witnesses:existing?Number(data.requiredWitnesses):witnesses.length,currency:data.currency,new_version:!!existing});
       setSent({a:r.agreement,invitation:r.invitation});setStage('share');try{navigator.vibrate?.(20);}catch{}
     }catch(e){setError((e as Error).message);if(send)setStage('promise');}
     finally{setBusy(false);}
@@ -68,23 +79,23 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
   const back=stage==='promise'?()=>setStage('write'):stage==='hold'?()=>setStage('promise'):null;
   return <div className="sign-flow create-flow">
     <header className="sign-bar">
-      {back?<button type="button" className="detail-icon-button" aria-label="Back" onClick={back}><BackIcon/></button>:<Link className="detail-icon-button" href={stage==='share'&&sent?`${base}/agreements/${sent.a.id}`:home} aria-label="Close"><X size={18} aria-hidden/></Link>}
-      <p className="sign-kicker">{stage==='share'&&sent?sent.a.publicId:'New agreement'}</p>
+      {back?<button type="button" className="detail-icon-button" aria-label="Back" onClick={back}><BackIcon/></button>:<Link className="detail-icon-button" href={stage==='share'&&sent?`${base}/agreements/${sent.a.id}`:existing?`${base}/agreements/${existing.id}`:home} aria-label="Close"><X size={18} aria-hidden/></Link>}
+      <p className="sign-kicker">{stage==='share'&&sent?sent.a.publicId:existing?`Change ${existing.publicId}`:'New agreement'}</p>
       <ol className="sign-steps" aria-label={`Step ${stageIndex+1} of 3`}>{[0,1,2].map(i=><li key={i} className={i<=stageIndex?'on':''}/>)}</ol>
     </header>
     <div className="sign-body">
       {stage==='write'&&<>
-        <Heading plain title={ready?'Read it back':'Write it down'} sub={ready?'Tap anything to change it.':'Tap each blank. It reads like you’d say it.'}/>
+        <Heading plain title={existing?'Change the terms':ready?'Read it back':'Write it down'} sub={existing?'Tap anything to change it. Everyone signs the new version again.':ready?'Tap anything to change it.':'Tap each blank. It reads like you’d say it.'}/>
         <p className="create-sentence">
           <W>I’m lending</W> <Blank state={focus==='amount'?'current':done.amount?'filled':'empty'} label={done.amount?`Amount: ${money(parseMoney(values.amount),values.currency)}. Change`:'Choose how much you’re lending'} onClick={()=>setSheet('amount')}>{done.amount?money(parseMoney(values.amount),values.currency):'how much'}</Blank>{' '}
-          <W>to</W> <Blank state={focus==='who'?'current':done.who?'filled':'empty'} label={done.who?`Borrower: ${values.borrowerName}. Change`:'Choose who you’re lending to'} onClick={()=>setSheet('who')}>{done.who?values.borrowerName:'who'}</Blank>
+          <W>to</W> <Blank state={focus==='who'?'current':done.who?'filled':'empty'} label={existing?`Borrower: ${values.borrowerName}. The borrower stays the same in a new version`:done.who?`Borrower: ${values.borrowerName}. Change`:'Choose who you’re lending to'} onClick={()=>{if(!existing)setSheet('who');}}>{done.who?values.borrowerName:'who'}</Blank>
           {!skipPurpose&&<>{' '}<W>for</W> <Blank state={focus==='what'?'current':done.what&&values.purpose.trim()?'filled':'empty'} label={values.purpose.trim()?`Purpose: ${values.purpose}. Change`:'Add what it’s for'} onClick={()=>setSheet('what')}>{done.what&&values.purpose.trim()?purposeText(values.purpose):'what'}</Blank><W>.</W></>}{skipPurpose&&<W>.</W>}{' '}
           <W>They’ll repay</W> <Blank state={focus==='how'?'current':done.how?'filled':'empty'} label={done.how?`Repayment: ${howText(values,preview)}. Change`:'Choose how they repay'} onClick={()=>setSheet('how')}>{done.how?howText(values,preview):'how'}</Blank>{' '}
           <W>{done.how&&values.repaymentPlan==='SINGLE'?'by':'from'}</W> <span className="create-nowrap"><Blank state={focus==='how'?'current':done.how?'filled':'empty'} label={done.how?`Date: ${whenText(values,preview)}. Change`:'Choose when'} onClick={()=>setSheet('how')}>{done.how?whenText(values,preview):'when'}</Blank><W>.</W></span>
           {witnesses.length>0&&<>{' '}<span className="create-witnessed">Witnessed by</span> {witnesses.map((w,i)=><span key={i}>{i>0&&<W> and </W>}<Blank state={sheet==='witness'&&editing===i?'current':'filled'} label={`Witness: ${w.name}. Change`} onClick={()=>{setEditing(i);setWitnessDraft(w);setWitnessError('');setSheet('witness');}}>{w.name}</Blank>{i===witnesses.length-1&&<W>.</W>}</span>)}</>}
         </p>
         <div className="create-links">
-          {witnesses.length<2&&<button type="button" className="kit-link detail-link-button" onClick={()=>{setEditing(null);setWitnessDraft({name:'',contact:''});setWitnessError('');setSheet('witness');}}>{witnesses.length?'+ Add another witness':'+ Add witnesses (optional)'}</button>}
+          {!existing&&witnesses.length<2&&<button type="button" className="kit-link detail-link-button" onClick={()=>{setEditing(null);setWitnessDraft({name:'',contact:''});setWitnessError('');setSheet('witness');}}>{witnesses.length?'+ Add another witness':'+ Add witnesses (optional)'}</button>}
           {ready&&<button type="button" className="kit-link detail-link-button" onClick={()=>setSheet('note')}>{values.additionalTerms.trim()?'Edit your note':'+ Anything else? Add a note'}</button>}
         </div>
         <InterestWordingWarning words={interestWording(values.purpose,values.additionalTerms)} reader="LENDER"/>
@@ -92,7 +103,7 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
         <div className="sign-actions">
           <button type="button" className="button button-primary sign-primary" disabled={!ready} onClick={()=>{setAffirmed(false);setStage('promise');}}>Review and sign</button>
           <p className="sign-note">{ready?'Next: read it, promise, hold to sign, then share':'Fill the blanks to continue'}</p>
-          {ready&&<button type="button" className="button sign-tertiary" disabled={busy} onClick={()=>void save(false)}>Save draft</button>}
+          {ready&&(!existing||existing.status==='DRAFT')&&<button type="button" className="button sign-tertiary" disabled={busy} onClick={()=>void save(false)}>{existing?'Save changes':'Save draft'}</button>}
         </div>
       </>}
       {stage==='promise'&&<>
@@ -102,6 +113,7 @@ export function CreateBlanks({actor,demo}:{actor:Actor;demo:boolean}){
           <div><dt>Your name</dt><dd><span>{actor.name}</span></dd></div>
           {actor.contacts[0]&&<div><dt>Signed as</dt><dd>{maskContact(actor.contacts[0])}</dd></div>}
         </dl>
+        {existing&&<label className="create-field"><span className="create-field-label">What changed? (optional, {values.borrowerName.split(' ')[0]||'the borrower'} will see this)</span><textarea className="ask-text" rows={3} maxLength={2000} {...register('reason')} placeholder="Moved the due date to March"/></label>}
         <ErrorMessage message={error}/>
         <div className="sign-actions"><button type="button" className="button button-primary sign-primary" disabled={!affirmed} onClick={()=>setStage('hold')}>Continue to sign</button></div>
       </>}

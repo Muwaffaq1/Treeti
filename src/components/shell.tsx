@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, FileText, Home, LockKeyhole, LogOut, ArrowUpRight, ArrowLeft, ChevronRight, Clock3, WalletCards, Layers3, ShieldCheck, Plus, Search, Sprout, Users } from '@/components/icons';
@@ -17,15 +17,20 @@ import {ProfileSwitcher} from './profile-switcher';
 import {UtilityMenu} from './utility-menu';
 export function Brand(){return <span className="wordmark">treeti<span>.</span></span>;}
 export function Shell({actor,demo,people=demoPeople,joint=true,children}:{actor:Actor;demo:boolean;people?:Actor[];joint?:boolean;children:React.ReactNode}){
-  const pathname=usePathname(),base=appBase(demo),home=demo?'/demo':'/app';
+  const realPath=usePathname(),base=appBase(demo),home=demo?'/demo':'/app';
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
+  // Links don't prefetch (see app-link.tsx), so the tapped tab lights up at once and the page follows.
+  // It only counts while we're still on the page it was tapped from.
+  const [pending,setPending]=useState<{href:string;from:string}|null>(null);
+  const pathname=pending&&pending.from===realPath?pending.href:realPath;
+  const go=(href:string)=>(e:React.MouseEvent)=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&href!==realPath)setPending({href,from:realPath});};
   const links:{href:string;label:string;short?:string;Icon:typeof Home;section:string}[]=[{href:home,label:'Overview',Icon:Home,section:'overview'},{href:`${base}/agreements`,label:'Agreements',Icon:FileText,section:'agreements'},{href:`${base}/debts`,label:'My debts',Icon:WalletCards,section:'debts'},{href:`${base}/investments`,label:'Investments',Icon:Layers3,section:'investments'}];
   async function switchPerson(userId:string){setBusy(true);try{await api('/api/demo/session',{userId});window.location.reload();}catch(e){setError((e as Error).message);setBusy(false);}}
   const selected=(href:string,section:string)=>pathname===href||(section==='agreements'&&pathname.startsWith(`${base}/agreements/`)&&pathname!==`${base}/agreements/new`);
   return <div className="app-shell"><a href="#main" className="skip-link">Skip to content</a>
     <aside className="sidebar"><Link className="brand-link" href={home} aria-label="treeti overview"><Brand/></Link>
       <NewChooser joint={joint} base={base} className="button-primary sidebar-new" iconSize={18}/>
-      <nav aria-label="Main navigation">{links.map(({href,label,short,Icon,section})=><Link key={href} href={href} className={`nav-link section-${section} ${selected(href,section)?'selected':''}`} aria-current={selected(href,section)?'page':undefined}><Icon size={20}/>{short??label}</Link>)}</nav>
+      <nav aria-label="Main navigation">{links.map(({href,label,short,Icon,section})=><Link key={href} href={href} onClick={go(href)} className={`nav-link section-${section} ${selected(href,section)?'selected':''}`} aria-current={selected(href,section)?'page':undefined}><Icon size={20}/>{short??label}</Link>)}</nav>
       <div className="sidebar-divider" role="separator"/>
       <div className="sidebar-bottom"><NotificationBell userId={actor.userId} demo={demo} rail/><Link className={`nav-link ${pathname===`${base}/activity`?'selected':''}`} href={`${base}/activity`}><Clock3 size={20}/>Activity</Link><Link className={`nav-link section-trusted ${pathname.startsWith(`${base}/trusted-contacts`)?'selected':''}`} href={`${base}/trusted-contacts`}><ShieldCheck size={20}/>Trusted contacts</Link></div>
       <div className="sidebar-account"><UtilityMenu actor={actor} base={base} demo={demo} rail/></div>
@@ -34,17 +39,17 @@ export function Shell({actor,demo,people=demoPeople,joint=true,children}:{actor:
       <header className="top-bar"><p className="top-bar-title">{pageTitle(pathname,base,home)}</p><TopSearch base={base}/></header>
       <header className="mobile-header"><Link href={home} aria-label="treeti overview"><Brand/></Link><div className="mobile-header-actions"><NewChooser joint={joint} base={base} className="mobile-new" iconSize={16}/><NotificationBell userId={actor.userId} demo={demo}/><UtilityMenu actor={actor} base={base} demo={demo}/></div></header>
       <ErrorMessage message={error}/><main id="main" className="main-content">{children}</main></div>
-    <InstallNudge/><FeedbackNudge demo={demo}/><MobileNav links={links} pathname={pathname}/></div>;
+    <InstallNudge/><FeedbackNudge demo={demo}/><MobileNav links={links} pathname={pathname} onGo={go}/></div>;
 }
 /** Phone tab bar. Tapping anywhere on a tab plays that tab's icon motion once, then it settles back. */
-function MobileNav({links,pathname}:{links:{href:string;label:string;short?:string;Icon:typeof Home;section:string}[];pathname:string}){
+function MobileNav({links,pathname,onGo}:{links:{href:string;label:string;short?:string;Icon:typeof Home;section:string}[];pathname:string;onGo:(href:string)=>(e:React.MouseEvent)=>void}){
   const [tapped,setTapped]=useState<string|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   function play(section:string){
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     clearTimeout(timer.current);setTapped(section);timer.current=setTimeout(()=>setTapped(null),650);
   }
-  return <nav className="mobile-nav" aria-label="Mobile navigation">{links.map(({href,label,short,Icon,section})=><Link href={href} key={href} className={`section-${section}`} aria-current={pathname===href?'page':undefined} onPointerDown={()=>play(section)} onKeyDown={e=>{if(e.key==='Enter')play(section);}}><Icon size={20} trigger="none" hover={tapped===section}/><span>{short??label}</span></Link>)}</nav>;
+  return <nav className="mobile-nav" aria-label="Mobile navigation">{links.map(({href,label,short,Icon,section})=><Link href={href} key={href} className={`section-${section}`} aria-current={pathname===href?'page':undefined} onClick={onGo(href)} onPointerDown={()=>play(section)} onKeyDown={e=>{if(e.key==='Enter')play(section);}}><Icon size={20} trigger="none" hover={tapped===section}/><span>{short??label}</span></Link>)}</nav>;
 }
 /** "New" asks what you're writing down (Figma: New · What are you writing down? 138:5652). */
 function NewChooser({base,className,iconSize,joint=true}:{base:string;className:string;iconSize:number;joint?:boolean}){

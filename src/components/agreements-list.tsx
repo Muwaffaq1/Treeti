@@ -1,7 +1,7 @@
 'use client';
 // Agreements list (Figma: v3 · Screens · Brief v2 · Agreements 127:4067, Desktop · Agreements 151:7370).
 // Phones group rows under small headings; wide screens show the same rows as a table.
-import Link from 'next/link';
+import Link from '@/components/app-link';
 import {useEffect,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
 import type {Actor,Aggregate} from '@/modules/agreements/types';

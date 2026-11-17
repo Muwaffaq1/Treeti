@@ -32,7 +32,12 @@ for(const [plan,width] of [['MONTHLY',375],['WEEKLY',1366],['CUSTOM',375]] as co
   expect(terms.installments.payments.reduce((sum:bigint,p:{amountMinor:string})=>sum+BigInt(p.amountMinor),0n)).toBe(100001n);
   if(plan==='MONTHLY')expect(terms.installments.payments.map((p:{dueDate:string})=>p.dueDate)).toEqual(['2027-01-31','2027-02-28','2027-03-31']);
   const url=page.url();await page.reload();await expect(page.getByRole('region',{name:'Installment schedule'})).toBeVisible();
-  await page.goto(`${url}/edit`);await expect(amount).toHaveValue('1,000.01');await expect(page.getByRole('heading',{name:'Who are you lending to?'})).toBeVisible();await expect(page.getByLabel('Email or phone number')).toHaveValue('ahmad@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByRole('radiogroup',{name:'Repayment structure'}).locator(`input[value="${plan}"]`)).toBeChecked();await page.getByLabel('Reason for the new version').fill('Review the repayment plan');await page.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.getByRole('heading',{name:'Review and agree.'})).toBeVisible();await page.getByRole('button',{name:'Save new version',exact:true}).click();await expect(page.getByRole('heading',{name:'Your draft is safely kept.'})).toBeVisible();const revised=await (await page.request.get(endpoint)).json();expect(revised.agreement.versions).toHaveLength(2);expect(revised.agreement.versions[0].terms).toEqual(terms);
+  // Changing a draft uses the same fill-in-the-blank sentence, prefilled with the current terms.
+  await page.goto(`${url}/edit`);await expect(page.getByRole('heading',{name:'Change the terms'})).toBeVisible();
+  await expect(page.locator('.create-sentence')).toContainText('₦1,000.01');await expect(page.locator('.create-sentence')).toContainText('Ahmad Ibrahim');
+  await page.getByRole('button',{name:/^Repayment: .+\. Change$/}).click();await expect(page.getByRole('dialog').locator(`input[value="${plan}"]`)).toBeChecked();await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();await expect(page).toHaveURL(/\/demo\/agreements\/[a-f0-9-]{36}$/);
+  const revised=await (await page.request.get(endpoint)).json();expect(revised.agreement.versions).toHaveLength(2);expect(revised.agreement.versions[0].terms).toEqual(terms);expect(revised.agreement.versions[1].terms).toEqual(terms);
 });
 
 test('rejects invalid pasted amounts instead of silently changing their meaning',async({page})=>{
