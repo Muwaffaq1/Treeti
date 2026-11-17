@@ -6,6 +6,14 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — reminders use the person's own date
+
+Production at **https://usetreeti.xyz** runs app commit `b2a898d` as Cloudflare version `f20f0f0f-b3b9-4df2-aa4c-7944fe968eb4` (gzip 2,924.58 KiB), deployed 17 November 2026 with `npm run cf:deploy:production` at the owner's request. The reminder day picker now measures "today" on the person's own clock (`localCalendarDate`, `src/lib/calendar.ts`) instead of the Lagos calendar, so people behind Lagos time can set a reminder for later the same evening. Agreement and debt dates keep the Nigerian calendar. This closes the known issue in the previous release note. No migration was needed.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-11-17T04-34-24.424Z`, 33 tables, 836 rows, 39 foreign keys, 13 Storage files, restored offline); GitHub's checks passed for the commit; `npm run cf:build` and `npm run test:workers` passed. Locally, 180 unit tests, the existing reminder tests and a new New York 10:30pm reminder test passed; that test fails without the fix. After the deploy, `npm run check:production` and the read-only jobs check passed with no email sent and no records changed.
+
+Rollback version: `aaded5f6-e4f7-4883-bf44-bc6c4ac227a7`. A code rollback does not restore or delete financial data.
+
 ## Release — direct borrower codes, paste codes, custom part layout
 
 Production at **https://usetreeti.xyz** runs app commit `42b4bf0` as Cloudflare version `aaded5f6-e4f7-4883-bf44-bc6c4ac227a7` (gzip 2,924.46 KiB), deployed 17 November 2026 with `npm run cf:deploy:production` at the owner's request, after a borrower could not open an invitation sent to their Gmail address. Borrower invitations now use the witness flow: the sign-in code goes straight to the invited address, so nobody retypes an email. The identity check treats Gmail addresses that differ only by dots, a `+tag` or `googlemail.com` as one inbox (`sameContact`, `src/lib/contact.ts`). The code entry gains a Paste code button and no longer promises a 6-digit code; the owner set Supabase's Email OTP Length to 6. Custom repayment parts are cards with date and amount side by side in shrinkable columns, so iOS date fields no longer overlap the amount. No migration was needed.
