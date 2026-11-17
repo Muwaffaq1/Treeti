@@ -3,7 +3,7 @@
 // Each blank opens a small panel; nothing is saved until the sentence reads right.
 import * as Dialog from '@radix-ui/react-dialog';
 import {Fragment,useEffect,useRef,useState,type ReactNode} from 'react';
-import {calendarDate} from '@/lib/calendar';
+import {calendarDate,localCalendarDate} from '@/lib/calendar';
 import {currencies,currencyNames} from '@/lib/currencies';
 import {groupMoneyInput,money,moneyInput,parseMoney} from '@/lib/money';
 import {debtRemaining,debtWitnessLimit,type PersonalDebt} from '@/modules/debts/model';
@@ -44,11 +44,13 @@ function CurrencyPill({value,onChange,locked}:{value:string;onChange:(c:string)=
 export function AmountInput({label,value,onChange,currency}:{label:string;value:string;onChange:(v:string)=>void;currency:string}){
   return <label className="create-amount-row"><span className="create-amount-sign" aria-hidden>{currency==='NGN'?'₦':currency}</span><input aria-label={label} value={value} onChange={e=>{formatMoneyChange(e);onChange(e.target.value);}} inputMode="decimal" placeholder="0" maxLength={20} autoComplete="off"/></label>;
 }
-export function DatePanel({open,onOpenChange,title,description,label,value,onChange,min,future=false}:{open:boolean;onOpenChange:(o:boolean)=>void;title:string;description?:string;label:string;value:string;onChange:(v:string)=>void;min?:string;future?:boolean}){
+/** `local` measures today on the person's own clock (reminders); otherwise the agreement's Nigerian calendar. */
+export function DatePanel({open,onOpenChange,title,description,label,value,onChange,min,future=false,local=false}:{open:boolean;onOpenChange:(o:boolean)=>void;title:string;description?:string;label:string;value:string;onChange:(v:string)=>void;min?:string;future?:boolean;local?:boolean}){
   const [error,setError]=useState('');
+  const today=local?localCalendarDate():calendarDate();
   return <Panel open={open} onOpenChange={onOpenChange} title={title} description={description}>
-    <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(!value||(future?value<calendarDate():value>calendarDate())){setError(future?'Choose today or a later date.':'Choose a date on or before today.');return;}if(min&&value<min){setError(`Choose a date on or after ${formatDate(min)}.`);return;}setError('');onOpenChange(false);}}>
-      <label className="create-field"><span className="create-field-label">{label}</span><input type="date" value={value} min={future?calendarDate():min} max={future?undefined:calendarDate()} onChange={e=>onChange(e.target.value)}/></label>
+    <form className="ask-form" noValidate onSubmit={e=>{e.preventDefault();if(!value||(future?value<today:value>today)){setError(future?'Choose today or a later date.':'Choose a date on or before today.');return;}if(min&&value<min){setError(`Choose a date on or after ${formatDate(min)}.`);return;}setError('');onOpenChange(false);}}>
+      <label className="create-field"><span className="create-field-label">{label}</span><input type="date" value={value} min={future?today:min} max={future?undefined:today} onChange={e=>onChange(e.target.value)}/></label>
       <ErrorMessage message={error}/>
       <button type="submit" className="button button-primary sign-primary">Done</button>
     </form>

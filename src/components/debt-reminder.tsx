@@ -25,7 +25,7 @@ export function DebtReminderForm({debt,demo,emailAvailable,onSave,onClose}:{debt
     const result=await api<{debt:PersonalDebt}>(`${apiBase(demo)}/debts/${debt.id}/reminder`,body,request.current!.key);onSave(result.debt);
   }catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   return <Flow open onOpenChange={value=>{if(!value&&!busy)onClose();}} kicker={debt.reminder?'Change your reminder':'Reminder'} title={debt.reminder?'Change your reminder':'A little reminder, for you'} sub={`A moment to review what you owe ${firstName(debt.person)}. Only you get it.`} panels={<>
-    <DatePanel open={sheet==='day'} onOpenChange={o=>setSheet(o?'day':null)} title="Which day?" label="Reminder date" value={day} onChange={setDay} future/>
+    <DatePanel open={sheet==='day'} onOpenChange={o=>setSheet(o?'day':null)} title="Which day?" label="Reminder date" value={day} onChange={setDay} future local/>
     <Panel open={sheet==='time'} onOpenChange={o=>setSheet(o?'time':null)} title="What time?" description={`Your device time zone: ${zone}.`}>
       <form className="ask-form" onSubmit={e=>{e.preventDefault();setSheet(null);}}>
         <label className="create-field"><span className="create-field-label">Reminder time</span><input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
