@@ -6,6 +6,16 @@ The existing Supabase project and Cloudflare Worker have been promoted to **http
 
 The owner's root-domain sign-in/reload and existing-record/PDF checks remain pending. Privacy/terms/support, independent recovery and failure monitoring remain broader-launch tasks. Schedules remain disabled to protect shared quotas. Use `npm run cf:deploy:production` for future verified releases; the old staging deployment command is guarded. Newer uncommitted local UI edits were preserved and excluded from this release.
 
+## Release — quiet retries after Cloudflare cutoffs
+
+Production at **https://usetreeti.xyz** runs app commit `3e6d598` as Cloudflare version `68e57fe4-0ca4-4522-a013-ab53eaa77720` (gzip 2,919.90 KiB), deployed 20 November 2026 with `npm run cf:deploy:production`. The owner chose to stay on the Workers Free plan (about 77 users, no revenue), so the app now absorbs CPU cutoffs instead of showing them. `api()` (`src/components/client-api.ts`) retries twice, after 0.4s and 1.2s, when Cloudflare answers with its own error page, but only for reads and for writes carrying an Idempotency-Key, which the server records once. Sign-in codes and other unkeyed writes are never repeated. The error page refetches once before showing "The page could not be loaded", and Try again now refetches instead of only redrawing. No migration was needed.
+
+Measurements behind this, from `wrangler tail` and local profiling: warm requests use 6–20ms of CPU; fresh isolates use 220–400ms, almost all of it Next.js start-up, the same for any route, including a 404. A separate API Worker was measured at about 45–65ms to start in Node (realistically 60–120ms on Cloudflare), still over the free allowance, so it was not built.
+
+Production steps, in order: a fresh private snapshot (`output/backups/2026-11-20T09-43-51.316Z`, restored offline); GitHub's checks first timed out because installing Playwright's browsers took 27 minutes on the runner, then passed on re-run; `npm run cf:build` and `npm run test:workers` passed. Locally, the five new retry unit tests and 12 related browser tests passed. After the deploy, `npm run check:production` and the read-only jobs check passed with no email sent and no records changed.
+
+Rollback version: `eede8052-7287-4756-b477-23f1c7022f49`. A code rollback does not restore or delete financial data.
+
 ## Release — fewer CPU cutoffs, agreement edits in the sentence flow
 
 Production at **https://usetreeti.xyz** runs app commit `52164fb` as Cloudflare version `eede8052-7287-4756-b477-23f1c7022f49` (gzip 2,919.08 KiB), deployed 20 November 2026 with `npm run cf:deploy:production` at the owner's request, after "treeti is busy right now" and "The page could not be loaded" appeared while creating and editing an agreement. `wrangler tail` showed those were Cloudflare cutting off requests for exceeding the Workers Free CPU allowance (`exceededCpu`): requests on fresh isolates used 300–900ms of CPU, and every page view fired 4–5 background prefetches at fresh isolates. Links no longer prefetch (`src/components/app-link.tsx`) and the tapped tab highlights immediately; the PDF engine loads only when a PDF is made. Changing an agreement now uses the fill-in-the-blank sentence (prefilled terms, fixed borrower, sign and send the new version, optional "What changed?" note; drafts can Save changes). No migration was needed.
